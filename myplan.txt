@@ -52,7 +52,12 @@ SynapseLMS là hệ thống quản lý học tập mã nguồn mở dành cho tr
 - Bài luyện tập AI theo dạng micro-learning: trắc nghiệm, điền từ, sắp xếp, ghép cặp và nghe audio.
 - Học viên xem tiến độ của bản thân; giáo viên chỉ xem học viên trong lớp mình phụ trách.
 - Giao diện song ngữ Việt/Anh và dùng i18n để bổ sung ngôn ngữ về sau.
+- UI desktop-first, responsive, dùng sidebar và dashboard riêng theo vai trò.
+- Phong cách lấy cảm hứng từ macOS/iOS, hỗ trợ light/dark mode; mobile ưu tiên điểm danh và bài luyện tập.
 - Hỗ trợ Docker self-host và cloud; MVP dùng email/mật khẩu, chưa cần đăng nhập bên thứ ba.
+- Gemini API là AI mặc định của bản demo; hỗ trợ cloud API phổ biến và endpoint local như Ollama/LM Studio qua adapter.
+- Root Admin quản lý tập trung cấu hình và API key AI.
+- Học viên chọn trung tâm công khai hoặc dùng mã mời/mã trung tâm khi đăng ký.
 - MVP có thông báo trong ứng dụng và kiến trúc adapter để mở rộng email/SMS/Zalo.
 - Tài nguyên giải trí là module tùy chọn qua liên kết/nhúng hợp lệ. Không tích hợp trực tiếp Better Lyrics vì phụ thuộc tiện ích trình duyệt và có rủi ro điều khoản/bản quyền.
 
@@ -219,12 +224,19 @@ Quy ước:
 | STU-05 | Xem học phí, điểm danh và kết quả tổng hợp | P0 | 5 |
 | STU-06 | Import học viên từ CSV | P1 | 5 |
 | STU-07 | Quản lý thông tin phụ huynh/người giám hộ để liên hệ | P0 | 5 |
+| STU-08 | Chuyển học viên giữa các trung tâm và bảo toàn lịch sử được phép | P1 | 8 |
 
 **AC chính**
 
 - Email hoặc mã học viên không trùng trong cùng trung tâm.
 - Xóa hồ sơ có liên kết nghiệp vụ phải dùng lưu trữ mềm.
 - Học viên chỉ thấy dữ liệu cá nhân của mình.
+- Mã học viên duy nhất toàn hệ thống.
+- Mỗi tài khoản chỉ có một vai trò và một trung tâm hoạt động tại một thời điểm.
+- Chuyển trung tâm phải lưu lịch sử, không làm thay đổi dữ liệu nguồn.
+- Học viên khởi tạo chuyển; trung tâm cũ và trung tâm mới lần lượt xác nhận.
+- Trung tâm mới xem toàn bộ lịch sử học tập và giao dịch nguồn dưới dạng chỉ đọc.
+- Công nợ cũ không chặn chuyển, không đổi chủ sở hữu và phải được cảnh báo rõ.
 
 ## Epic 5 — Giáo viên
 
@@ -263,9 +275,11 @@ Quy ước:
 | ENR-03 | Kiểm tra học viên đã đăng ký trùng | P0 | 3 |
 | ENR-04 | Cảnh báo không đạt điều kiện trình độ | P0 | 5 |
 | ENR-05 | Chuyển lớp | P1 | 5 |
-| ENR-06 | Hủy hoặc bảo lưu đăng ký | P1 | 5 |
+| ENR-06 | Hủy hoặc bảo lưu đăng ký từ một buổi học cụ thể | P0 | 5 |
 | ENR-07 | Danh sách chờ khi lớp đầy | P2 | 5 |
-| ENR-08 | Giáo vụ duyệt hoặc từ chối yêu cầu đăng ký lớp | P0 | 5 |
+| ENR-08 | Giáo vụ duyệt hoặc từ chối yêu cầu đăng ký khóa học | P0 | 5 |
+| ENR-09 | Tự động xếp lớp và chuyển giáo vụ xử lý khi không thể xếp | P0 | 8 |
+| ENR-10 | Cấu hình cho phép đăng ký khi học viên còn công nợ | P0 | 3 |
 
 **AC cho đăng ký lớp**
 
@@ -274,6 +288,9 @@ Quy ước:
 - Việc kiểm tra sĩ số và tạo đăng ký nằm trong một transaction.
 - Hai yêu cầu đăng ký đồng thời không làm vượt sĩ số.
 - Chuyển lớp lưu được lịch sử lớp cũ và lớp mới.
+- Từ chối yêu cầu đăng ký khóa học bắt buộc phải có lý do.
+- Duyệt yêu cầu phải tạo hóa đơn ngay và chỉ tạo một lần khi retry.
+- Không xếp tự động được thì yêu cầu chuyển sang hàng chờ xếp lớp thủ công.
 
 ## Epic 8 — Học phí
 
@@ -284,7 +301,7 @@ Quy ước:
 | FEE-03 | Ghi nhận thanh toán toàn phần hoặc nhiều lần | P0 | 5 |
 | FEE-04 | Tính số đã thu và công nợ | P0 | 5 |
 | FEE-05 | Mã giảm giá theo phần trăm/số tiền, thời hạn và lượt dùng | P0 | 5 |
-| FEE-06 | Hủy hoặc hoàn tiền có lý do | P1 | 8 |
+| FEE-06 | Đề xuất và ghi nhận hoàn phí bằng tiền mặt/chuyển khoản | P0 | 8 |
 | FEE-07 | Xuất phiếu thu PDF | P1 | 5 |
 | FEE-08 | Báo cáo doanh thu và công nợ | P1 | 8 |
 | FEE-09 | Tích hợp cổng thanh toán | P2 | 13 |
@@ -296,6 +313,11 @@ Quy ước:
 - Không được xóa cứng giao dịch tài chính.
 - Việc gửi lại cùng một yêu cầu có `idempotency key` không tạo thanh toán trùng.
 - Số dư công nợ được tính nhất quán sau giảm giá, thanh toán và hoàn tiền.
+- Bảo lưu không tự động dừng các kỳ trả góp đã lập.
+- Đề xuất hoàn không vượt số tiền thực tế đã thanh toán và hiển thị được công thức tính.
+- Buổi bắt đầu bảo lưu được tính là chưa học; hoàn phí tính trên học phí sau giảm giá và phí khấu trừ cấu hình được.
+- Khoản hoàn phải bù trừ công nợ trước; chỉ phần dư mới được chi bằng tiền mặt/chuyển khoản.
+- Điều chỉnh số tiền hoàn khác đề xuất bắt buộc có lý do; không tạo ví hoặc số dư nội bộ.
 
 ## Epic 9 — Điểm danh
 
@@ -454,7 +476,7 @@ AI không được tự tạo đăng ký. Hệ thống nghiệp vụ lọc trư�
 
 ## 7. Lộ trình triển khai đề xuất
 
-Giả định đội ngũ gồm 2 backend, 2 frontend, 1 QA và 1 product/design; sprint kéo dài hai tuần.
+Mô hình thực hiện gồm một nhà phát triển chính và AI hỗ trợ phân tích, viết mã, kiểm thử và tài liệu. Công việc được triển khai theo lát cắt dọc nhỏ; không giả định có các nhóm backend, frontend và QA riêng. Hai iteration đầu dùng để đo vận tốc thực tế trước khi cam kết mốc phát hành. Sprint định hướng kéo dài hai tuần nhưng có thể chia thành checkpoint hàng tuần.
 
 ### Giai đoạn 0 — Khảo sát và thiết kế, 1 tuần
 
@@ -542,7 +564,7 @@ Tiêu chí hoàn thành Sprint 1:
 - Tối ưu hiệu năng.
 - Tài liệu triển khai và vận hành.
 
-MVP dự kiến khoảng 14–16 tuần, cộng thêm thời gian dự phòng sửa lỗi và phản hồi từ trung tâm thử nghiệm.
+MVP ước tính khoảng 18–24 tuần làm việc toàn thời gian cho một người có AI hỗ trợ; nếu làm bán thời gian, lịch phát hành cần được suy ra từ số giờ thực tế. Ước lượng này sẽ được hiệu chỉnh sau hai iteration đầu, cộng thêm thời gian dự phòng sửa lỗi và phản hồi thử nghiệm.
 
 ---
 
