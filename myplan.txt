@@ -1,0 +1,519 @@
+# Kế hoạch dự án SynapseLMS
+
+## 1. Mục tiêu
+
+SynapseLMS là hệ thống quản lý học tập mã nguồn mở dành cho trung tâm ngoại ngữ, hỗ trợ:
+
+- Quản lý học viên, giáo viên, khóa học, lớp và lịch học.
+- Đăng ký lớp, điểm danh, học phí và kết quả học tập.
+- AI tư vấn lớp phù hợp.
+- AI sinh bài luyện tập ngắn theo trình độ.
+- AI tóm tắt tiến độ học tập.
+- Có thể triển khai cho một hoặc nhiều trung tâm/chi nhánh.
+
+## 2. Phạm vi MVP
+
+### Vai trò
+
+- Quản trị hệ thống.
+- Quản lý trung tâm.
+- Nhân viên tư vấn/giáo vụ.
+- Giáo viên.
+- Học viên.
+
+### Chức năng nghiệp vụ
+
+1. Đăng nhập và phân quyền.
+2. Quản lý trung tâm, chi nhánh và phòng học.
+3. Quản lý hồ sơ học viên và giáo viên.
+4. Quản lý khóa học, cấp độ và lớp học.
+5. Xếp lịch học, phòng học và giáo viên.
+6. Đăng ký học viên vào lớp.
+7. Ghi nhận học phí và công nợ.
+8. Điểm danh từng buổi học.
+9. Nhập điểm và theo dõi kết quả.
+10. AI tư vấn lớp phù hợp.
+11. AI tạo bài luyện tập ngắn.
+12. AI tóm tắt tiến độ học viên.
+13. Báo cáo vận hành cơ bản.
+14. Kiểm thử tự động cho các luồng trọng yếu.
+
+### Ngoài phạm vi MVP
+
+- Dạy học trực tuyến/video conference.
+- Mobile app native.
+- Payroll giáo viên.
+- Kế toán đầy đủ hoặc hóa đơn điện tử.
+- Marketplace khóa học.
+- AI chấm phát âm thời gian thực.
+- Tích hợp cổng thanh toán thực tế.
+
+---
+
+## 3. Kiến trúc đề xuất
+
+| Thành phần | Công nghệ đề xuất |
+|---|---|
+| Backend | FastAPI + Python |
+| Frontend | React + TypeScript + Vite |
+| CSDL phát triển | SQLite |
+| CSDL production | PostgreSQL |
+| ORM và migration | SQLAlchemy + Alembic |
+| Xác thực | JWT access/refresh token |
+| Phân quyền | RBAC và giới hạn dữ liệu theo trung tâm |
+| AI | Lớp `AIProvider` hỗ trợ OpenAI, Gemini hoặc Ollama |
+| Kiểm thử backend | Pytest + HTTPX |
+| Kiểm thử frontend | Vitest + React Testing Library |
+| Kiểm thử E2E | Playwright |
+| CI | GitHub Actions |
+| Đóng gói | Docker Compose |
+| Tài liệu API | OpenAPI/Swagger do FastAPI sinh |
+
+FastAPI phù hợp với hệ thống cần API rõ ràng, kiểm tra kiểu dữ liệu tốt và tích hợp AI bất đồng bộ. PostgreSQL nên là CSDL production; SQLite chỉ nên dùng cho phát triển nhanh hoặc bản chạy thử đơn lẻ.
+
+### Các module backend
+
+```text
+auth
+organizations
+users
+students
+teachers
+courses
+classes
+schedules
+enrollments
+attendance
+tuition
+assessments
+ai
+reports
+audit
+```
+
+### Nguyên tắc đa trung tâm
+
+Các bảng nghiệp vụ cần có `organization_id` hoặc `branch_id`. Mọi truy vấn phải giới hạn theo tổ chức hiện tại để tránh lộ dữ liệu giữa các trung tâm.
+
+---
+
+## 4. Mô hình dữ liệu chính
+
+| Thực thể | Nội dung |
+|---|---|
+| Organization | Trung tâm sở hữu dữ liệu |
+| Branch | Chi nhánh |
+| User | Tài khoản đăng nhập |
+| Role/UserRole | Vai trò và phân quyền |
+| Student | Hồ sơ học viên, mục tiêu và trình độ |
+| Teacher | Hồ sơ và chuyên môn giáo viên |
+| Course | Chương trình học, ngôn ngữ, cấp độ |
+| Class | Lớp mở theo một khóa học |
+| Classroom | Phòng học |
+| ClassSession | Một buổi học cụ thể |
+| Enrollment | Quan hệ học viên–lớp |
+| Attendance | Trạng thái điểm danh theo buổi |
+| FeePlan | Chính sách học phí |
+| Invoice | Khoản phải thu |
+| Payment | Giao dịch thu học phí |
+| Assessment | Bài kiểm tra |
+| Score | Điểm và nhận xét |
+| PracticeExercise | Bài luyện tập do AI hoặc giáo viên tạo |
+| PracticeAttempt | Lần làm bài của học viên |
+| AIInteraction | Lịch sử yêu cầu AI, kết quả và chi phí |
+| AuditLog | Nhật ký thay đổi dữ liệu quan trọng |
+
+Nên lưu số tiền bằng kiểu `DECIMAL`, không dùng số thực. Công nợ được tính từ tổng hóa đơn trừ tổng thanh toán hợp lệ.
+
+---
+
+# 5. Product backlog
+
+Quy ước:
+
+- P0: bắt buộc cho MVP.
+- P1: quan trọng, nên có trước phiên bản đầu tiên.
+- P2: cải tiến sau MVP.
+- SP: Story Point theo dãy Fibonacci.
+- AC: tiêu chí nghiệm thu.
+
+## Epic 1 — Nền tảng và DevOps
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| PLT-01 | Khởi tạo backend FastAPI theo module | P0 | 3 |
+| PLT-02 | Khởi tạo React TypeScript và routing | P0 | 3 |
+| PLT-03 | Thiết lập PostgreSQL, SQLAlchemy và Alembic | P0 | 5 |
+| PLT-04 | Cấu hình môi trường development/test/production | P0 | 3 |
+| PLT-05 | Docker Compose cho frontend, backend và database | P1 | 5 |
+| PLT-06 | CI chạy lint, migration và test | P1 | 5 |
+| PLT-07 | Seed dữ liệu mẫu cho trung tâm demo | P1 | 3 |
+| PLT-08 | Viết tài liệu cài đặt và đóng góp mã nguồn | P1 | 3 |
+
+**AC chính**
+
+- Có thể khởi động môi trường phát triển bằng một quy trình được ghi trong README.
+- Migration tạo được CSDL mới từ đầu.
+- Pull request không được hợp nhất nếu lint hoặc test thất bại.
+- Không commit API key hay mật khẩu vào repository.
+
+## Epic 2 — Xác thực và phân quyền
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| IAM-01 | Đăng nhập bằng email và mật khẩu | P0 | 5 |
+| IAM-02 | Access token, refresh token và đăng xuất | P0 | 5 |
+| IAM-03 | Quản lý tài khoản người dùng | P0 | 5 |
+| IAM-04 | RBAC cho admin, quản lý, giáo vụ, giáo viên, học viên | P0 | 8 |
+| IAM-05 | Giới hạn dữ liệu theo trung tâm/chi nhánh | P0 | 8 |
+| IAM-06 | Đổi và đặt lại mật khẩu | P1 | 5 |
+| IAM-07 | Nhật ký đăng nhập và hành động nhạy cảm | P1 | 5 |
+
+**AC chính**
+
+- Người dùng không thể gọi API ngoài quyền của mình.
+- Người dùng trung tâm A không đọc hoặc sửa được dữ liệu trung tâm B.
+- Mật khẩu được băm bằng thuật toán phù hợp như Argon2 hoặc bcrypt.
+- Các hành động thu học phí, sửa điểm và đổi trạng thái đăng ký có audit log.
+
+## Epic 3 — Trung tâm và cơ sở vật chất
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| ORG-01 | Tạo và cập nhật thông tin trung tâm | P0 | 3 |
+| ORG-02 | Quản lý chi nhánh | P0 | 3 |
+| ORG-03 | Quản lý phòng học và sức chứa | P1 | 3 |
+| ORG-04 | Cấu hình múi giờ, tiền tệ và ngôn ngữ | P1 | 3 |
+| ORG-05 | Cấu hình nhà cung cấp AI theo trung tâm | P1 | 5 |
+
+## Epic 4 — Học viên
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| STU-01 | Thêm, xem, sửa và lưu trữ hồ sơ học viên | P0 | 5 |
+| STU-02 | Tìm kiếm, lọc và phân trang danh sách | P0 | 5 |
+| STU-03 | Ghi nhận trình độ đầu vào và mục tiêu học | P0 | 3 |
+| STU-04 | Xem lịch sử đăng ký lớp | P0 | 3 |
+| STU-05 | Xem học phí, điểm danh và kết quả tổng hợp | P0 | 5 |
+| STU-06 | Import học viên từ CSV | P1 | 5 |
+| STU-07 | Người giám hộ cho học viên nhỏ tuổi | P2 | 5 |
+
+**AC chính**
+
+- Email hoặc mã học viên không trùng trong cùng trung tâm.
+- Xóa hồ sơ có liên kết nghiệp vụ phải dùng lưu trữ mềm.
+- Học viên chỉ thấy dữ liệu cá nhân của mình.
+
+## Epic 5 — Giáo viên
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| TCH-01 | CRUD hồ sơ giáo viên | P0 | 5 |
+| TCH-02 | Ghi nhận ngôn ngữ, chứng chỉ và cấp độ có thể dạy | P0 | 3 |
+| TCH-03 | Cấu hình thời gian giáo viên có thể dạy | P1 | 5 |
+| TCH-04 | Xem lớp và lịch dạy được phân công | P0 | 3 |
+| TCH-05 | Cảnh báo trùng lịch giáo viên | P0 | 5 |
+
+## Epic 6 — Khóa học, lớp và lịch học
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| CRS-01 | Quản lý khóa học, ngôn ngữ và cấp độ | P0 | 5 |
+| CRS-02 | Khai báo điều kiện đầu vào và đầu ra | P0 | 3 |
+| CLS-01 | Mở lớp từ khóa học | P0 | 5 |
+| CLS-02 | Thiết lập sĩ số, ngày bắt đầu và kết thúc | P0 | 3 |
+| CLS-03 | Phân công một hoặc nhiều giáo viên | P0 | 3 |
+| SCH-01 | Tạo lịch học lặp theo tuần | P0 | 8 |
+| SCH-02 | Sinh danh sách các buổi học | P0 | 5 |
+| SCH-03 | Phát hiện trùng phòng và giáo viên | P0 | 8 |
+| SCH-04 | Đổi lịch hoặc hủy một buổi học | P1 | 5 |
+| SCH-05 | Hiển thị lịch dạng tuần/tháng | P1 | 5 |
+
+## Epic 7 — Đăng ký lớp
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| ENR-01 | Đăng ký một học viên vào lớp | P0 | 5 |
+| ENR-02 | Kiểm tra lớp còn chỗ | P0 | 3 |
+| ENR-03 | Kiểm tra học viên đã đăng ký trùng | P0 | 3 |
+| ENR-04 | Cảnh báo không đạt điều kiện trình độ | P0 | 5 |
+| ENR-05 | Chuyển lớp | P1 | 5 |
+| ENR-06 | Hủy hoặc bảo lưu đăng ký | P1 | 5 |
+| ENR-07 | Danh sách chờ khi lớp đầy | P2 | 5 |
+
+**AC cho đăng ký lớp**
+
+- Giao dịch chỉ thành công khi lớp còn chỗ và đang nhận đăng ký.
+- Không tạo hai đăng ký đang hoạt động cho cùng học viên và lớp.
+- Việc kiểm tra sĩ số và tạo đăng ký nằm trong một transaction.
+- Hai yêu cầu đăng ký đồng thời không làm vượt sĩ số.
+- Chuyển lớp lưu được lịch sử lớp cũ và lớp mới.
+
+## Epic 8 — Học phí
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| FEE-01 | Khai báo học phí khóa/lớp | P0 | 3 |
+| FEE-02 | Sinh hóa đơn khi đăng ký | P0 | 5 |
+| FEE-03 | Ghi nhận thanh toán toàn phần hoặc nhiều lần | P0 | 5 |
+| FEE-04 | Tính số đã thu và công nợ | P0 | 5 |
+| FEE-05 | Áp dụng giảm giá/học bổng | P1 | 5 |
+| FEE-06 | Hủy hoặc hoàn tiền có lý do | P1 | 8 |
+| FEE-07 | Xuất phiếu thu PDF | P1 | 5 |
+| FEE-08 | Báo cáo doanh thu và công nợ | P1 | 8 |
+| FEE-09 | Tích hợp cổng thanh toán | P2 | 13 |
+
+**AC cho học phí**
+
+- Tổng tiền thanh toán hợp lệ không vượt số phải thu, trừ quy trình hoàn tiền.
+- Mọi giao dịch có người thực hiện, thời gian, phương thức và mã tham chiếu.
+- Không được xóa cứng giao dịch tài chính.
+- Việc gửi lại cùng một yêu cầu có `idempotency key` không tạo thanh toán trùng.
+- Số dư công nợ được tính nhất quán sau giảm giá, thanh toán và hoàn tiền.
+
+## Epic 9 — Điểm danh
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| ATT-01 | Tạo danh sách điểm danh từ học viên trong lớp | P0 | 3 |
+| ATT-02 | Giáo viên điểm danh theo buổi | P0 | 5 |
+| ATT-03 | Trạng thái có mặt, vắng, muộn, có phép | P0 | 3 |
+| ATT-04 | Sửa điểm danh kèm lý do và audit log | P0 | 3 |
+| ATT-05 | Xem tỷ lệ chuyên cần theo học viên/lớp | P0 | 5 |
+| ATT-06 | Cảnh báo học viên nghỉ quá ngưỡng | P1 | 5 |
+| ATT-07 | Điểm danh hàng loạt trên mobile web | P1 | 5 |
+
+**AC cho điểm danh**
+
+- Chỉ học viên đăng ký hợp lệ tại ngày diễn ra buổi học được đưa vào danh sách.
+- Mỗi học viên chỉ có một bản ghi điểm danh trên một buổi.
+- Giáo viên chỉ được điểm danh lớp mình phụ trách.
+- Mọi lần chỉnh sửa sau khi chốt đều được ghi lịch sử.
+
+## Epic 10 — Kết quả học tập
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| RES-01 | Tạo đầu điểm và trọng số | P0 | 5 |
+| RES-02 | Giáo viên nhập điểm và nhận xét | P0 | 5 |
+| RES-03 | Kiểm tra giới hạn điểm hợp lệ | P0 | 3 |
+| RES-04 | Tính điểm tổng kết | P0 | 5 |
+| RES-05 | Xem tiến độ theo kỹ năng nghe, nói, đọc, viết | P1 | 5 |
+| RES-06 | Xuất bảng kết quả | P1 | 5 |
+| RES-07 | Khóa bảng điểm sau khi phê duyệt | P1 | 5 |
+
+## Epic 11 — AI tư vấn lớp
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| AI-01 | Xây dựng interface độc lập với nhà cung cấp AI | P0 | 5 |
+| AI-02 | Bộ lọc xác định các lớp thực sự đủ điều kiện | P0 | 8 |
+| AI-03 | AI xếp hạng và giải thích lớp phù hợp | P0 | 8 |
+| AI-04 | Hiển thị cảnh báo kết quả chỉ mang tính tư vấn | P0 | 2 |
+| AI-05 | Nhân viên chấp nhận hoặc bỏ qua đề xuất | P0 | 3 |
+| AI-06 | Thu thập phản hồi về chất lượng tư vấn | P1 | 3 |
+| AI-07 | Chế độ fallback khi AI không hoạt động | P0 | 5 |
+
+**Nguyên tắc**
+
+AI không được tự tạo đăng ký. Hệ thống nghiệp vụ lọc trước theo cấp độ, lịch trống, chi nhánh, sĩ số và trạng thái lớp; AI chỉ xếp hạng các lựa chọn hợp lệ và giải thích đề xuất.
+
+**AC chính**
+
+- Không đề xuất lớp đã đóng hoặc hết chỗ.
+- Không đề xuất lớp xung đột với lịch đã đăng ký.
+- Kết quả gồm lớp, mức phù hợp, lý do và các điểm cần lưu ý.
+- Khi AI lỗi hoặc quá thời gian, hệ thống trả về kết quả xếp hạng dựa trên quy tắc.
+- Không gửi thông tin định danh không cần thiết tới nhà cung cấp AI.
+
+## Epic 12 — AI sinh bài luyện tập
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| AI-08 | Chọn ngôn ngữ, cấp độ, kỹ năng và chủ đề | P0 | 3 |
+| AI-09 | Sinh bài luyện tập ngắn có đáp án | P0 | 8 |
+| AI-10 | Kiểm tra đầu ra AI theo JSON schema | P0 | 5 |
+| AI-11 | Giáo viên duyệt/sửa trước khi giao bài | P0 | 5 |
+| AI-12 | Học viên làm bài và nhận kết quả | P1 | 8 |
+| AI-13 | Sinh bài dựa trên điểm yếu của học viên | P1 | 8 |
+| AI-14 | Ngân hàng bài tập đã được duyệt | P1 | 5 |
+
+**AC chính**
+
+- Mỗi bài có mục tiêu, hướng dẫn, câu hỏi, đáp án và giải thích.
+- Độ khó phải phù hợp cấp độ được chọn.
+- Đầu ra sai schema được thử lại có giới hạn hoặc báo lỗi thân thiện.
+- Nội dung chưa được giáo viên duyệt phải được đánh dấu rõ.
+- Prompt và kết quả được lưu với phiên bản, không lưu bí mật API.
+
+## Epic 13 — AI tóm tắt tiến độ
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| AI-15 | Tổng hợp điểm, chuyên cần và bài luyện tập | P0 | 5 |
+| AI-16 | Sinh tóm tắt tiến độ có cấu trúc | P0 | 8 |
+| AI-17 | Hiển thị dữ liệu nguồn dùng để tóm tắt | P0 | 3 |
+| AI-18 | Giáo viên duyệt trước khi chia sẻ | P0 | 3 |
+| AI-19 | So sánh tiến độ theo giai đoạn | P1 | 5 |
+| AI-20 | Gợi ý kế hoạch ôn tập tiếp theo | P1 | 5 |
+
+**AC chính**
+
+- Tóm tắt chỉ sử dụng dữ liệu có trong hệ thống.
+- Nội dung phân biệt rõ dữ kiện và khuyến nghị.
+- Không tự suy diễn chẩn đoán hoặc thông tin nhạy cảm.
+- Khi thiếu dữ liệu, AI phải nói rõ mức độ thiếu thay vì tạo thông tin.
+- Học viên chỉ xem bản đã được phép chia sẻ.
+
+## Epic 14 — Báo cáo và dashboard
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| RPT-01 | Dashboard số học viên, lớp và đăng ký | P1 | 5 |
+| RPT-02 | Báo cáo sĩ số và tỷ lệ lấp đầy | P1 | 5 |
+| RPT-03 | Báo cáo chuyên cần | P1 | 5 |
+| RPT-04 | Báo cáo doanh thu và công nợ | P1 | 8 |
+| RPT-05 | Báo cáo kết quả học tập | P1 | 5 |
+| RPT-06 | Xuất CSV | P1 | 3 |
+
+## Epic 15 — Chất lượng, bảo mật và vận hành
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| QLT-01 | Unit test cho business rules | P0 | 8 |
+| QLT-02 | Integration test API và database | P0 | 8 |
+| QLT-03 | E2E test các luồng trọng yếu | P0 | 8 |
+| SEC-01 | Validation dữ liệu và xử lý lỗi thống nhất | P0 | 5 |
+| SEC-02 | Rate limit cho đăng nhập và AI | P1 | 5 |
+| SEC-03 | Quản lý secret bằng biến môi trường | P0 | 2 |
+| SEC-04 | Ẩn dữ liệu cá nhân khỏi log | P0 | 3 |
+| SEC-05 | Backup và kiểm tra phục hồi database | P1 | 5 |
+| OPS-01 | Structured logging và request ID | P1 | 3 |
+| OPS-02 | Health check và readiness check | P1 | 3 |
+| OPS-03 | Theo dõi số token, chi phí và độ trễ AI | P1 | 5 |
+| OPS-04 | Chính sách lưu giữ/xóa dữ liệu cá nhân | P1 | 5 |
+
+---
+
+## 6. Backlog kiểm thử bắt buộc
+
+| Mã test | Kịch bản | Loại |
+|---|---|---|
+| T-ENR-01 | Đăng ký thành công khi lớp còn chỗ | Integration |
+| T-ENR-02 | Từ chối đăng ký trùng | Integration |
+| T-ENR-03 | Từ chối khi lớp đầy | Integration |
+| T-ENR-04 | Hai đăng ký đồng thời không vượt sĩ số | Concurrency |
+| T-ENR-05 | Chuyển lớp cập nhật sĩ số chính xác | Integration |
+| T-FEE-01 | Đăng ký sinh đúng hóa đơn | Integration |
+| T-FEE-02 | Thanh toán nhiều lần tính đúng công nợ | Unit/Integration |
+| T-FEE-03 | Idempotency ngăn thanh toán trùng | Integration |
+| T-FEE-04 | Hoàn tiền tạo audit log và số dư đúng | Integration |
+| T-ATT-01 | Danh sách điểm danh đúng theo enrollment | Integration |
+| T-ATT-02 | Không tạo điểm danh trùng | Integration |
+| T-ATT-03 | Giáo viên khác không được điểm danh | Authorization |
+| T-ATT-04 | Sửa điểm danh lưu lịch sử | Integration |
+| T-AI-01 | Parser chấp nhận kết quả đúng schema | Unit |
+| T-AI-02 | Parser từ chối kết quả AI sai schema | Unit |
+| T-AI-03 | Timeout chuyển sang fallback | Integration |
+| T-AI-04 | AI không đề xuất lớp không hợp lệ | Integration |
+| T-AI-05 | Prompt không chứa dữ liệu cá nhân ngoài whitelist | Security |
+| T-AI-06 | Tóm tắt không có số liệu ngoài dữ liệu đầu vào | Evaluation |
+| T-E2E-01 | Học viên → đăng ký → hóa đơn → thanh toán | E2E |
+| T-E2E-02 | Giáo viên → buổi học → điểm danh → kết quả | E2E |
+| T-E2E-03 | Tư vấn AI → nhân viên duyệt → đăng ký lớp | E2E |
+
+Đối với test AI, không nên gọi API thật trong CI mặc định. Cần mock `AIProvider` bằng các phản hồi cố định. Có thể chạy một bộ evaluation riêng với nhà cung cấp thật theo lịch hoặc trước khi phát hành.
+
+---
+
+## 7. Lộ trình triển khai đề xuất
+
+Giả định đội ngũ gồm 2 backend, 2 frontend, 1 QA và 1 product/design; sprint kéo dài hai tuần.
+
+### Giai đoạn 0 — Khảo sát và thiết kế, 1 tuần
+
+- Chốt vai trò và quy trình vận hành.
+- Chốt quy tắc đăng ký, học phí, hoàn tiền và bảo lưu.
+- Thiết kế wireframe.
+- Thiết kế ERD và API conventions.
+- Xác định giấy phép mã nguồn mở, đề xuất Apache-2.0 hoặc AGPL-3.0.
+
+### Sprint 1 — Nền tảng, tài khoản và trung tâm
+
+- PLT-01 đến PLT-04.
+- IAM-01 đến IAM-05.
+- ORG-01 đến ORG-03.
+- CI kiểm tra backend và frontend cơ bản.
+
+### Sprint 2 — Học viên, giáo viên và khóa học
+
+- STU-01 đến STU-05.
+- TCH-01, TCH-02 và TCH-04.
+- CRS-01, CRS-02.
+- Test phân quyền và cách ly dữ liệu.
+
+### Sprint 3 — Lớp, lịch và đăng ký
+
+- CLS-01 đến CLS-03.
+- SCH-01 đến SCH-03.
+- ENR-01 đến ENR-04.
+- Hoàn thiện test đăng ký và cạnh tranh sĩ số.
+
+### Sprint 4 — Học phí và điểm danh
+
+- FEE-01 đến FEE-04.
+- ATT-01 đến ATT-05.
+- Audit log cho nghiệp vụ nhạy cảm.
+- Test học phí và điểm danh.
+
+### Sprint 5 — Kết quả học tập và AI tư vấn
+
+- RES-01 đến RES-04.
+- AI-01 đến AI-07.
+- Fallback dựa trên quy tắc.
+- Kiểm thử bảo mật dữ liệu gửi cho AI.
+
+### Sprint 6 — AI luyện tập và tóm tắt
+
+- AI-08 đến AI-12.
+- AI-15 đến AI-18.
+- Schema validation, moderation và quy trình giáo viên duyệt.
+- Test mock và evaluation dataset.
+
+### Sprint 7 — Báo cáo, hardening và beta
+
+- Dashboard và báo cáo P1 quan trọng.
+- E2E test.
+- Kiểm tra quyền truy cập.
+- Backup/restore.
+- Tối ưu hiệu năng.
+- Tài liệu triển khai và vận hành.
+
+MVP dự kiến khoảng 14–16 tuần, cộng thêm thời gian dự phòng sửa lỗi và phản hồi từ trung tâm thử nghiệm.
+
+---
+
+## 8. Definition of Done
+
+Một backlog item chỉ hoàn thành khi:
+
+- Tiêu chí nghiệm thu đã đạt.
+- Backend có migration nếu thay đổi dữ liệu.
+- API có validation, phân quyền và lỗi chuẩn hóa.
+- UI có trạng thái tải, rỗng và lỗi.
+- Unit/integration test phù hợp đã được bổ sung.
+- Không làm hỏng bộ test hiện tại.
+- Không có lỗi lint hoặc type-check.
+- API và tài liệu người dùng được cập nhật.
+- Dữ liệu nhạy cảm không xuất hiện trong log.
+- Reviewer khác đã kiểm tra mã nguồn.
+
+## 9. Tiêu chí phát hành MVP
+
+- Các backlog P0 hoàn thành.
+- Luồng đăng ký, học phí, điểm danh và AI vượt qua E2E test.
+- Không còn lỗi bảo mật mức nghiêm trọng hoặc cao.
+- Có backup và đã thử phục hồi thành công.
+- AI có timeout, retry giới hạn, fallback và theo dõi chi phí.
+- Có dữ liệu demo, hướng dẫn cài đặt và giấy phép mã nguồn mở.
+- Một trung tâm thử nghiệm hoàn thành ít nhất một chu trình: mở lớp → đăng ký → thu phí → học → điểm danh → nhập kết quả → tóm tắt tiến độ.
