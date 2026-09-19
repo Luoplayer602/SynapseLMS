@@ -38,6 +38,24 @@ SynapseLMS là hệ thống quản lý học tập mã nguồn mở dành cho tr
 13. Báo cáo vận hành cơ bản.
 14. Kiểm thử tự động cho các luồng trọng yếu.
 
+### Quyết định khảo sát đã chốt
+
+- Một hệ thống có thể phục vụ nhiều trung tâm; Root Admin quản lý vòng đời tenant, còn dữ liệu nghiệp vụ được cách ly theo trung tâm.
+- Phụ huynh/người giám hộ được lưu dưới dạng thông tin liên hệ của học viên, chưa có tài khoản riêng trong MVP.
+- Học viên có thể tự tạo tài khoản và xem dữ liệu cá nhân; yêu cầu đăng ký lớp phải được giáo vụ duyệt.
+- Một lớp có thể có nhiều giáo viên và phân công giáo viên dạy thay theo từng buổi.
+- Hỗ trợ lịch lặp hằng tuần, lịch linh hoạt theo buổi và trường liên kết lớp học trực tuyến; chưa tích hợp trực tiếp Zoom/Google Meet trong MVP.
+- Học phí theo khóa học, cho phép trả góp, mã giảm giá, bảo lưu thủ công, hoàn phí và xuất phiếu thu cơ bản.
+- Điểm danh gồm có mặt, vắng có phép, vắng không phép, đi muộn, về sớm và ghi chú; QR check-in để sau MVP.
+- Điểm số dùng mẫu của khóa học, theo dõi nghe/nói/đọc/viết; điều kiện hoàn thành và thời điểm công bố được cấu hình.
+- AI tư vấn lớp sử dụng các tiêu chí tùy chọn: đầu vào, mục tiêu, độ tuổi, lịch rảnh, hình thức học và ngân sách.
+- Bài luyện tập AI theo dạng micro-learning: trắc nghiệm, điền từ, sắp xếp, ghép cặp và nghe audio.
+- Học viên xem tiến độ của bản thân; giáo viên chỉ xem học viên trong lớp mình phụ trách.
+- Giao diện song ngữ Việt/Anh và dùng i18n để bổ sung ngôn ngữ về sau.
+- Hỗ trợ Docker self-host và cloud; MVP dùng email/mật khẩu, chưa cần đăng nhập bên thứ ba.
+- MVP có thông báo trong ứng dụng và kiến trúc adapter để mở rộng email/SMS/Zalo.
+- Tài nguyên giải trí là module tùy chọn qua liên kết/nhúng hợp lệ. Không tích hợp trực tiếp Better Lyrics vì phụ thuộc tiện ích trình duyệt và có rủi ro điều khoản/bản quyền.
+
 ### Ngoài phạm vi MVP
 
 - Dạy học trực tuyến/video conference.
@@ -149,6 +167,8 @@ Quy ước:
 | PLT-06 | CI chạy lint, migration và test | P1 | 5 |
 | PLT-07 | Seed dữ liệu mẫu cho trung tâm demo | P1 | 3 |
 | PLT-08 | Viết tài liệu cài đặt và đóng góp mã nguồn | P1 | 3 |
+| PLT-09 | Thiết lập i18n Việt/Anh và cơ chế bổ sung ngôn ngữ | P0 | 5 |
+| NTF-01 | Xây dựng khung thông báo trong ứng dụng | P0 | 5 |
 
 **AC chính**
 
@@ -168,6 +188,7 @@ Quy ước:
 | IAM-05 | Giới hạn dữ liệu theo trung tâm/chi nhánh | P0 | 8 |
 | IAM-06 | Đổi và đặt lại mật khẩu | P1 | 5 |
 | IAM-07 | Nhật ký đăng nhập và hành động nhạy cảm | P1 | 5 |
+| IAM-08 | Học viên tự đăng ký tài khoản và hoàn thiện hồ sơ xét duyệt | P0 | 5 |
 
 **AC chính**
 
@@ -185,6 +206,7 @@ Quy ước:
 | ORG-03 | Quản lý phòng học và sức chứa | P1 | 3 |
 | ORG-04 | Cấu hình múi giờ, tiền tệ và ngôn ngữ | P1 | 3 |
 | ORG-05 | Cấu hình nhà cung cấp AI theo trung tâm | P1 | 5 |
+| ORG-06 | Root Admin quản lý nhiều trung tâm và vòng đời tenant | P0 | 5 |
 
 ## Epic 4 — Học viên
 
@@ -196,7 +218,7 @@ Quy ước:
 | STU-04 | Xem lịch sử đăng ký lớp | P0 | 3 |
 | STU-05 | Xem học phí, điểm danh và kết quả tổng hợp | P0 | 5 |
 | STU-06 | Import học viên từ CSV | P1 | 5 |
-| STU-07 | Người giám hộ cho học viên nhỏ tuổi | P2 | 5 |
+| STU-07 | Quản lý thông tin phụ huynh/người giám hộ để liên hệ | P0 | 5 |
 
 **AC chính**
 
@@ -228,6 +250,9 @@ Quy ước:
 | SCH-03 | Phát hiện trùng phòng và giáo viên | P0 | 8 |
 | SCH-04 | Đổi lịch hoặc hủy một buổi học | P1 | 5 |
 | SCH-05 | Hiển thị lịch dạng tuần/tháng | P1 | 5 |
+| SCH-06 | Phân công giáo viên dạy thay theo từng buổi | P0 | 5 |
+| SCH-07 | Cấu hình liên kết lớp học trực tuyến | P1 | 3 |
+| MED-01 | Gắn tài nguyên giải trí tùy chọn qua YouTube/YouTube Music | P2 | 5 |
 
 ## Epic 7 — Đăng ký lớp
 
@@ -240,6 +265,7 @@ Quy ước:
 | ENR-05 | Chuyển lớp | P1 | 5 |
 | ENR-06 | Hủy hoặc bảo lưu đăng ký | P1 | 5 |
 | ENR-07 | Danh sách chờ khi lớp đầy | P2 | 5 |
+| ENR-08 | Giáo vụ duyệt hoặc từ chối yêu cầu đăng ký lớp | P0 | 5 |
 
 **AC cho đăng ký lớp**
 
@@ -257,7 +283,7 @@ Quy ước:
 | FEE-02 | Sinh hóa đơn khi đăng ký | P0 | 5 |
 | FEE-03 | Ghi nhận thanh toán toàn phần hoặc nhiều lần | P0 | 5 |
 | FEE-04 | Tính số đã thu và công nợ | P0 | 5 |
-| FEE-05 | Áp dụng giảm giá/học bổng | P1 | 5 |
+| FEE-05 | Mã giảm giá theo phần trăm/số tiền, thời hạn và lượt dùng | P0 | 5 |
 | FEE-06 | Hủy hoặc hoàn tiền có lý do | P1 | 8 |
 | FEE-07 | Xuất phiếu thu PDF | P1 | 5 |
 | FEE-08 | Báo cáo doanh thu và công nợ | P1 | 8 |
@@ -432,18 +458,45 @@ Giả định đội ngũ gồm 2 backend, 2 frontend, 1 QA và 1 product/design
 
 ### Giai đoạn 0 — Khảo sát và thiết kế, 1 tuần
 
-- Chốt vai trò và quy trình vận hành.
-- Chốt quy tắc đăng ký, học phí, hoàn tiền và bảo lưu.
-- Thiết kế wireframe.
-- Thiết kế ERD và API conventions.
-- Xác định giấy phép mã nguồn mở, đề xuất Apache-2.0 hoặc AGPL-3.0.
+| Ngày | Công việc | Kết quả |
+|---|---|---|
+| 1 | Chuẩn hóa yêu cầu, vai trò và phạm vi MVP | PRD v1 và sơ đồ vai trò |
+| 2 | Thiết kế tenant, RBAC và các luồng duyệt | Ma trận quyền và sơ đồ luồng |
+| 3 | Thiết kế dữ liệu | ERD v1 và quy tắc cách ly tenant |
+| 4 | Thiết kế wireframe các luồng chính | Wireframe cho Root Admin, quản lý, giáo vụ, giáo viên và học viên |
+| 5 | Thiết kế API, AI boundary, bảo mật và triển khai | API conventions, ADR và Definition of Done |
+
+Đầu ra bắt buộc:
+
+- PRD và phạm vi MVP đã được chốt.
+- Ma trận quyền từ Root Admin đến học viên.
+- ERD v1 có `organization_id`/`branch_id` và quy tắc cách ly dữ liệu.
+- Luồng tự đăng ký, duyệt đăng ký lớp, học phí, bảo lưu và hoàn phí.
+- Wireframe các màn hình chính.
+- Thiết kế adapter AI, cơ chế fallback và chính sách dữ liệu cá nhân.
+- Phương án Docker self-host và triển khai cloud.
+- Quy ước i18n Việt/Anh và bổ sung ngôn ngữ sau này.
+- Giấy phép mã nguồn mở AGPL-3.0; có thể bổ sung mô hình giấy phép kép trong tương lai.
 
 ### Sprint 1 — Nền tảng, tài khoản và trung tâm
 
-- PLT-01 đến PLT-04.
-- IAM-01 đến IAM-05.
-- ORG-01 đến ORG-03.
-- CI kiểm tra backend và frontend cơ bản.
+- PLT-01 đến PLT-04 và PLT-09.
+- NTF-01: khung thông báo trong ứng dụng.
+- IAM-01 đến IAM-05 và IAM-08.
+- ORG-01 đến ORG-03 và ORG-06.
+- Docker Compose, migration, seed dữ liệu cho ít nhất hai tenant.
+- CI chạy lint, type-check, migration và test.
+
+Tiêu chí hoàn thành Sprint 1:
+
+- Root Admin tạo và quản lý được hai trung tâm độc lập.
+- Người dùng của trung tâm A không thể truy cập dữ liệu trung tâm B.
+- Đăng nhập, refresh token và đăng xuất hoạt động đúng.
+- API từ chối hành động không đúng vai trò.
+- Học viên tự tạo tài khoản và hoàn thiện hồ sơ chờ xét duyệt.
+- Giao diện chuyển đổi được giữa tiếng Việt và tiếng Anh.
+- Thông báo trong ứng dụng có cấu trúc sẵn sàng mở rộng sang email/SMS/Zalo.
+- Hệ thống khởi động được bằng Docker Compose và CI vượt qua toàn bộ kiểm tra.
 
 ### Sprint 2 — Học viên, giáo viên và khóa học
 
