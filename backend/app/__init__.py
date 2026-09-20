@@ -1,0 +1,2 @@
+"""SynapseLMS API package."""
+
