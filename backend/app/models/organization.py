@@ -10,4 +10,7 @@ class Organization(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(80), nullable=False, unique=True, index=True)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-
+    is_public: Mapped[bool] = mapped_column(default=False, server_default="false", nullable=False)
+    registration_enabled: Mapped[bool] = mapped_column(
+        default=False, server_default="false", nullable=False
+    )

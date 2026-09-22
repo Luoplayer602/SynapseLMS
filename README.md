@@ -19,6 +19,14 @@ compose.yaml
 2. Run `docker compose up --build`.
 3. Open the frontend at `http://localhost:5173` and API docs at `http://localhost:8000/docs`.
 
+Apply database migrations with `docker compose exec -T api .venv/bin/alembic upgrade head`.
+The current Compose configuration copies source into images; it does not hot-reload local edits.
+After changing code, rebuild the affected service with `docker compose up -d --build --no-deps api`
+or replace `api` with `web`. PostgreSQL can stay running.
+
+Authentication database tests and migration details: [AUTH-01](docs/auth-foundation.md).
+Authentication, Root Admin bootstrap and browser tests: [Auth operations](docs/auth-operations.md).
+
 ### Without Docker
 
 Backend:
@@ -51,4 +59,3 @@ npm.cmd run build
 ```
 
 Project planning and decisions are indexed in [docs/README.md](docs/README.md).
-

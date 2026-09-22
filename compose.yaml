@@ -19,7 +19,9 @@ services:
     environment:
       SYNAPSE_ENV: development
       SYNAPSE_DEBUG: "true"
-      SYNAPSE_DATABASE_URL: postgresql+psycopg://synapse:${POSTGRES_PASSWORD:-synapse-dev}@db:5432/${POSTGRES_DB:-synapse}
+      SYNAPSE_JWT_SECRET: ${SYNAPSE_JWT_SECRET:-}
+      SYNAPSE_COOKIE_SECURE: "false"
+      SYNAPSE_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-synapse}:${POSTGRES_PASSWORD:-synapse-dev}@db:5432/${POSTGRES_DB:-synapse}
       SYNAPSE_CORS_ORIGINS: '["http://localhost:5173"]'
     ports:
       - "8000:8000"
@@ -39,4 +41,3 @@ services:
 
 volumes:
   postgres_data:
-

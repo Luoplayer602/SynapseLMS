@@ -1,6 +1,7 @@
+import secrets
 from functools import lru_cache
 
-from pydantic import AnyHttpUrl, Field
+from pydantic import AnyHttpUrl, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,10 +17,33 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     env: str = "development"
     debug: bool = False
+    jwt_secret: SecretStr | None = None
+    jwt_issuer: str = "synapselms"
+    jwt_audience: str = "synapselms-web"
+    access_minutes: int = Field(default=15, ge=1, le=60)
+    session_days: int = Field(default=7, ge=1, le=30)
+    cookie_secure: bool = False
     database_url: str = "sqlite+aiosqlite:///./synapse.db"
     cors_origins: list[AnyHttpUrl] = Field(
         default_factory=lambda: [AnyHttpUrl("http://localhost:5173")]
     )
+
+    @model_validator(mode="after")
+    def validate_security(self):
+        production = self.env not in {"development", "test"}
+        if self.jwt_secret is None or not self.jwt_secret.get_secret_value():
+            if production:
+                raise ValueError("SYNAPSE_JWT_SECRET is required outside development/test")
+            # Development-only ephemeral key: restarting signs out existing clients.
+            self.jwt_secret = SecretStr(secrets.token_urlsafe(48))
+        key = self.jwt_secret.get_secret_value()
+        if len(key) < 48 or len(set(key)) < 16:
+            raise ValueError("JWT secret must be a random value of at least 48 characters")
+        if production and (self.debug or not self.cookie_secure):
+            raise ValueError("Production requires debug=false and cookie_secure=true")
+        if production and any(origin.scheme != "https" for origin in self.cors_origins):
+            raise ValueError("Production CORS origins must use HTTPS")
+        return self
 
 
 @lru_cache

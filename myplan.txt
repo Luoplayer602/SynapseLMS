@@ -443,6 +443,25 @@ AI không được tự tạo đăng ký. Hệ thống nghiệp vụ lọc trư�
 
 ---
 
+## Epic 16 — Giáo trình và tài liệu tham khảo (đề xuất bổ sung)
+
+Chi tiết luồng, mô hình dữ liệu, quyền mặc định đề xuất và AC: `docs/workflows/learning-materials.md`. Chưa triển khai; mã MAT dưới đây là backlog trong kế hoạch, chưa đồng bộ thành issue Jira.
+
+| ID | Backlog item | Ưu tiên | SP |
+|---|---|---:|---:|
+| MAT-01 | Model/migration học liệu và ràng buộc tenant | P1 | 5 |
+| MAT-02 | Storage private, upload/finalize, kiểm tra file và quota | P1 | 8 |
+| MAT-03 | Thư viện, tìm kiếm/lọc, bản nháp và duyệt | P1 | 5 |
+| MAT-04 | Giáo trình chương/bài, phiên bản và gắn khóa | P1 | 8 |
+| MAT-05 | Gắn lớp/buổi, công bố và thông báo | P1 | 5 |
+| MAT-06 | Trang tài liệu học viên, xem/nghe/tải có phân quyền | P1 | 8 |
+| MAT-07 | Nâng phiên bản, archive/withdraw, audit và restore | P1 | 5 |
+| MAT-08 | DOCX/PPTX/video và chuyển đổi xem trước | P2 | 8 |
+| MAT-09 | Theo dõi đọc/nghe và tìm kiếm trong nội dung | P2 | 5 |
+| MAT-10 | AI sử dụng học liệu có quyền truy cập và trích nguồn | P2 | 8 |
+
+Đây là luồng bổ sung, chỉ triển khai khi phù hợp, không chặn giai đoạn xác thực hay beta hiện tại. Nếu đưa module vào triển khai: MAT-01–03 trước; MAT-04–06 sau khi khóa/lớp/lịch/đăng ký đã có; MAT-07 trước khi phát hành module học liệu. Ưu tiên P1/P2 trong bảng là thứ tự nội bộ của module; ước lượng MVP cũ chưa bao gồm phần này. Không giả định có thêm người thực hiện.
+
 ## 6. Backlog kiểm thử bắt buộc
 
 | Mã test | Kịch bản | Loại |
@@ -469,6 +488,12 @@ AI không được tự tạo đăng ký. Hệ thống nghiệp vụ lọc trư�
 | T-E2E-01 | Học viên → đăng ký → hóa đơn → thanh toán | E2E |
 | T-E2E-02 | Giáo viên → buổi học → điểm danh → kết quả | E2E |
 | T-E2E-03 | Tư vấn AI → nhân viên duyệt → đăng ký lớp | E2E |
+| T-MAT-01 | Chặn xem/tải/search khác tenant, lớp và tài liệu đáp án | Authorization/Integration |
+| T-MAT-02 | File không đạt kiểm tra, quota và retry upload | Integration/Concurrency |
+| T-MAT-03 | Phiên bản giáo trình không tự thay nội dung lớp đang học | Integration |
+| T-MAT-04 | Công bố → học viên xem → thu hồi → chặn truy cập | E2E |
+| T-MAT-05 | Quyền học liệu khi bảo lưu, kết thúc khóa và chuyển trung tâm | Authorization |
+| T-MAT-06 | Khôi phục metadata, file và quyền truy cập từ backup | Recovery |
 
 Đối với test AI, không nên gọi API thật trong CI mặc định. Cần mock `AIProvider` bằng các phản hồi cố định. Có thể chạy một bộ evaluation riêng với nhà cung cấp thật theo lịch hoặc trước khi phát hành.
 
@@ -592,3 +617,35 @@ Một backlog item chỉ hoàn thành khi:
 - AI có timeout, retry giới hạn, fallback và theo dõi chi phí.
 - Có dữ liệu demo, hướng dẫn cài đặt và giấy phép mã nguồn mở.
 - Một trung tâm thử nghiệm hoàn thành ít nhất một chu trình: mở lớp → đăng ký → thu phí → học → điểm danh → nhập kết quả → tóm tắt tiến độ.
+
+## 10. Tiến độ triển khai xác thực — 2026-09-20
+
+- AUTH-01 là bước kỹ thuật thuộc IAM-01/IAM-02/IAM-08, không thay thế ID backlog đã có trên Jira.
+- Bổ sung model tài khoản và phiên đăng nhập, digest refresh token, ràng buộc email không phân biệt hoa thường và migration `20260920_0002`.
+- AUTH-01 đã qua Ruff, 19 test cục bộ và 34 test trong Docker (SQLite/PostgreSQL), gồm nâng/hạ/nâng migration có dữ liệu cũ và kiểm tra đồng bộ model/schema. Migration đã áp dụng vào PostgreSQL phát triển.
+- Giữ quyết định đã chốt: một vai trò và một trung tâm hoạt động/tài khoản; lịch sử membership được bảo toàn khi chuyển. Root Admin dùng phiên hỗ trợ có audit.
+- Chờ duyệt đăng ký khóa học độc lập với quyền đăng nhập tài khoản.
+- Tiếp theo: API đăng ký/đăng nhập → refresh/logout → RBAC/tenant isolation → giao diện theo vai trò. Các story IAM chỉ Done khi API và kiểm thử tương ứng hoàn tất.
+- Chi tiết phạm vi, kiểm thử và vận hành: `docs/auth-foundation.md`.
+- Có thể giữ database Docker hoạt động trong lúc phát triển. Compose hiện không hot-reload; cần rebuild service sau khi sửa mã nguồn.
+
+## 11. Kế hoạch tiếp theo và mở rộng học liệu
+
+- Checkpoint 1: IAM-08/IAM-01 — chọn trung tâm được phép đăng ký, tạo tài khoản/membership học viên trong một transaction, đăng nhập và `/auth/me`; bootstrap Root Admin qua CLI.
+- Checkpoint 2: IAM-02 — refresh rotation nguyên tử, xử lý replay, logout và thu hồi phiên; test cạnh tranh trên PostgreSQL.
+- Checkpoint 3: IAM-04/IAM-05/IAM-03 — RBAC, trạng thái user/tenant/membership và cách ly dữ liệu; Root Admin chỉ hỗ trợ tenant qua phiên có audit.
+- Checkpoint 4: UI Việt/Anh đăng ký/đăng nhập, hồ sơ, sidebar và E2E. Chi tiết: `docs/auth-next-step.md`.
+- Sau đó đưa Epic 16 vào lịch triển khai theo phụ thuộc, không chen toàn bộ học liệu vào bước auth. Phần cơ bản hỗ trợ PDF, ảnh, audio và link; giáo trình có chương/bài, phiên bản và gắn khóa/lớp/buổi.
+- Quyền học liệu, công bố và truy cập sau khóa học hiện là mặc định đề xuất trong `docs/workflows/learning-materials.md`, chưa thay thế các quyết định đã chốt ở PRD/RBAC.
+
+## 12. Tiến độ xác thực/phân quyền — 2026-09-21
+
+- Đã triển khai đăng ký học viên vào trung tâm công khai/mã mời, đăng nhập, `/auth/me`, refresh rotation/replay detection, logout và đổi mật khẩu.
+- Có bootstrap Root Admin qua CLI; không tạo sẵn mật khẩu quản trị. Seed hai trung tâm chỉ phục vụ phát triển.
+- Có API/UI quản lý trung tâm, tạo/sửa vai trò/khóa membership, mã mời học viên và phiên hỗ trợ Root Admin có audit. UI Việt/Anh cho các màn hiện có.
+- Có migration `20260920_0003`, rate limit dùng DB, kiểm tra Origin/custom header, cookie HttpOnly và cấu hình production fail-closed.
+- Kiểm chứng: 81 test backend SQLite/PostgreSQL đạt; 2 skip chỉ thuộc bản SQLite của các test concurrency đã đạt trên PostgreSQL; 3 test frontend và 2 E2E Chromium đạt; Ruff, ESLint và build đạt.
+- Jira: IAM-01/IAM-02 Done; IAM-03/IAM-04/IAM-05/IAM-08 In Progress với phạm vi còn lại ghi rõ. Mã nguồn chưa được commit.
+- Quyền tenant đã áp dụng cho API tài khoản/trung tâm; quyền lớp/buổi/chi nhánh sẽ kiểm thử khi xây module đó. Chưa đánh dấu hoàn tất toàn bộ IAM-04/IAM-05/IAM-08 vì còn quyền nghiệp vụ và hồ sơ xét duyệt.
+- Hướng dẫn khởi động/kiểm thử và các giới hạn hiện tại: `docs/auth-operations.md`.
+- Thư viện học liệu vẫn là backlog bổ sung; chưa có code hoặc migration học liệu.

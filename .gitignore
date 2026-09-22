@@ -22,4 +22,6 @@ uploads/
 .vscode/
 .DS_Store
 Thumbs.db
-
+# Browser test artifacts
+frontend/test-results/
+frontend/playwright-report/

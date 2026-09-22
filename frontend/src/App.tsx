@@ -1,102 +1,100 @@
-import { NavLink, Route, Routes } from 'react-router'
-
-const navigation = [
-  ['Tổng quan', '/'],
-  ['Học viên', '/students'],
-  ['Khóa học', '/courses'],
-  ['Lớp học', '/classes'],
-  ['Lịch học', '/schedule'],
-]
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <section className="content">
-      <p className="eyebrow">Sprint 1</p>
-      <h1>{title}</h1>
-      <article className="card readiness">
-        <div>
-          <h2>Module đang được xây dựng</h2>
-          <p>Route đã sẵn sàng để nối API và chính sách quyền theo vai trò.</p>
-        </div>
-        <span className="status">Đang thực hiện</span>
-      </article>
-    </section>
-  )
-}
-
-function DashboardPage() {
-  return (
-    <section className="content">
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">Thứ bảy, 19 tháng 9</p>
-          <h1>Chào mừng đến SynapseLMS</h1>
-          <p>Nền tảng quản lý trung tâm ngoại ngữ đang sẵn sàng.</p>
-        </div>
-        <button className="primary" type="button">Bắt đầu thiết lập</button>
-      </div>
-
-      <div className="metric-grid">
-        {[
-          ['Trạng thái API', 'Hoạt động'],
-          ['Chế độ', 'Multi-tenant'],
-          ['Ngôn ngữ', 'VI / EN'],
-        ].map(([label, value]) => (
-          <article className="card" key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-          </article>
-        ))}
-      </div>
-
-      <article className="card readiness">
-        <div>
-          <h2>Nền tảng Sprint 1</h2>
-          <p>FastAPI, React, PostgreSQL và tenant context đã được khởi tạo.</p>
-        </div>
-        <span className="status">Đang thực hiện</span>
-      </article>
-    </section>
-  )
-}
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
+import { NavLink, Navigate, Route, Routes } from 'react-router'
+import { api, ApiError, clearSession, setSupportSession, signIn, signOut } from './api'
+import type { Organization, Profile } from './api'
+import { errorMessage, translate } from './i18n'
+import type { Language } from './i18n'
+import { Centers, Members } from './Management'
 
 export default function App() {
-  return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand-mark" aria-hidden="true">S</div>
-        <div>
-          <strong>SynapseLMS</strong>
-          <p>Trung tâm demo</p>
-        </div>
-        <nav aria-label="Điều hướng chính">
-          {navigation.map(([label, path]) => (
-            <NavLink className={({ isActive }) => (isActive ? 'active' : '')} end={path === '/'} to={path} key={path}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+  const [language, setLanguage] = useState<Language>('vi')
+  const t = (key: string) => translate(language, key)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [registering, setRegistering] = useState(false)
+  const [useInvite, setUseInvite] = useState(false)
+  const [centers, setCenters] = useState<Organization[]>([])
+  const [support, setSupport] = useState<{ id: string; name: string } | null>(null)
+  const showError = (e: unknown) => setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED')
+  useEffect(() => {
+    let cancelled = false
+    api<Profile>('/auth/me').then(p => { if (!cancelled) setProfile(p) })
+      .catch(e => { if (!cancelled && !(e instanceof ApiError && e.status === 401)) setError('REQUEST_FAILED') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    const signedOut = () => { setProfile(null); setSupport(null) }
+    window.addEventListener('synapse-signed-out', signedOut)
+    return () => { cancelled = true; window.removeEventListener('synapse-signed-out', signedOut) }
+  }, [])
+  useEffect(() => { document.documentElement.lang = language }, [language])
+  useEffect(() => {
+    if (!registering) return
+    let cancelled = false
+    api<Organization[]>('/organizations/public').then(data => { if (!cancelled) setCenters(data) })
+      .catch(() => { if (!cancelled) setError('REQUEST_FAILED') })
+    return () => { cancelled = true }
+  }, [registering])
 
-      <main>
-        <header className="topbar">
-          <span>Tổng quan</span>
-          <div className="topbar-actions">
-            <button type="button">VI</button>
-            <button type="button" aria-label="Thông báo">●</button>
-            <div className="avatar">A</div>
-          </div>
-        </header>
-
-        <Routes>
-          <Route index element={<DashboardPage />} />
-          <Route path="students" element={<PlaceholderPage title="Học viên" />} />
-          <Route path="courses" element={<PlaceholderPage title="Khóa học" />} />
-          <Route path="classes" element={<PlaceholderPage title="Lớp học" />} />
-          <Route path="schedule" element={<PlaceholderPage title="Lịch học" />} />
-          <Route path="*" element={<PlaceholderPage title="Không tìm thấy trang" />} />
-        </Routes>
-      </main>
-    </div>
-  )
+  async function authenticate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const email = String(form.get('email')), password = String(form.get('password'))
+      if (registering) {
+        await api('/auth/register', 'POST', { email, password, display_name: form.get('name'),
+          ...(useInvite ? { invite_code: form.get('invite') } : { organization_id: form.get('center') }) })
+        setRegistering(false); setNotice('registered')
+      } else { await signIn(email, password); setProfile(await api<Profile>('/auth/me')) }
+    } catch (e) { showError(e) } finally { setBusy(false) }
+  }
+  async function logout() {
+    setBusy(true); setError('')
+    try { await signOut(); setProfile(null); setSupport(null) }
+    catch (e) { showError(e) } finally { setBusy(false) }
+  }
+  async function passwordChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = new FormData(event.currentTarget)
+    setBusy(true); setError('')
+    try {
+      await api('/auth/password', 'POST', { current_password: form.get('currentPassword'), password: form.get('password') })
+      clearSession(); setNotice('passwordChanged')
+    } catch (e) { showError(e) } finally { setBusy(false) }
+  }
+  const languageButton = <button type="button" onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button>
+  const messages = <>{error && <p role="alert" className="error">{errorMessage(language, error)}</p>}{notice && <p role="status">{t(notice)}</p>}</>
+  if (loading) return <main className="auth-page"><p role="status">{t('loading')}</p></main>
+  if (!profile) return <main className="auth-page"><header>{languageButton}</header>
+    <section className="card auth-card"><div className="brand-mark" aria-hidden="true">S</div><p className="eyebrow">SynapseLMS</p>
+      <h1>{t(registering ? 'register' : 'login')}</h1><p>{t('intro')}</p>{messages}
+      <form key={registering ? 'register' : 'login'} onSubmit={authenticate}>
+        {registering && <label>{t('name')}<input name="name" autoComplete="name" maxLength={200} required /></label>}
+        <label>{t('email')}<input name="email" type="email" autoComplete="username" required /></label>
+        <label>{t('password')}<input name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'} minLength={registering ? 12 : 1} maxLength={128} required /></label>
+        {registering && <><small>{t('passwordHint')}</small><label className="check"><input type="checkbox" checked={useInvite} onChange={e => setUseInvite(e.target.checked)} />{t('useInvite')}</label>
+          {useInvite ? <label>{t('invite')}<input name="invite" minLength={20} required /></label> : <label>{t('center')}
+            <select name="center" defaultValue="" required><option value="" disabled>{t('choose')}</option>{centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            {!centers.length && <small>{t('noCenters')}</small>}</label>}</>}
+        <button className="primary" disabled={busy}>{t(busy ? 'loading' : registering ? 'register' : 'login')}</button>
+      </form><button type="button" onClick={() => { setRegistering(!registering); setError(''); setNotice('') }}>{t(registering ? 'login' : 'register')}</button>
+    </section></main>
+  const manager = profile.membership?.tenant_available && profile.membership.role === 'organization_manager'
+  return <div className="app-shell"><aside className="sidebar"><div className="brand-mark">S</div><strong>SynapseLMS</strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
+    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <NavLink to="/members">{t('members')}</NavLink>}</nav></aside>
+    <main><header className="topbar"><span>{profile.display_name || profile.email}</span><div className="topbar-actions">{languageButton}<button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
+      <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
+        try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
+        catch (e) { showError(e) }
+      }}>{t('endSupport')}</button></div>}
+      <Routes><Route index element={<><h1>{t('welcome')}</h1><article className="card profile-card"><h2>{t('profile')}</h2><p>{profile.display_name}</p><p>{profile.email}</p><p>{t(profile.is_root_admin ? 'root' : profile.membership?.role || 'student')}</p>
+        {!profile.is_root_admin && !profile.membership?.tenant_available && <p role="status">{t('unavailable')}</p>}</article>
+        <form className="card compact-form" onSubmit={passwordChange}><h2>{t('passwordChange')}</h2><label>{t('currentPassword')}<input name="currentPassword" type="password" autoComplete="current-password" required /></label><label>{t('newPassword')}<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label><button className="primary" disabled={busy}>{t('save')}</button></form></>} />
+        <Route path="centers" element={profile.is_root_admin ? <Centers language={language} onSupport={(id, name) => { setSupportSession(id); setSupport({ id, name }) }} /> : <Navigate to="/" replace />} />
+        <Route path="members" element={manager || support ? <Members key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} actorId={profile.id} /> : <Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} /></Routes>
+      </section></main></div>
 }

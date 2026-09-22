@@ -1,0 +1,92 @@
+# Vận hành xác thực và phân quyền
+
+Đã triển khai API và UI cho đăng ký, đăng nhập, hồ sơ, refresh/logout, đổi mật khẩu, quản lý trung tâm/thành viên và phiên hỗ trợ Root Admin. Thư viện học liệu chưa triển khai và không là điều kiện hoàn thành giai đoạn này.
+
+## Khởi động Docker
+
+Từ thư mục gốc:
+
+```powershell
+docker compose build api web
+docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
+docker compose up -d --no-deps api web
+```
+
+Migration hiện tại: `20260920_0003`. Migration mới mặc định các trung tâm cũ chưa công khai và chưa nhận đăng ký, không tự thay đổi quyền đăng ký của dữ liệu hiện có. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy.
+
+Tạo Root Admin bằng email của bạn (thay giá trị ví dụ):
+
+```powershell
+docker compose exec api .venv/bin/python -m app.cli bootstrap-root --email admin@example.com
+```
+
+CLI hỏi mật khẩu hai lần bằng input ẩn, yêu cầu 12–128 ký tự; không truyền mật khẩu trong command line. Tài khoản đã tồn tại sẽ bị từ chối, không tự nâng thành Root Admin. Không có tài khoản/mật khẩu quản trị mặc định.
+
+Tạo hai trung tâm phát triển, không tạo tài khoản demo:
+
+```powershell
+docker compose exec -T api .venv/bin/python -m app.cli seed-centers
+```
+
+Seed chỉ cho development/test; chạy lại không nhân bản và không thay đổi trung tâm đã tồn tại. Đăng nhập tại `http://localhost:5173`; Swagger tại `http://localhost:8000/docs`.
+
+## Cách sử dụng
+
+1. Học viên chọn Đăng ký, chọn trung tâm đang công khai hoặc nhập mã mời hợp lệ. Tài khoản được gán student; chưa có đăng ký khóa học ở bước này.
+2. Root Admin mở mục Trung tâm: tạo/cập nhật trung tâm, bật công khai và cho phép đăng ký.
+3. Để thao tác thành viên, Root Admin nhập lý do và mở phiên hỗ trợ ở trung tâm đó, rồi vào Thành viên. Phiên mặc định 30 phút, tối đa 60 phút và gắn với đúng phiên đăng nhập đã mở nó.
+4. Root Admin trong phiên hỗ trợ có thể tạo quản lý trung tâm. Quản lý có thể tạo giáo vụ, giáo viên, học viên và cấp mã mời học viên. Mã mời chỉ trả plaintext một lần, DB chỉ lưu hash; UI tạo mã một lượt dùng, hạn 7 ngày.
+5. Quản lý có thể đổi vai trò/khóa membership nhân sự thông thường, không sửa chính mình hoặc quản lý khác, không tự cấp vai trò quản lý/Root. Root có thể khóa/mở tài khoản nghiệp vụ toàn hệ thống, không khóa Root qua endpoint này.
+6. Khóa membership thu hồi các phiên hiện có. Người dùng có thể đăng nhập lại để xem hồ sơ cá nhân, nhưng không truy cập tenant. Khóa user toàn hệ thống chặn cả đăng nhập/refresh/me.
+7. Đổi mật khẩu yêu cầu mật khẩu hiện tại, thu hồi mọi phiên, rồi đăng nhập lại. Quản lý tạo tài khoản bằng mật khẩu khởi tạo: trao riêng cho người nhận và yêu cầu họ đổi mật khẩu. Chưa có email mời nhân sự hoặc bắt buộc đổi mật khẩu lần đầu.
+
+## API và phạm vi quyền
+
+Các endpoint dưới `/api/v1`; mutation auth và các endpoint quản trị/tenant yêu cầu header `X-Synapse-Client: web`. Cookie endpoint kiểm tra Origin nếu có; CORS chỉ cho origin cấu hình. API dùng JWT Bearer cho người dùng đăng nhập; Swagger cần thêm header này khi thử endpoint quản trị.
+
+| Endpoint | Quyền |
+|---|---|
+| `GET /organizations/public` | Công khai, chỉ trung tâm đang nhận đăng ký |
+| `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout` | Luồng auth có rate limit và bảo vệ request trình duyệt |
+| `GET /auth/me`, `POST /auth/password` | Tài khoản và phiên còn hiệu lực |
+| `GET/POST /admin/organizations`, `PATCH /admin/organizations/{id}` | Root Admin |
+| `PATCH /admin/users/{id}` | Root Admin; đổi trạng thái và thu hồi phiên |
+| `POST /admin/support-sessions`, `DELETE /admin/support-sessions/{id}` | Root Admin; chỉ kết thúc phiên hỗ trợ thuộc đúng phiên đăng nhập |
+| `GET /organization` | Thành viên hoạt động hoặc Root có phiên hỗ trợ |
+| `GET/POST /members`, `PATCH /members/{id}` | Quản lý tenant hoặc Root có phiên hỗ trợ |
+| `POST /organization/invites`, `DELETE /organization/invites/{id}` | Quản lý tenant hoặc Root có phiên hỗ trợ |
+
+Root truy cập tenant gửi thêm `X-Support-Session`; không lấy tenant từ body hay query. Mọi truy cập qua phiên hỗ trợ và thay đổi quyền/trạng thái, tạo trung tâm/thành viên/mã mời có audit. Đăng nhập thành công, đổi mật khẩu và phát lại token cũng được audit. Các endpoint danh sách hiện trả tối đa 100 bản ghi; chưa có UI phân trang/tìm kiếm quản trị.
+
+## Token, cấu hình và giới hạn triển khai
+
+- Argon2id qua pwdlib; JWT HS256 xác minh issuer/audience/exp/iat/sub/session/type. Cách tích hợp dựa trên [FastAPI security](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/) và [PyJWT usage](https://pyjwt.readthedocs.io/en/latest/usage.html).
+- Access token 15 phút mặc định; phiên refresh tối đa 7 ngày. Cookie `synapse_refresh` là HttpOnly, SameSite=Lax, path `/api/v1/auth`; Secure bắt buộc ngoài development/test. Không lưu token trong localStorage.
+- Rotation giữ các digest đã tiêu thụ, khóa user/session trên PostgreSQL và đọc lại token sau khi có khóa. Phát lại thu hồi phiên rồi commit trước khi trả lỗi. Frontend gộp refresh trong tab và dùng Web Locks giữa các tab nếu trình duyệt hỗ trợ; trình duyệt thiếu Web Locks có thể phải đăng nhập lại khi các tab cùng refresh.
+- Mỗi API bảo vệ đọc lại user/session. Tenant API kiểm tra membership/trung tâm hoạt động. Đổi quyền thu hồi mọi phiên của user; dữ liệu token không phải nguồn quyết định quyền tenant.
+- Rate limit dùng PostgreSQL/SQLite, dùng chung giữa worker: login 10/phút, register 5/phút, refresh/logout 30/phút, password 10/phút theo địa chỉ client. IP chia sẻ NAT cùng hạn mức; proxy phải cấu hình địa chỉ tin cậy đúng trước khi vận hành công khai.
+- `SYNAPSE_JWT_SECRET`: ít nhất 48 ký tự ngẫu nhiên. Nếu trống trong development/test, sinh khóa tạm mỗi process, restart sẽ đăng xuất người dùng. Chỉ chạy một worker khi dùng khóa tạm. Để giữ phiên qua restart/multi-worker, đặt cùng secret cố định trong `.env`; Compose chuyển secret vào API.
+- Production từ chối thiếu/khóa yếu, debug=true, cookie không Secure hoặc CORS không HTTPS. Compose hiện là cấu hình phát triển, chưa là bộ triển khai production. Cookie Lax giả định frontend/API cùng site; triển khai khác site cần thiết kế lại cookie/CSRF trước.
+- SQLite chỉ dùng phát triển/test. Hai request đồng thời được kiểm tra trên PostgreSQL; không tuyên bố SQLite cung cấp cùng khóa hàng.
+- Chưa có xác minh email, quên mật khẩu, MFA/OAuth; chưa mở đăng ký công khai trên internet trước khi hoàn thiện xác minh email và recovery.
+- Quyền lớp/buổi, chi nhánh, học phí/điểm danh/điểm số sẽ được triển khai và kiểm thử cùng module tương ứng. Khung hiện tại không phải bằng chứng các module chưa tồn tại đã được phân quyền.
+
+## Kiểm thử
+
+Kết quả xác nhận 2026-09-21: 42 test cục bộ đạt, 2 concurrency skip trên SQLite; Docker chạy cả SQLite/PostgreSQL: 81 đạt, 2 skip chỉ trên SQLite. Ba test frontend và hai E2E Chromium đạt; Ruff, ESLint, production build đạt. Còn cảnh báo deprecation TestClient và hạn chế reflection expression index SQLite đã ghi ở AUTH-01.
+
+```powershell
+Set-Location backend
+uv run ruff check .
+uv run pytest
+Set-Location ..
+docker compose run --rm --no-deps -e SYNAPSE_TEST_POSTGRES=1 -v "${PWD}/backend/tests:/app/tests:ro" api uv run --locked --group dev pytest
+Set-Location frontend
+npm.cmd run lint
+npm.cmd run test
+npm.cmd run build
+npx.cmd playwright install chromium
+npm.cmd run test:e2e
+```
+
+PostgreSQL dùng schema test riêng rồi dọn sạch. E2E tự khởi động API loopback cổng 8011 với SQLite tạm và Vite cổng 5180; không sử dụng DB Docker. Tài khoản Root cố định trong `tests/e2e_server.py` chỉ tồn tại ở database tạm đó. Test kiểm tra học viên đăng ký/đăng nhập/reload/đổi mật khẩu/logout, Root hỗ trợ/tạo giáo viên/khóa membership và phiên giáo viên cũ bị từ chối.

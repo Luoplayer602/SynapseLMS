@@ -7,6 +7,10 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [PRD](./prd.md): mục tiêu, phạm vi và tiêu chí thành công của sản phẩm.
 - [Ma trận phân quyền](./rbac.md): quyền của từng vai trò và giới hạn dữ liệu.
 - [Mô hình dữ liệu](./data-model.md): thực thể chính và quy tắc multi-tenant.
+- [Nền tảng xác thực AUTH-01](./auth-foundation.md): model, phiên đăng nhập, migration và các bước triển khai IAM.
+- [Kế hoạch bước xác thực tiếp theo](./auth-next-step.md): checkpoint, hợp đồng API và tiêu chí nghiệm thu.
+- [Vận hành xác thực và phân quyền](./auth-operations.md): bootstrap Root Admin, cấu hình, API, Docker và kiểm thử.
+- [Luồng giáo trình và tài liệu tham khảo](./workflows/learning-materials.md): thư viện, phiên bản, quyền truy cập và backlog MAT đề xuất.
 - [Luồng đăng ký và xếp lớp](./workflows/enrollment.md): duyệt khóa học, tạo hóa đơn và xếp lớp.
 - [Luồng bảo lưu và hoàn phí](./workflows/reservation-refund.md): bảo lưu từ buổi học, đề xuất và thực hiện hoàn phí.
 - [Luồng chuyển trung tâm](./workflows/student-transfer.md): phê duyệt hai phía và chuyển lịch sử học viên.
