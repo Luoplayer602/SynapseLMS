@@ -21,6 +21,11 @@ services:
       SYNAPSE_DEBUG: "true"
       SYNAPSE_JWT_SECRET: ${SYNAPSE_JWT_SECRET:-}
       SYNAPSE_COOKIE_SECURE: "false"
+      SYNAPSE_FRONTEND_URL: http://localhost:5173
+      SYNAPSE_MAIL_BACKEND: smtp
+      SYNAPSE_SMTP_HOST: mailpit
+      SYNAPSE_SMTP_PORT: "1025"
+      SYNAPSE_SMTP_SECURITY: none
       SYNAPSE_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-synapse}:${POSTGRES_PASSWORD:-synapse-dev}@db:5432/${POSTGRES_DB:-synapse}
       SYNAPSE_CORS_ORIGINS: '["http://localhost:5173"]'
     ports:
@@ -28,6 +33,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  mailpit:
+    image: axllent/mailpit:v1.29
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
 
   web:
     build:

@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router'
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router'
+import { AccountAction, EmailRequestForm, Sessions, VerificationStatus } from './Account'
 import { api, ApiError, clearSession, setSupportSession, signIn, signOut } from './api'
 import type { Organization, Profile } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import { Centers, Members } from './Management'
+import { InvitationAcceptance, Invitations } from './Invitations'
 
 export default function App() {
+  const location = useLocation()
   const [language, setLanguage] = useState<Language>('vi')
   const t = (key: string) => translate(language, key)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -16,6 +19,7 @@ export default function App() {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [registering, setRegistering] = useState(false)
+  const [recovering, setRecovering] = useState(false)
   const [useInvite, setUseInvite] = useState(false)
   const [centers, setCenters] = useState<Organization[]>([])
   const [support, setSupport] = useState<{ id: string; name: string } | null>(null)
@@ -67,7 +71,14 @@ export default function App() {
   }
   const languageButton = <button type="button" onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button>
   const messages = <>{error && <p role="alert" className="error">{errorMessage(language, error)}</p>}{notice && <p role="status">{t(notice)}</p>}</>
+  if (location.pathname === '/account/accept-invitation') {
+    return <main className="auth-page"><header>{languageButton}</header><InvitationAcceptance language={language} profile={profile} restoring={loading} onProfile={setProfile} /></main>
+  }
+  if (location.pathname === '/account/verify-email' || location.pathname === '/account/reset-password') {
+    return <main className="auth-page"><header>{languageButton}</header><AccountAction key={location.pathname} language={language} reset={location.pathname.endsWith('reset-password')} /></main>
+  }
   if (loading) return <main className="auth-page"><p role="status">{t('loading')}</p></main>
+  if (!profile && recovering) return <main className="auth-page"><header>{languageButton}</header><EmailRequestForm language={language} onBack={() => setRecovering(false)} /></main>
   if (!profile) return <main className="auth-page"><header>{languageButton}</header>
     <section className="card auth-card"><div className="brand-mark" aria-hidden="true">S</div><p className="eyebrow">SynapseLMS</p>
       <h1>{t(registering ? 'register' : 'login')}</h1><p>{t('intro')}</p>{messages}
@@ -81,19 +92,23 @@ export default function App() {
             {!centers.length && <small>{t('noCenters')}</small>}</label>}</>}
         <button className="primary" disabled={busy}>{t(busy ? 'loading' : registering ? 'register' : 'login')}</button>
       </form><button type="button" onClick={() => { setRegistering(!registering); setError(''); setNotice('') }}>{t(registering ? 'login' : 'register')}</button>
+      {!registering && <button onClick={() => { setRecovering(true); setError(''); setNotice('') }}>{t('forgotPassword')}</button>}
     </section></main>
   const manager = profile.membership?.tenant_available && profile.membership.role === 'organization_manager'
   return <div className="app-shell"><aside className="sidebar"><div className="brand-mark">S</div><strong>SynapseLMS</strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
-    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <NavLink to="/members">{t('members')}</NavLink>}</nav></aside>
+    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}</nav></aside>
     <main><header className="topbar"><span>{profile.display_name || profile.email}</span><div className="topbar-actions">{languageButton}<button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
       <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
         try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
         catch (e) { showError(e) }
       }}>{t('endSupport')}</button></div>}
       <Routes><Route index element={<><h1>{t('welcome')}</h1><article className="card profile-card"><h2>{t('profile')}</h2><p>{profile.display_name}</p><p>{profile.email}</p><p>{t(profile.is_root_admin ? 'root' : profile.membership?.role || 'student')}</p>
+        <VerificationStatus language={language} email={profile.email} verified={!!profile.email_verified_at} />
         {!profile.is_root_admin && !profile.membership?.tenant_available && <p role="status">{t('unavailable')}</p>}</article>
         <form className="card compact-form" onSubmit={passwordChange}><h2>{t('passwordChange')}</h2><label>{t('currentPassword')}<input name="currentPassword" type="password" autoComplete="current-password" required /></label><label>{t('newPassword')}<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label><button className="primary" disabled={busy}>{t('save')}</button></form></>} />
         <Route path="centers" element={profile.is_root_admin ? <Centers language={language} onSupport={(id, name) => { setSupportSession(id); setSupport({ id, name }) }} /> : <Navigate to="/" replace />} />
+        <Route path="sessions" element={<Sessions language={language} />} />
+        <Route path="invitations" element={manager || support ? <Invitations key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} /> : <Navigate to="/" replace />} />
         <Route path="members" element={manager || support ? <Members key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} actorId={profile.id} /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} /></Routes>
       </section></main></div>

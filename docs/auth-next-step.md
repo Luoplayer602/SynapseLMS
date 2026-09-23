@@ -2,6 +2,8 @@
 
 Trạng thái: API/UI xác thực và quản trị tài khoản/trung tâm đã triển khai. Phạm vi thực tế, cấu hình, kiểm thử và phần còn lại ở [hướng dẫn vận hành](./auth-operations.md). Quyền nghiệp vụ lớp/buổi/chi nhánh sẽ làm cùng các module tương ứng.
 
+Cập nhật 2026-09-23: đã bổ sung xác minh email, khôi phục mật khẩu, quản lý phiên và mời thành viên qua email. Đặc tả tại [vòng đời tài khoản](./account-lifecycle.md) và [lời mời thành viên](./membership-invitations.md). Bước tiếp theo đề xuất là hồ sơ học viên/thông tin liên hệ phục vụ xét duyệt; thư viện học liệu giữ trong backlog bổ sung. Các checkpoint bên dưới ghi lại kế hoạch nền tảng ban đầu.
+
 ## Mục tiêu và giới hạn
 
 Hoàn thiện một luồng: chọn trung tâm được phép đăng ký → tạo tài khoản học viên → đăng nhập → xem hồ sơ → làm mới phiên → đăng xuất. Thực hiện tuần tự bởi một người và AI, dùng ID IAM hiện có, không tạo thêm story AUTH trùng Jira.
@@ -42,7 +44,7 @@ Tất cả đường dẫn dưới `/api/v1` và lỗi theo `api-conventions.md`
 - Dùng khóa giao dịch PostgreSQL để rotation nguyên tử. Token cũ bị dùng lại sẽ thu hồi cả phiên; commit việc thu hồi trước khi trả lỗi, không rollback mất thao tác thu hồi. Frontend gộp request refresh đồng thời và phối hợp giữa các tab để hạn chế tự kích hoạt phát hiện replay.
 - Mỗi request xác thực kiểm tra user/session còn hoạt động, phiên chưa hết hạn/thu hồi. API tenant kiểm tra thêm organization và membership hiện tại. Khóa user/logout có hiệu lực ngay ở request tiếp theo. User không có tenant hợp lệ vẫn có thể xem phần hồ sơ cá nhân được phép.
 - Đổi membership hoặc vai trò thu hồi các phiên liên quan; tài liệu/khóa học luôn tính quyền từ trạng thái hiện tại. Root không có phiên hỗ trợ hợp lệ thì từ chối API dữ liệu tenant.
-- Xác minh email, đổi/quên mật khẩu và kênh email là hạng mục tiếp theo; trước khi mở đăng ký công khai trên internet phải hoàn thiện kiểm chứng email và chống lạm dụng. Không báo email đã xác minh nếu chưa có luồng đó.
+- Xác minh email, đổi/quên mật khẩu và kênh email đã triển khai; trước khi mở đăng ký công khai trên internet vẫn phải cấu hình SMTP thật, HTTPS và đánh giá chống lạm dụng. Chỉ báo email đã xác minh sau khi người dùng chứng minh sở hữu liên kết hợp lệ.
 
 ## Kiểm thử và nghiệm thu
 

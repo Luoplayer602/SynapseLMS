@@ -12,8 +12,6 @@ from sqlalchemy.orm import Session
 from app.cli import bootstrap_root, seed_centers
 from app.core.config import Settings, get_settings
 from app.core.security import digest, now, password_hasher
-from app.db.sync import get_session
-from app.main import create_app
 from app.models import (
     AuditLog,
     AuthSession,
@@ -26,26 +24,6 @@ from app.models import (
 
 PASSWORD = "test-password-2026!"
 HEADERS = {"X-Synapse-Client": "web", "Origin": "http://localhost:5173"}
-
-
-@pytest.fixture
-def api(migrated_engine):
-    app = create_app()
-
-    def session_override():
-        with Session(migrated_engine, expire_on_commit=False) as session:
-            yield session
-
-    app.dependency_overrides[get_session] = session_override
-    with Session(migrated_engine) as db:
-        org = Organization(name="Center A", slug="a", is_public=True, registration_enabled=True)
-        other = Organization(name="Center B", slug="b", is_public=False, registration_enabled=True)
-        db.add_all([org, other])
-        db.flush()
-        ids = str(org.id), str(other.id)
-        db.commit()
-    with TestClient(app, headers=HEADERS) as client:
-        yield client, migrated_engine, ids, app
 
 
 def register(client, org, email="student@example.com", **extra):

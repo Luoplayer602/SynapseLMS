@@ -649,3 +649,31 @@ Một backlog item chỉ hoàn thành khi:
 - Quyền tenant đã áp dụng cho API tài khoản/trung tâm; quyền lớp/buổi/chi nhánh sẽ kiểm thử khi xây module đó. Chưa đánh dấu hoàn tất toàn bộ IAM-04/IAM-05/IAM-08 vì còn quyền nghiệp vụ và hồ sơ xét duyệt.
 - Hướng dẫn khởi động/kiểm thử và các giới hạn hiện tại: `docs/auth-operations.md`.
 - Thư viện học liệu vẫn là backlog bổ sung; chưa có code hoặc migration học liệu.
+
+## 13. Vòng đời tài khoản — 2026-09-22
+
+- Đã triển khai gửi email xác minh sau đăng ký, gửi lại và xác nhận qua liên kết dùng một lần. Hồ sơ hiển thị email đã/chưa xác minh; chưa thêm điều kiện chặn đăng nhập hoặc quyền tenant. Xét duyệt khóa học vẫn độc lập.
+- IAM-06: có quên/đặt lại mật khẩu qua email. Reset thu hồi toàn bộ phiên và liên kết đang chờ; đổi mật khẩu bằng mật khẩu cũ cũng vô hiệu hóa link khôi phục. Không tự mở khóa user/membership/trung tâm.
+- IAM-02 mở rộng: danh sách phiên của chính tài khoản, thời điểm đăng nhập/hết hạn, nhãn trình duyệt và phiên hiện tại; kết thúc riêng một phiên, các phiên khác hoặc toàn bộ, có xác nhận trên UI và audit phía server.
+- Migration `20260922_0004` thêm trạng thái email, nhãn trình duyệt và bảng digest token theo mục đích. Tài khoản/quyền/mật khẩu cũ được bảo toàn; không tự xác minh email cũ.
+- SMTP hỗ trợ STARTTLS/SSL; Docker có Mailpit trên `http://localhost:8025` để giữ email cục bộ. Không gửi email thật ra bên ngoài trong kiểm thử. Cấu hình/hướng dẫn tại `docs/account-lifecycle.md` và `.env.example`.
+- Rate limit yêu cầu email 5 lần/phút/IP, cooldown 60 giây/tài khoản; token gắn email/mục đích, mặc định xác minh 24 giờ và recovery 30 phút. Token thô chỉ nằm trong email và bộ nhớ, không lưu DB/log/browser storage.
+- UI Việt/Anh có quên mật khẩu, xác minh/đặt lại từ email và sidebar Phiên đăng nhập. Mở link không tự tiêu thụ; lỗi/hết hạn/dùng lại và mở lại trong cùng tab đã có kiểm thử.
+- Giới hạn: tác vụ email chạy trong process, chưa có queue bền vững hoặc retry tự động. Mời nhân sự qua email, bắt buộc đổi mật khẩu khởi tạo, hồ sơ học viên/duyệt và chi nhánh là bước sau. Học liệu vẫn là luồng bổ sung.
+- Kiểm chứng cuối: 126 test backend SQLite/PostgreSQL đạt, 5 skip chỉ là bản SQLite của các test concurrency đã đạt trên PostgreSQL; 8 test frontend, 4 E2E Chromium đạt. Ruff, ESLint, TypeScript/Vite build, SMTP Mailpit smoke và Alembic schema check đạt.
+- Migration đã áp dụng; container API/web đã rebuild và đang chạy cùng database/Mailpit. API, web và hộp thư trả HTTP 200. Không tạo tài khoản thật để kiểm thử; email smoke là dữ liệu tổng hợp.
+- Jira đã cập nhật: SYNAPSELMS-51 (IAM-06) Done; SYNAPSELMS-47 (IAM-02) giữ Done, bổ sung kết quả quản lý phiên; SYNAPSELMS-150 (IAM-08) giữ In Progress do còn hồ sơ/xét duyệt. Mã nguồn chưa commit.
+
+## 14. Mời thành viên qua email — 2026-09-23
+
+- IAM-03: đã bổ sung API/UI Việt–Anh để quản lý mời giáo viên, giáo vụ và học viên; Root Admin có phiên hỗ trợ hợp lệ được mời quản lý trung tâm. Không tạo tài khoản/membership khi mới gửi lời mời.
+- Người mới tự đặt mật khẩu khi chấp nhận; người đã có tài khoản phải đăng nhập đúng email rồi xác nhận riêng, giữ nguyên tên/mật khẩu. Chấp nhận xác minh email và tạo một membership trong cùng transaction; không tự duyệt đăng ký khóa học.
+- Membership chưa kết thúc ở trung tâm khác yêu cầu luồng chuyển trung tâm. Lời mời không thể bỏ qua membership đình chỉ hoặc cấp thêm membership hoạt động; Root không nhận vai trò nghiệp vụ.
+- Có danh sách phân trang/lọc trạng thái, hạn dùng mặc định 7 ngày (tùy chọn 1–30), gửi lại sau ít nhất 60 giây với token mới, thu hồi có lý do, audit và trạng thái gửi email độc lập. Không trả link bí mật cho người quản lý.
+- Migration `20260922_0005` thêm bảng lời mời, bảo toàn tài khoản/quyền cũ. Token chỉ lưu digest; mở link không tự chấp nhận; gửi lại/thu hồi/hết hạn vô hiệu link cũ.
+- Tài liệu API, quyền, giới hạn và checklist nghiệm thu tại `docs/membership-invitations.md`; README, mục lục và tài liệu auth được cập nhật. Từ phiên này, mỗi lần bàn giao code phải nêu bước test, kết quả mong đợi và dấu hiệu lỗi cho người dùng.
+- Giới hạn: email vẫn chạy trong process, chưa có queue/retry bền vững; Mailpit chỉ nhận email demo cục bộ. Luồng tạo thành viên trực tiếp vẫn giữ tương thích, chưa bắt buộc đổi mật khẩu khởi tạo.
+- Phần còn lại IAM-03: tìm kiếm/phân trang danh sách thành viên, chính sách mật khẩu khởi tạo, hồ sơ nghiệp vụ. Bước tiếp theo đề xuất: đặc tả và triển khai lát cắt hồ sơ học viên/thông tin liên hệ phục vụ xét duyệt; không triển khai tự động trong phiên này. Học liệu vẫn là backlog bổ sung.
+- Kiểm chứng: 169 backend SQLite/PostgreSQL đạt; 10 skip chỉ thuộc bản SQLite của test concurrency, các bản PostgreSQL đạt (gồm chấp nhận đồng thời cùng tài khoản tại hai trung tâm). 12 test UI và 6 E2E Chromium đạt; Ruff lint, ESLint, TypeScript/Vite build đạt. Format check file thuộc luồng mời đạt; toàn backend còn 14 file định dạng cũ chưa thay đổi ngoài phạm vi.
+- Docker đã cập nhật API/web, migration `20260922_0005` đã áp dụng; Alembic check không lệch schema. API/web/Mailpit trả HTTP 200, API lời mời và UI mới có mặt; OpenAPI không có test helper. Không thay đổi hoặc xóa volume dữ liệu.
+- Jira SYNAPSELMS-48 (IAM-03) đã có bình luận tiến độ/kiểm thử số 10056, giữ In Progress vì chưa hoàn tất toàn bộ story. Chưa commit; chờ người dùng nghiệm thu theo checklist.

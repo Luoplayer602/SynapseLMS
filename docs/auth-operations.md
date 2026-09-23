@@ -8,11 +8,12 @@ Từ thư mục gốc:
 
 ```powershell
 docker compose build api web
+docker compose up -d db mailpit
 docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
 docker compose up -d --no-deps api web
 ```
 
-Migration hiện tại: `20260920_0003`. Migration mới mặc định các trung tâm cũ chưa công khai và chưa nhận đăng ký, không tự thay đổi quyền đăng ký của dữ liệu hiện có. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy.
+Migration hiện tại: `20260922_0005`. Xác minh email, khôi phục mật khẩu, quản lý phiên và cấu hình Mailpit được mô tả trong [vòng đời tài khoản](./account-lifecycle.md); luồng mới tại [mời thành viên qua email](./membership-invitations.md). Migration không tự xác minh tài khoản cũ. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy.
 
 Tạo Root Admin bằng email của bạn (thay giá trị ví dụ):
 
@@ -38,7 +39,8 @@ Seed chỉ cho development/test; chạy lại không nhân bản và không thay
 4. Root Admin trong phiên hỗ trợ có thể tạo quản lý trung tâm. Quản lý có thể tạo giáo vụ, giáo viên, học viên và cấp mã mời học viên. Mã mời chỉ trả plaintext một lần, DB chỉ lưu hash; UI tạo mã một lượt dùng, hạn 7 ngày.
 5. Quản lý có thể đổi vai trò/khóa membership nhân sự thông thường, không sửa chính mình hoặc quản lý khác, không tự cấp vai trò quản lý/Root. Root có thể khóa/mở tài khoản nghiệp vụ toàn hệ thống, không khóa Root qua endpoint này.
 6. Khóa membership thu hồi các phiên hiện có. Người dùng có thể đăng nhập lại để xem hồ sơ cá nhân, nhưng không truy cập tenant. Khóa user toàn hệ thống chặn cả đăng nhập/refresh/me.
-7. Đổi mật khẩu yêu cầu mật khẩu hiện tại, thu hồi mọi phiên, rồi đăng nhập lại. Quản lý tạo tài khoản bằng mật khẩu khởi tạo: trao riêng cho người nhận và yêu cầu họ đổi mật khẩu. Chưa có email mời nhân sự hoặc bắt buộc đổi mật khẩu lần đầu.
+7. Đổi mật khẩu yêu cầu mật khẩu hiện tại, thu hồi mọi phiên, rồi đăng nhập lại. Luồng tạo thành viên trực tiếp bằng mật khẩu khởi tạo vẫn có; chưa bắt buộc đổi mật khẩu lần đầu.
+8. Với nhân sự mới, dùng **Lời mời thành viên** để người nhận tự đặt mật khẩu qua email. Có danh sách/lọc/phân trang, gửi lại/thu hồi có lý do. Người đã có tài khoản đăng nhập đúng email và xác nhận riêng; tài khoản thuộc trung tâm khác cần luồng chuyển, không tự thêm membership. Xem [hướng dẫn nghiệm thu](./membership-invitations.md).
 
 ## API và phạm vi quyền
 
@@ -56,7 +58,7 @@ Các endpoint dưới `/api/v1`; mutation auth và các endpoint quản trị/te
 | `GET/POST /members`, `PATCH /members/{id}` | Quản lý tenant hoặc Root có phiên hỗ trợ |
 | `POST /organization/invites`, `DELETE /organization/invites/{id}` | Quản lý tenant hoặc Root có phiên hỗ trợ |
 
-Root truy cập tenant gửi thêm `X-Support-Session`; không lấy tenant từ body hay query. Mọi truy cập qua phiên hỗ trợ và thay đổi quyền/trạng thái, tạo trung tâm/thành viên/mã mời có audit. Đăng nhập thành công, đổi mật khẩu và phát lại token cũng được audit. Các endpoint danh sách hiện trả tối đa 100 bản ghi; chưa có UI phân trang/tìm kiếm quản trị.
+Root truy cập tenant gửi thêm `X-Support-Session`; không lấy tenant từ body hay query. Mọi truy cập qua phiên hỗ trợ và thay đổi quyền/trạng thái, tạo trung tâm/thành viên/mã mời có audit. Đăng nhập thành công, đổi mật khẩu và phát lại token cũng được audit. Danh sách trung tâm/thành viên hiện trả tối đa 100 bản ghi, chưa có UI phân trang/tìm kiếm; riêng lời mời email đã có phân trang 20 bản ghi và lọc trạng thái.
 
 ## Token, cấu hình và giới hạn triển khai
 
@@ -68,10 +70,12 @@ Root truy cập tenant gửi thêm `X-Support-Session`; không lấy tenant từ
 - `SYNAPSE_JWT_SECRET`: ít nhất 48 ký tự ngẫu nhiên. Nếu trống trong development/test, sinh khóa tạm mỗi process, restart sẽ đăng xuất người dùng. Chỉ chạy một worker khi dùng khóa tạm. Để giữ phiên qua restart/multi-worker, đặt cùng secret cố định trong `.env`; Compose chuyển secret vào API.
 - Production từ chối thiếu/khóa yếu, debug=true, cookie không Secure hoặc CORS không HTTPS. Compose hiện là cấu hình phát triển, chưa là bộ triển khai production. Cookie Lax giả định frontend/API cùng site; triển khai khác site cần thiết kế lại cookie/CSRF trước.
 - SQLite chỉ dùng phát triển/test. Hai request đồng thời được kiểm tra trên PostgreSQL; không tuyên bố SQLite cung cấp cùng khóa hàng.
-- Chưa có xác minh email, quên mật khẩu, MFA/OAuth; chưa mở đăng ký công khai trên internet trước khi hoàn thiện xác minh email và recovery.
+- Đã có xác minh email, quên/đặt lại mật khẩu và quản lý phiên; xem [vòng đời tài khoản](./account-lifecycle.md). Chưa có MFA/OAuth hoặc hàng đợi email bền vững; Compose vẫn dành cho phát triển.
 - Quyền lớp/buổi, chi nhánh, học phí/điểm danh/điểm số sẽ được triển khai và kiểm thử cùng module tương ứng. Khung hiện tại không phải bằng chứng các module chưa tồn tại đã được phân quyền.
 
 ## Kiểm thử
+
+Kết quả mới nhất 2026-09-23: 169 backend đạt / 10 skip SQLite concurrency (các bản PostgreSQL đạt); 12 UI, 6 E2E đạt; Ruff lint, ESLint và TypeScript/Vite build đạt. Format check luồng mời đạt; toàn backend còn 14 file định dạng cũ chưa chỉnh ngoài phạm vi. Phạm vi mới xem [mời thành viên qua email](./membership-invitations.md). Các số liệu dưới đây là checkpoint trước khi bổ sung email/recovery/quản lý phiên.
 
 Kết quả xác nhận 2026-09-21: 42 test cục bộ đạt, 2 concurrency skip trên SQLite; Docker chạy cả SQLite/PostgreSQL: 81 đạt, 2 skip chỉ trên SQLite. Ba test frontend và hai E2E Chromium đạt; Ruff, ESLint, production build đạt. Còn cảnh báo deprecation TestClient và hạn chế reflection expression index SQLite đã ghi ở AUTH-01.
 

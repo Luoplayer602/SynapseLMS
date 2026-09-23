@@ -23,6 +23,9 @@ button:disabled { opacity: .55; cursor: wait; }
 .management-card form + form { border-top: 1px solid #9994; padding-top: 20px; margin-top: 20px; }
 .support-banner { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .profile-card { margin-top: 24px; }
+.session-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.device-label { overflow-wrap: anywhere; font-size: 14px; }
+.verification-status { border-top: 1px solid #9994; margin-top: 16px; }
 code { overflow-wrap: anywhere; }
 body { margin: 0; min-width: 320px; min-height: 100vh; }
 button, a { font: inherit; }

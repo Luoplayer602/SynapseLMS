@@ -26,6 +26,8 @@ or replace `api` with `web`. PostgreSQL can stay running.
 
 Authentication database tests and migration details: [AUTH-01](docs/auth-foundation.md).
 Authentication, Root Admin bootstrap and browser tests: [Auth operations](docs/auth-operations.md).
+Email verification, recovery, session management and local mailbox: [Account lifecycle](docs/account-lifecycle.md).
+Email membership invitations, permissions and acceptance checklist: [Membership invitations](docs/membership-invitations.md).
 
 ### Without Docker
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router'
 import { api, ApiError } from './api'
 import type { Member, Organization } from './api'
 import { errorMessage, translate } from './i18n'
@@ -60,6 +61,7 @@ export function Members({ language, root, actorId }: { language: Language; root:
   const [invite, setInvite] = useState('')
   const roles = [...(root ? ['organization_manager'] : []), 'staff', 'teacher', 'student']
   return <><h1>{t('members')}</h1>{message}{busy && <p role="status">{t('loading')}</p>}
+    <p><Link to="/invitations">{t('inviteMember')}</Link></p>
     <button disabled={busy} onClick={() => void run(async () => { const result = await api<{ code: string }>('/organization/invites', 'POST', {}); setInvite(result.code) })}>{t('createInvite')}</button>
     {invite && <p role="status">{t('invite')}: <code>{invite}</code></p>}
     <form className="card compact-form" onSubmit={e => { e.preventDefault(); const form = e.currentTarget; const f = new FormData(form); void run(async () => {

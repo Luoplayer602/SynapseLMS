@@ -42,9 +42,9 @@ export async function refreshSession() {
 }
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   let response = await send(path, method, body)
-  const expiredPasswordRequest = path === '/auth/password' && response.status === 401
+  const expiredAccountRequest = (path === '/auth/password' || path.startsWith('/auth/sessions')) && response.status === 401
     && (await response.clone().json().catch(() => ({}))).error?.code === 'INVALID_SESSION'
-  if (response.status === 401 && (!path.startsWith('/auth/') || path === '/auth/me' || expiredPasswordRequest)) {
+  if (response.status === 401 && (!path.startsWith('/auth/') || path === '/auth/me' || expiredAccountRequest)) {
     try { await refreshSession(); response = await send(path, method, body) }
     catch (error) {
       if (error instanceof ApiError && error.status === 401) clearSession()
@@ -64,6 +64,6 @@ export async function signOut() {
   await authLock(async () => { await result(await send('/auth/logout', 'POST')); clearSession() })
 }
 export interface Membership { id: string; organization_id: string; organization_name: string; role: string; tenant_available: boolean }
-export interface Profile { id: string; email: string; display_name: string | null; is_root_admin: boolean; membership: Membership | null }
+export interface Profile { id: string; email: string; display_name: string | null; is_root_admin: boolean; membership: Membership | null; email_verified_at: string | null }
 export interface Organization { id: string; name: string; slug: string; is_active: boolean; is_public: boolean; registration_enabled: boolean }
 export interface Member { id: string; user_id: string; email: string; display_name: string; role: string; is_active: boolean }

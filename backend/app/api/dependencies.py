@@ -37,12 +37,23 @@ def browser_guard(request: Request):
 
 def auth_guard(request: Request, db: DB):
     browser_guard(request)
-    limits = {"login": 10, "register": 5, "refresh": 30, "logout": 30}
+    limits = {
+        "login": 10,
+        "register": 5,
+        "refresh": 30,
+        "logout": 30,
+        "forgot-password": 5,
+        "request-verification": 5,
+        "membership-invitations": 5,
+        "resend": 5,
+        "accept-new": 5,
+        "preview": 30,
+    }
     action = request.url.path.rsplit("/", 1)[-1]
     stamp = int(time.time())
     # Do not trust X-Forwarded-For supplied by clients.
     host = request.client.host if request.client else "unknown"
-    key = digest(f"{action}:{host}:{stamp // 60}")
+    key = digest(f"{request.method}:{action}:{host}:{stamp // 60}")
     insert = pg_insert if db.bind.dialect.name == "postgresql" else sqlite_insert
     statement = insert(AuthRateBucket).values(key=key, count=1, expires_at=stamp + 120)
     count = db.scalar(
@@ -52,7 +63,7 @@ def auth_guard(request: Request, db: DB):
     )
     db.execute(delete(AuthRateBucket).where(AuthRateBucket.expires_at < stamp))
     db.commit()
-    if count > limits.get(action, 10):
+    if count > (60 if request.method == "GET" else limits.get(action, 10)):
         raise APIError(429, "RATE_LIMITED")
 
 
@@ -87,6 +98,24 @@ def current_identity(
 
 
 Actor = Annotated[Identity, Depends(current_identity)]
+
+
+def lock_actor(db, actor):
+    """Recheck identity after acquiring the same user lock used by reset/refresh/login."""
+    user = db.scalar(
+        select(User)
+        .where(User.id == actor.user.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    db.refresh(actor.session)
+    if (
+        not user.is_active
+        or actor.session.revoked_at is not None
+        or utc(actor.session.expires_at) <= now()
+    ):
+        raise APIError(401, "INVALID_SESSION")
+    return user
 
 
 def root_identity(actor: Actor):

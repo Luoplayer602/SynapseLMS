@@ -2,12 +2,13 @@ import secrets
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from app.api.dependencies import DB, Actor, Identity, audit, auth_guard
+from app.api.dependencies import DB, Actor, Identity, audit, auth_guard, lock_actor
 from app.api.schemas import Login, PasswordChange, Register
+from app.core.account_actions import invalidate_tokens, issue_email_action
 from app.core.config import get_settings
 from app.core.errors import APIError
 from app.core.security import (
@@ -78,7 +79,7 @@ def public_organizations(db: DB, limit: Annotated[int, Query(ge=1, le=100)] = 10
 
 
 @router.post("/auth/register", status_code=201, dependencies=[Depends(auth_guard)])
-def register(data: Register, db: DB):
+def register(data: Register, db: DB, tasks: BackgroundTasks):
     invite = None
     if data.invite_code:
         invite = db.scalar(
@@ -120,11 +121,12 @@ def register(data: Register, db: DB):
     except IntegrityError as error:
         db.rollback()
         raise APIError(409, "ACCOUNT_CONFLICT") from error
+    tasks.add_task(issue_email_action, db.get_bind(), user.email, "verify_email")
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
 
 @router.post("/auth/login", dependencies=[Depends(auth_guard)])
-def login(data: Login, response: Response, db: DB):
+def login(data: Login, response: Response, db: DB, request: Request):
     user = db.scalar(
         select(User).where(EmailKey(User.email) == str(data.email).lower()).with_for_update()
     )
@@ -132,7 +134,9 @@ def login(data: Login, response: Response, db: DB):
     if not user or not valid or not user.is_active:
         raise APIError(401, "INVALID_CREDENTIALS")
     login = AuthSession(
-        user_id=user.id, expires_at=now() + timedelta(days=get_settings().session_days)
+        user_id=user.id,
+        expires_at=now() + timedelta(days=get_settings().session_days),
+        user_agent=request.headers.get("user-agent", "")[:512],
     )
     db.add(login)
     db.flush()
@@ -156,6 +160,7 @@ def me(db: DB, actor: Actor, response: Response):
     return {
         "id": actor.user.id,
         "email": actor.user.email,
+        "email_verified_at": actor.user.email_verified_at,
         "display_name": actor.user.display_name,
         "is_root_admin": actor.user.is_root_admin,
         "membership": {
@@ -234,11 +239,12 @@ def logout(request: Request, response: Response, db: DB):
 
 @router.post("/auth/password", status_code=204, dependencies=[Depends(auth_guard)])
 def change_password(data: PasswordChange, actor: Actor, db: DB, response: Response):
-    user = db.scalar(select(User).where(User.id == actor.user.id).with_for_update())
+    user = lock_actor(db, actor)
     if not verify_password(data.current_password, user.password_hash):
         raise APIError(401, "INVALID_CREDENTIALS")
     user.password_hash = password_hasher.hash(data.password)
     user.password_changed_at = now()
+    invalidate_tokens(db, user.id, "reset_password")
     db.execute(
         update(AuthSession)
         .where(AuthSession.user_id == user.id, AuthSession.revoked_at.is_(None))

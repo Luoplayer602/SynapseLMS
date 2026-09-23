@@ -18,6 +18,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     is_root_admin: Mapped[bool] = mapped_column(default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

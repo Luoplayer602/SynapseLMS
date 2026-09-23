@@ -86,3 +86,41 @@ class UserChange(Input):
 class PasswordChange(Input):
     current_password: Annotated[str, Field(min_length=1, max_length=128)]
     password: Password
+
+
+class EmailRequest(Input):
+    email: EmailStr
+
+
+class TokenInput(Input):
+    token: Annotated[str, Field(min_length=32, max_length=128)]
+
+
+class PasswordReset(TokenInput):
+    password: Password
+
+
+class RevokeSessions(Input):
+    scope: Literal["others", "all"]
+
+
+class MembershipInviteCreate(Input):
+    email: EmailStr
+    display_name: Name
+    role: Role
+    reason: Reason
+    expires_days: int = Field(default=7, ge=1, le=30)
+
+
+class MembershipInviteResend(Input):
+    reason: Reason
+    expires_days: int = Field(default=7, ge=1, le=30)
+
+
+class InvitationReason(Input):
+    reason: Reason
+
+
+class AcceptNewInvitation(TokenInput):
+    display_name: Name
+    password: Password
