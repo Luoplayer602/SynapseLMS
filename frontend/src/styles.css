@@ -16,6 +16,7 @@ form { display: grid; gap: 16px; }
 textarea { font: inherit; color: inherit; background: transparent; padding: 10px 12px; border: 1px solid #9996; border-radius: 8px; min-height: 100px; resize: vertical; max-width: 100%; }
 .profile-fields { display: grid; gap: 16px; border: 0; padding: 0; min-width: 0; }
 .guardian-fields { display: grid; gap: 12px; border: 1px solid #9996; border-radius: 8px; padding: 12px; min-width: 0; }
+.course-detail p { white-space: pre-wrap; overflow-wrap: anywhere; }
 label { display: grid; gap: 7px; }
 label.check { display: flex; align-items: center; gap: 10px; }
 button { color: inherit; background: var(--button-bg); cursor: pointer; border: 1px solid #9995; border-radius: 9px; padding: 8px 14px; }

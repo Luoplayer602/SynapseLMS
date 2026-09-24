@@ -699,3 +699,52 @@ Một backlog item chỉ hoàn thành khi:
 - Còn ngoài phạm vi: hồ sơ chưa gắn tài khoản, nhập CSV, trình độ đầu vào, đăng ký/duyệt khóa học, chi nhánh/lớp, chuyển trung tâm thực tế, tài chính, AI và học liệu. IAM-08 chỉ hoàn thành thêm phần hồ sơ, không tự đánh dấu cả story Done.
 - Ngày 2026-09-24 đã xác nhận Docker ở `20260923_0006 (head)`, Alembic check không lệch schema; API/web/Mailpit HTTP 200. Giao diện hồ sơ và CSS sửa theme đã có trên web đang chạy; OpenAPI không có test helper. Không xóa volume hoặc tạo dữ liệu học viên thật để thử.
 - Jira STU-01/STU-02/STU-07 (SYNAPSELMS-58/59/64) đã chuyển In Progress chờ nghiệm thu, kèm bình luận kết quả 10057/10058/10059. IAM-08 (SYNAPSELMS-150) giữ In Progress, bình luận 10060 nêu rõ phần còn lại. Chưa commit phần hồ sơ/theme của phiên này.
+
+## 17. Nghiệm thu hồ sơ và kế hoạch danh mục khóa học
+
+- Người dùng xác nhận “tất cả đều ổn” với bản hồ sơ/theme đã bàn giao. Ghi nhận đã nghiệm thu phạm vi này; không suy diễn hoàn tất IAM-08 hoặc các module chưa triển khai.
+- Bước tiếp theo đề xuất: CRS-01/CRS-02 — khóa học, ngôn ngữ, hệ cấp độ, đầu vào/đầu ra, công bố và catalog học viên. Kế hoạch cụ thể: `docs/course-catalog-next-step.md`.
+- Phiên triển khai kế tiếp tập trung catalog, chưa mở đăng ký/duyệt. Duyệt phải có hóa đơn trong cùng transaction nên cần lớp/lịch, tài chính và thông báo trước khi triển khai trọn luồng.
+- Các mặc định quyền công bố, mã khóa học và catalog theo tenant trong kế hoạch là đề xuất chờ duyệt. Tiếp tục giữ lựa chọn Astra High của người dùng khi bắt đầu code; phải nhắc dòng đề cử và bàn giao checklist sau code.
+- Phiên lập kế hoạch này chỉ cập nhật tài liệu, không sửa mã/container hoặc chuyển trạng thái Jira.
+
+## 18. Triển khai danh mục khóa học — 2026-09-24
+
+- Người dùng đã duyệt triển khai bằng “bắt đầu thực hiện”; đề cử model GPT gpt-6-astra high. Phạm vi CRS-01/CRS-02 theo kế hoạch ở mục 17, không gộp đăng ký/lớp/học phí vào phiên này.
+- Đã có API/UI Việt–Anh: cấu hình ngôn ngữ → bộ cấp độ → cấp độ, tạo/sửa khóa nháp, công bố/đưa về nháp/lưu trữ có lý do, danh mục học viên, tìm/lọc/phân trang. Điều kiện đầu vào/đầu ra là dữ liệu cấp độ và mô tả; chưa tự đánh giá đủ điều kiện đăng ký hoặc hoàn thành khóa.
+- Quản lý/Root có hỗ trợ quản lý cấu hình và trạng thái; giáo vụ chỉ xem cấu hình, tạo/sửa nháp; học viên chỉ đọc khóa công bố trong tenant; giáo viên chưa mở quyền toàn trung tâm. Chưa có catalog không đăng nhập.
+- Mã khóa duy nhất trong tenant kể cả lưu trữ; mã/rank/quan hệ cha danh mục không đổi qua API, chỉ đổi nhãn. Khóa ngoại tổng hợp bảo vệ tenant/ngôn ngữ/bộ; version chống ghi đè; có audit. Khóa công bố muốn sửa phải đưa về nháp; danh mục chưa có preset hoặc xóa.
+- Migration 20260924_0007 chỉ thêm 4 bảng, không sinh dữ liệu mẫu vào DB thật. Docker API/web đã rebuild, DB ở head, Alembic check không lệch schema. API/web/Mailpit HTTP 200; UI mới và API catalog có mặt, không có test helper trong OpenAPI. Không xóa volume.
+- Kiểm chứng: 222 backend đạt / 15 skip bản SQLite concurrency (PostgreSQL đạt), 22 UI và 9 E2E Chromium đạt; Ruff/ESLint/TypeScript-Vite build đạt. Đã xem ảnh dark/mobile 390px và light/desktop 1280px. Test tự động dùng DB/schema tạm.
+- Đặc tả API/quyền/giới hạn và checklist có kết quả mong đợi/dấu hiệu lỗi tại docs/course-catalog.md; đã cập nhật README, mục lục, dữ liệu, RBAC và vận hành. Kế hoạch gốc docs/course-catalog-next-step.md giữ lịch sử, đánh dấu đã triển khai chờ nghiệm thu.
+- Jira SYNAPSELMS-70/71 chuyển In Progress, bình luận 10061/10062 ghi phạm vi và kết quả. Chưa đánh dấu Done hoặc coi CRS-02 đã có đánh giá tự động. Chưa commit; chờ người dùng test.
+- Các lát cắt sau vẫn cần kế hoạch/duyệt riêng: trình độ học viên, hồ sơ giáo viên, chi nhánh/phòng/lớp/lịch, tài chính/thông báo, rồi duyệt đăng ký tạo hóa đơn nguyên tử và xếp lớp. Thư viện học liệu/AI vẫn để sau.
+
+## 19. Sửa BUG-003 và bảo trì danh mục — 2026-09-24
+
+- Người dùng duyệt bắt đầu kế hoạch sửa deadlock và bổ sung sửa mã/xóa, sau đó yêu cầu tiếp tục. Đề cử model đã nêu: GPT gpt-6-astra high. Thay thế giới hạn không sửa mã/không xóa của checkpoint catalog ban đầu bằng các điều kiện an toàn bên dưới.
+- BUG-003: audit hỗ trợ Root lấy khóa organization trước INSERT, thống nhất với handler organization → actor → support. Mở/kết thúc hỗ trợ cũng lấy organization trước ghi support/audit. Giữ audit, tenant isolation và kiểm tra thu hồi; không né lỗi bằng tải tuần tự UI hoặc retry mutation.
+- Test PostgreSQL có điều phối/quan sát khóa chứng minh bản cũ trả 500, bản mới cả hai request 200 và audit đủ. Bổ sung bốn GET catalog đồng thời, cạnh tranh với kết thúc hỗ trợ/khóa tenant/đăng xuất; request sau thu hồi phải bị chặn.
+- Quản lý/Root hỗ trợ được sửa mã/xóa ngôn ngữ/bộ/cấp độ khi không có con hoặc tham chiếu từ khóa học. Khóa phải là nháp chưa từng công bố. Khóa từng công bố đưa về nháp vẫn giữ mã/lịch sử. Giáo vụ không có quyền xóa/sửa mã; vẫn sửa nhãn/nội dung theo quyền cũ.
+- Xóa vĩnh viễn không cascade/thùng rác: UI nêu tên/mã, cảnh báo, yêu cầu mã hiện tại và lý do; backend kiểm tra version/quyền/tenant/sử dụng. Audit giữ ID/mã/lý do, cùng transaction với mutation. Không xóa dữ liệu thật trong phiên triển khai. Khi thêm trình độ học viên/lớp/đăng ký phải bổ sung kiểm tra tham chiếu mới trước khi mở module.
+- UI phân biệt đã lưu/xóa nhưng tải lại thất bại; yêu cầu làm mới, không tạo lại. API/UI xóa/sửa mã có lỗi cụ thể cho dữ liệu con, đã sử dụng, đã công bố, xác nhận sai và version/trùng mã.
+- Kết quả: 245 backend đạt / 22 skip bản SQLite concurrency (PostgreSQL đạt), 26 UI, 10 E2E; Ruff/ESLint/TypeScript-Vite build đạt. Đã xem ảnh form xác nhận xóa dark mobile 390px. Test tạo/xóa dữ liệu tổng hợp trong DB/schema tạm, không phải dữ liệu thật.
+- Docker API/web đã cập nhật; không cần migration mới, DB ở 20260924_0007 head, schema check đạt. API/web/Mailpit HTTP 200, OpenAPI có các route mới, không có test helper. Giữ nguyên database/volume.
+- Feedback BUG-003, tài liệu catalog/API/checklist, RBAC, dữ liệu và vận hành đã cập nhật. Jira SYNAPSELMS-70 bình luận 10063, giữ In Progress chờ nghiệm thu; không đóng toàn bộ catalog. Chưa commit.
+- Bước sau chỉ lập kế hoạch khi người dùng nghiệm thu: STU-03 trình độ đầu vào học viên. Chưa triển khai lớp/học phí/đăng ký hoặc thư viện học liệu.
+
+## 20. Feedback select dark mode và kế hoạch tiếp theo — 2026-09-25
+
+- Ghi BUG-004 tại docs/test-feedback.md: select/dropdown chữ trắng nền trắng trong chế độ tối. Chưa tái hiện trực tiếp, chưa xác định popup/ô đóng và trình duyệt cụ thể; CSS có nền transparent/chữ inherit, chưa style option riêng nhưng đã có color-scheme dark.
+- Ưu tiên phiên kế tiếp: tái hiện popup mở → sửa màu control/option theo theme → kiểm tra các select dùng chung → test hồi quy và kiểm tra trực quan popup native → rebuild web → người dùng nghiệm thu. Giữ native select nếu giải quyết được; không tự thay toàn bộ bằng thư viện mới.
+- Tiêu chí: đọc được cả ô đóng/danh sách mở, mục chọn/disabled/focus, sáng/tối, Việt/Anh, desktop/mobile; chọn/lưu giá trị đúng bằng chuột và bàn phím. Không chỉ dựa vào selectOption hoặc screenshot ô đóng. Không cần migration hay tắt database; chỉ rebuild web nếu thay đổi frontend.
+- Sau khi bản sửa giao diện và catalog được nghiệm thu, mới chốt đặc tả STU-03: trình độ theo từng ngôn ngữ/bộ cấp độ, phân biệt tự khai với xác nhận, mục tiêu học, quyền và lịch sử. Tham chiếu từ trình độ học viên phải được bổ sung vào chặn xóa/sửa mã danh mục trước khi triển khai STU-03. Không gộp STU-03 vào bản sửa theme.
+- Giữ đề cử phiên code tiếp theo: GPT gpt-6-astra high. Phiên này chỉ ghi feedback/lập kế hoạch; chưa sửa code, rebuild container hay chuyển trạng thái Jira. Không đánh dấu các luồng trước đã nghiệm thu chỉ từ phản hồi mới này.
+
+## 21. Hoãn BUG-004; kế hoạch STU-03 — 2026-09-25
+
+- Người dùng xác nhận dùng Chrome và yêu cầu để lỗi select dark mode xử lý sau vì chưa nghiêm trọng. BUG-004 chuyển hoãn, không chặn bước nghiệp vụ; thay thế thứ tự ưu tiên tại mục 20. Chưa sửa lỗi này, không suy diễn các ca trước đã nghiệm thu.
+- Kế hoạch chi tiết: docs/student-proficiency-next-step.md. Phạm vi trình độ/mục tiêu theo hồ sơ tenant và ngôn ngữ/bộ cấp độ, phân biệt tự khai và trung tâm xác nhận, lưu lịch sử; không tự đánh giá hoặc duyệt đăng ký.
+- Đề xuất quản lý/giáo vụ xác nhận thủ công có căn cứ/lý do, Root qua hỗ trợ; học viên chỉ tự khai/sửa mục tiêu, không ghi đè xác nhận và không nhận trường nội bộ. Giáo viên đợi module phân công; quyền nhập điểm không thay đổi. Các mặc định STU-03 chờ duyệt trước code.
+- Bắt buộc mở rộng chặn xóa/sửa mã danh mục được trình độ/mục tiêu/lịch sử tham chiếu và test cạnh tranh PostgreSQL ngay trong STU-03. Không mở lại deadlock audit/support đã sửa.
+- Chỉ cập nhật tài liệu/feedback trong phiên này; chưa code, migration, rebuild Docker hoặc chuyển trạng thái Jira. Giữ đề cử GPT gpt-6-astra high khi triển khai; sau code phải có tiêu chí nghiệm thu rõ ràng.

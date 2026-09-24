@@ -38,6 +38,10 @@ Mỗi tài khoản chỉ có một vai trò nghiệp vụ và một tenant đang
 
 ## Quyết định đã xác nhận
 
+- Bổ sung bảo trì catalog sau BUG-003: chỉ quản lý/Root hỗ trợ được sửa mã hoặc xóa mục chưa sử dụng; khóa phải là nháp chưa từng công bố. Yêu cầu lý do/version; xóa cần mã hiện tại để xác nhận, giữ audit, không xóa dây chuyền. Giáo vụ/giáo viên/học viên không có quyền này.
+
+- Khóa học đã triển khai: quản lý/Root hỗ trợ được tạo và đổi nhãn danh mục, sửa khóa nháp và chuyển trạng thái có lý do; giáo vụ chỉ xem cấu hình, tạo/sửa nháp, không công bố/lưu trữ. Học viên chỉ đọc khóa công bố trong tenant; giáo viên chưa mở quyền khi chưa có lớp. Bảng tổng quan bên trên bao gồm quyền dự kiến của các module tương lai, không có nghĩa tất cả đã được triển khai. Chi tiết: [course-catalog.md](./course-catalog.md).
+
 - Hồ sơ học viên đã triển khai cho quản lý/giáo vụ trong tenant, Root có hỗ trợ và học viên với hồ sơ của chính mình. Học viên không nhận ghi chú nội bộ từ API. Hồ sơ lưu trữ chỉ đọc cho học viên, không tự khóa tài khoản. Quyền giáo viên xem học viên lớp phụ trách chưa mở vì module phân công lớp chưa triển khai; mặc định từ chối API hồ sơ. Chi tiết: `student-profiles.md`.
 
 - Root Admin có quyền truy cập hỗ trợ vào tenant với lý do và audit log.

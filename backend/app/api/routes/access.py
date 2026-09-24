@@ -113,7 +113,9 @@ def change_organization(organization_id: UUID, data: OrganizationChange, db: DB,
 
 @router.post("/admin/support-sessions", status_code=201)
 def start_support(data: SupportCreate, db: DB, root: Root):
-    org = db.get(Organization, data.organization_id)
+    org = db.scalar(
+        select(Organization).where(Organization.id == data.organization_id).with_for_update()
+    )
     if not org or not org.is_active:
         raise APIError(404, "NOT_FOUND")
     support = SupportSession(
@@ -141,6 +143,11 @@ def end_support(support_id: UUID, db: DB, root: Root):
     )
     if not support:
         raise APIError(404, "NOT_FOUND")
+    # Match tenant handler lock order before updating support or inserting audit.
+    db.scalar(
+        select(Organization).where(Organization.id == support.organization_id).with_for_update()
+    )
+    db.refresh(support)
     support.revoked_at = now()
     audit(db, root, "support.end", support.organization_id, support.id)
     db.commit()

@@ -77,6 +77,8 @@ Cập nhật triển khai hồ sơ: `student_identities` giữ mã duy nhất to
 
 ## Quy tắc học tập
 
+- Đã triển khai migration `20260924_0007`: `course_languages` → `level_frameworks` → `course_levels`, và `courses`. Các bảng có organization_id/version; khóa ngoại tổng hợp đảm bảo cùng tenant/ngôn ngữ/bộ. Khóa có mã duy nhất theo tenant kể cả lưu trữ, trạng thái draft/published/archived, mục tiêu và điều kiện plain text; đầu vào/đầu ra tham chiếu cấp độ trong cùng bộ. Rank/quan hệ cha danh mục bất biến qua API; nhãn được sửa. Bổ sung sau BUG-003: quản lý được sửa mã/xóa mục chưa sử dụng và không có con; khóa phải là nháp chưa từng công bố. Audit giữ lịch sử công bố và xóa; không có cascade. Khi thêm module mới phải mở rộng kiểm tra tham chiếu khi xóa/sửa mã. Các bảng lớp/đăng ký phía dưới vẫn là thiết kế tương lai. Chi tiết: [course-catalog.md](./course-catalog.md).
+
 - `class_sessions` biểu diễn từng buổi học thực tế.
 - Giáo viên mặc định nằm ở `class_teachers`; giáo viên dạy thay nằm ở `session_teachers`.
 - Một học viên chỉ có một Attendance cho mỗi session.

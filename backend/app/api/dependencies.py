@@ -163,6 +163,10 @@ def tenant_access(
         ):
             raise APIError(403, "SUPPORT_SESSION_REQUIRED")
         org_id, role = support.organization_id, "organization_manager"
+        # Audit INSERT takes FK key-share locks (actor, then organization).
+        # Take the tenant lock first, matching org -> actor -> support in handlers;
+        # otherwise parallel root reads can deadlock with those handlers.
+        db.scalar(select(Organization).where(Organization.id == org_id).with_for_update())
         audit(
             db,
             actor,
