@@ -3,8 +3,12 @@ from app.models.auth import AccountToken, AuthSession, RefreshToken
 from app.models.identity import User, UserMembership
 from app.models.membership_invitation import MembershipInvitation
 from app.models.organization import Organization
+from app.models.student import GuardianContact, StudentIdentity, StudentProfile
 
 __all__ = [
+    "GuardianContact",
+    "StudentIdentity",
+    "StudentProfile",
     "MembershipInvitation",
     "AccountToken",
     "AuditLog",

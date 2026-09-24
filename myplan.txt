@@ -677,3 +677,25 @@ Một backlog item chỉ hoàn thành khi:
 - Kiểm chứng: 169 backend SQLite/PostgreSQL đạt; 10 skip chỉ thuộc bản SQLite của test concurrency, các bản PostgreSQL đạt (gồm chấp nhận đồng thời cùng tài khoản tại hai trung tâm). 12 test UI và 6 E2E Chromium đạt; Ruff lint, ESLint, TypeScript/Vite build đạt. Format check file thuộc luồng mời đạt; toàn backend còn 14 file định dạng cũ chưa thay đổi ngoài phạm vi.
 - Docker đã cập nhật API/web, migration `20260922_0005` đã áp dụng; Alembic check không lệch schema. API/web/Mailpit trả HTTP 200, API lời mời và UI mới có mặt; OpenAPI không có test helper. Không thay đổi hoặc xóa volume dữ liệu.
 - Jira SYNAPSELMS-48 (IAM-03) đã có bình luận tiến độ/kiểm thử số 10056, giữ In Progress vì chưa hoàn tất toàn bộ story. Chưa commit; chờ người dùng nghiệm thu theo checklist.
+
+## 15. Phản hồi nghiệm thu và kế hoạch tiếp theo
+
+- Người dùng báo test OK luồng vừa bàn giao; không suy diễn thành xác nhận riêng mọi ca test.
+- Chưa sửa code: ghi nhận BUG-001 (nhãn Họ và tên ở form trung tâm), BUG-002 (chữ nút đổi ngôn ngữ/đăng xuất khó đọc trong dark mode), UX-001 (hướng dẫn Root mở hỗ trợ) tại `docs/test-feedback.md`.
+- Kế hoạch chi tiết đề xuất tại `docs/student-profile-next-step.md`: sửa/nghiệm thu giao diện trước, rồi chốt đặc tả và làm hồ sơ học viên, danh sách tìm kiếm/phân trang, liên hệ phụ huynh và phân quyền.
+- Liên quan STU-01/STU-02/STU-07, một phần IAM-08; chưa làm duyệt khóa học, học phí, AI, chuyển trung tâm hoặc học liệu. Các mặc định hồ sơ trong kế hoạch là đề xuất, cần chốt trước migration.
+- Phiên hiện tại chỉ ghi nhận và lập kế hoạch, không thay đổi code/container hoặc trạng thái Jira.
+
+## 16. Triển khai giao diện và hồ sơ học viên — bàn giao 2026-09-24
+
+- Người dùng duyệt triển khai kế hoạch với Astra High; đề cử đã nêu: GPT gpt-6-astra high. Mục 15 ghi lại phiên lập kế hoạch; mục này ghi nhận triển khai thực tế.
+- Đã sửa BUG-001 nhãn tên trung tâm, BUG-002 màu nút theo theme và UX-001 hướng dẫn Root mở hỗ trợ. Tái hiện lỗi dark mode bằng E2E trước sửa; sau sửa qua kiểm tra sáng/tối, 1280px/390px, focus bàn phím, Việt/Anh và ảnh mobile. Chưa có audit accessibility toàn website.
+- STU-01/STU-02/STU-07: API/UI hồ sơ học viên, mã toàn hệ thống, danh sách tìm tên/mã/lọc/phân trang server, liên hệ phụ huynh, lưu trữ/khôi phục có lý do. Học viên có màn hình tự tạo/cập nhật hồ sơ; email đăng nhập chỉ đọc.
+- Tách StudentIdentity toàn hệ thống khỏi StudentProfile tenant; mã ổn định không chứa dữ liệu cá nhân. Mỗi user một identity; mỗi identity/tenant một hồ sơ. GuardianContact thuộc hồ sơ, tối đa 10 liên hệ và tối đa một liên hệ chính.
+- Ghi chú nội bộ không trả cho học viên; quản lý/giáo vụ giới hạn tenant, Root cần hỗ trợ, giáo viên chưa mở quyền khi chưa có phân công lớp. Version chống ghi đè dữ liệu cũ; audit không chép giá trị trường cá nhân/ghi chú. Hồ sơ lưu trữ không khóa tài khoản.
+- Migration `20260923_0006` chỉ thêm cấu trúc mới, không sinh hồ sơ giả hoặc sửa user/membership cũ. Danh sách liên hệ được thay thế nguyên tử cùng hồ sơ. PATCH gửi nguyên phần form và version, không phải merge-patch từng trường.
+- Kiểm chứng: 199 backend đạt / 12 skip SQLite concurrency (PostgreSQL đạt); 17 UI và 8 E2E Chromium đạt; Ruff, ESLint, TypeScript/Vite build đạt. Migration nâng/hạ/nâng và kiểm tra model/schema trên database test đạt. Không tạo hồ sơ thật để test.
+- Đặc tả, giới hạn và checklist: `docs/student-profiles.md`; phản hồi giao diện: `docs/test-feedback.md`. README/mục lục, dữ liệu, RBAC và tài liệu vận hành đã cập nhật.
+- Còn ngoài phạm vi: hồ sơ chưa gắn tài khoản, nhập CSV, trình độ đầu vào, đăng ký/duyệt khóa học, chi nhánh/lớp, chuyển trung tâm thực tế, tài chính, AI và học liệu. IAM-08 chỉ hoàn thành thêm phần hồ sơ, không tự đánh dấu cả story Done.
+- Ngày 2026-09-24 đã xác nhận Docker ở `20260923_0006 (head)`, Alembic check không lệch schema; API/web/Mailpit HTTP 200. Giao diện hồ sơ và CSS sửa theme đã có trên web đang chạy; OpenAPI không có test helper. Không xóa volume hoặc tạo dữ liệu học viên thật để thử.
+- Jira STU-01/STU-02/STU-07 (SYNAPSELMS-58/59/64) đã chuyển In Progress chờ nghiệm thu, kèm bình luận kết quả 10057/10058/10059. IAM-08 (SYNAPSELMS-150) giữ In Progress, bình luận 10060 nêu rõ phần còn lại. Chưa commit phần hồ sơ/theme của phiên này.

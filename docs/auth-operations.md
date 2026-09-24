@@ -13,7 +13,7 @@ docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
 docker compose up -d --no-deps api web
 ```
 
-Migration hiện tại: `20260922_0005`. Xác minh email, khôi phục mật khẩu, quản lý phiên và cấu hình Mailpit được mô tả trong [vòng đời tài khoản](./account-lifecycle.md); luồng mới tại [mời thành viên qua email](./membership-invitations.md). Migration không tự xác minh tài khoản cũ. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy.
+Migration hiện tại: `20260923_0006` (hồ sơ học viên). Xác minh email, khôi phục mật khẩu, quản lý phiên và cấu hình Mailpit được mô tả trong [vòng đời tài khoản](./account-lifecycle.md); các phần sau tại [mời thành viên qua email](./membership-invitations.md) và [hồ sơ học viên](./student-profiles.md). Migration không tự xác minh tài khoản cũ hoặc tạo hồ sơ học viên giả. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy.
 
 Tạo Root Admin bằng email của bạn (thay giá trị ví dụ):
 
@@ -74,6 +74,8 @@ Root truy cập tenant gửi thêm `X-Support-Session`; không lấy tenant từ
 - Quyền lớp/buổi, chi nhánh, học phí/điểm danh/điểm số sẽ được triển khai và kiểm thử cùng module tương ứng. Khung hiện tại không phải bằng chứng các module chưa tồn tại đã được phân quyền.
 
 ## Kiểm thử
+
+Checkpoint hồ sơ học viên mới nhất: 199 backend đạt / 12 skip SQLite concurrency; 17 UI, 8 E2E đạt. Chi tiết tại [hồ sơ học viên](./student-profiles.md). Các checkpoint auth/lời mời dưới đây giữ làm lịch sử.
 
 Kết quả mới nhất 2026-09-23: 169 backend đạt / 10 skip SQLite concurrency (các bản PostgreSQL đạt); 12 UI, 6 E2E đạt; Ruff lint, ESLint và TypeScript/Vite build đạt. Format check luồng mời đạt; toàn backend còn 14 file định dạng cũ chưa chỉnh ngoài phạm vi. Phạm vi mới xem [mời thành viên qua email](./membership-invitations.md). Các số liệu dưới đây là checkpoint trước khi bổ sung email/recovery/quản lý phiên.
 

@@ -48,6 +48,8 @@ System
 
 ## Quy tắc multi-tenant
 
+Cập nhật triển khai hồ sơ: `student_identities` giữ mã duy nhất toàn hệ thống gắn user; `student_profiles` chứa thông tin thuộc tenant và liên kết identity; `guardian_contacts` thuộc hồ sơ cha. Không đổi chủ sở hữu hồ sơ cũ khi xây luồng chuyển. Chi tiết và API tại [hồ sơ học viên](./student-profiles.md).
+
 - Mọi bảng nghiệp vụ phải có `organization_id`, trực tiếp hoặc qua quan hệ cha không thể nhập nhằng.
 - Khóa duy nhất nghiệp vụ thường gồm `organization_id`, ví dụ mã học viên hoặc mã lớp.
 - Riêng mã học viên có unique constraint toàn hệ thống, không phụ thuộc `organization_id`.

@@ -8,6 +8,7 @@ import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import { Centers, Members } from './Management'
 import { InvitationAcceptance, Invitations } from './Invitations'
+import { Students } from './Students'
 
 export default function App() {
   const location = useLocation()
@@ -95,8 +96,10 @@ export default function App() {
       {!registering && <button onClick={() => { setRecovering(true); setError(''); setNotice('') }}>{t('forgotPassword')}</button>}
     </section></main>
   const manager = profile.membership?.tenant_available && profile.membership.role === 'organization_manager'
+  const studentAdmin = profile.membership?.tenant_available && ['organization_manager', 'staff'].includes(profile.membership.role) || !!support
+  const learner = profile.membership?.tenant_available && profile.membership.role === 'student'
   return <div className="app-shell"><aside className="sidebar"><div className="brand-mark">S</div><strong>SynapseLMS</strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
-    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}</nav></aside>
+    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}{studentAdmin && <NavLink to="/students">{t('students')}</NavLink>}{learner && <NavLink to="/student-profile">{t('myStudentProfile')}</NavLink>}</nav></aside>
     <main><header className="topbar"><span>{profile.display_name || profile.email}</span><div className="topbar-actions">{languageButton}<button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
       <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
         try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
@@ -108,6 +111,8 @@ export default function App() {
         <form className="card compact-form" onSubmit={passwordChange}><h2>{t('passwordChange')}</h2><label>{t('currentPassword')}<input name="currentPassword" type="password" autoComplete="current-password" required /></label><label>{t('newPassword')}<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label><button className="primary" disabled={busy}>{t('save')}</button></form></>} />
         <Route path="centers" element={profile.is_root_admin ? <Centers language={language} onSupport={(id, name) => { setSupportSession(id); setSupport({ id, name }) }} /> : <Navigate to="/" replace />} />
         <Route path="sessions" element={<Sessions language={language} />} />
+        <Route path="students" element={studentAdmin ? <Students key={support?.id || profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
+        <Route path="student-profile" element={learner ? <Students key={profile.membership?.id} language={language} personal displayName={profile.display_name || ''} /> : <Navigate to="/" replace />} />
         <Route path="invitations" element={manager || support ? <Invitations key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} /> : <Navigate to="/" replace />} />
         <Route path="members" element={manager || support ? <Members key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} actorId={profile.id} /> : <Navigate to="/" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} /></Routes>

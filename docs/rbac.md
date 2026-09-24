@@ -38,6 +38,8 @@ Mỗi tài khoản chỉ có một vai trò nghiệp vụ và một tenant đang
 
 ## Quyết định đã xác nhận
 
+- Hồ sơ học viên đã triển khai cho quản lý/giáo vụ trong tenant, Root có hỗ trợ và học viên với hồ sơ của chính mình. Học viên không nhận ghi chú nội bộ từ API. Hồ sơ lưu trữ chỉ đọc cho học viên, không tự khóa tài khoản. Quyền giáo viên xem học viên lớp phụ trách chưa mở vì module phân công lớp chưa triển khai; mặc định từ chối API hồ sơ. Chi tiết: `student-profiles.md`.
+
 - Root Admin có quyền truy cập hỗ trợ vào tenant với lý do và audit log.
 - Giáo vụ không được nhập hoặc sửa điểm.
 - Giáo vụ được hoàn phí mà không cần bước duyệt bắt buộc của quản lý; thao tác vẫn phải có lý do và audit log.

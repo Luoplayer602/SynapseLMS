@@ -36,9 +36,9 @@ export function Centers({ language, onSupport }: { language: Language; onSupport
       name: values.get('name'), slug: values.get('slug'), is_public: values.has('public'), registration_enabled: values.has('registration'),
     }); form.reset() })
   }
-  return <><h1>{t('centers')}</h1>{message}{busy && <p role="status">{t('loading')}</p>}
+  return <><h1>{t('centers')}</h1><p>{t('rootSupportHint')}</p>{message}{busy && <p role="status">{t('loading')}</p>}
     <form className="card compact-form" onSubmit={create}><h2>{t('newCenter')}</h2>
-      <label>{t('name')}<input name="name" required maxLength={200} /></label><label>{t('slug')}<input name="slug" required pattern="[a-z0-9][a-z0-9-]{1,79}" /></label>
+      <label>{t('centerName')}<input name="name" required maxLength={200} /></label><label>{t('slug')}<input name="slug" required pattern="[a-z0-9][a-z0-9-]{1,79}" /></label>
       <label className="check"><input type="checkbox" name="public" />{t('public')}</label><label className="check"><input type="checkbox" name="registration" />{t('registration')}</label><button disabled={busy}>{t('create')}</button>
     </form>{!rows.length && !busy && <p>{t('empty')}</p>}
     {rows.map(org => <article className="card management-card" key={org.id}><h2>{org.name}</h2><p>{org.slug}</p>

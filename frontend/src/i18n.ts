@@ -1,5 +1,26 @@
 export type Language = 'vi' | 'en'
 const labels: Record<string, [string, string]> = {
+  students: ['Học viên', 'Students'], myStudentProfile: ['Hồ sơ học viên của tôi', 'My student profile'],
+  studentSearch: ['Tìm theo mã hoặc tên học viên', 'Search student code or name'], search: ['Tìm kiếm', 'Search'],
+  profileStatus: ['Trạng thái hồ sơ', 'Profile status'], profileActive: ['Đang sử dụng', 'Active profile'], profileArchived: ['Đã lưu trữ', 'Archived'],
+  newStudentProfile: ['Tạo hồ sơ học viên', 'Create student profile'], editStudentProfile: ['Chi tiết hồ sơ học viên', 'Student profile details'],
+  viewProfile: ['Xem hồ sơ', 'View profile'], backToStudents: ['Về danh sách học viên', 'Back to students'],
+  chooseStudentAccount: ['Chọn tài khoản học viên', 'Select a student account'], chooseAccount: ['Chọn tài khoản này', 'Use this account'],
+  candidateSearch: ['Tìm tài khoản theo tên hoặc email', 'Find account by name or email'],
+  candidateHint: ['Chỉ tài khoản học viên đang hoạt động tại trung tâm và chưa có hồ sơ. Nếu chưa có tài khoản, quản lý cần mời học viên trước.', 'Only active student accounts in this center without a profile. A manager can invite students who do not yet have an account.'],
+  noStudentCandidates: ['Không có tài khoản học viên phù hợp. Thử tìm kiếm khác hoặc kiểm tra lời mời đã được tiếp nhận.', 'No eligible student account. Try another search or check that the invitation was accepted.'],
+  birthDate: ['Ngày sinh', 'Date of birth'], phone: ['Số điện thoại', 'Phone number'], address: ['Địa chỉ', 'Address'],
+  internalNotes: ['Ghi chú nội bộ (học viên không thấy)', 'Internal notes (hidden from student)'],
+  guardianContacts: ['Liên hệ phụ huynh/người giám hộ', 'Guardian contacts'], guardianContact: ['Liên hệ', 'Contact'],
+  guardianHint: ['Tối đa 10 liên hệ, tối đa một liên hệ chính. Không tạo tài khoản phụ huynh.', 'Up to 10 contacts and one primary contact. No guardian accounts are created.'],
+  relationship: ['Quan hệ với học viên', 'Relationship to student'], primaryContact: ['Liên hệ chính', 'Primary contact'],
+  addContact: ['Thêm liên hệ', 'Add contact'], removeContact: ['Bỏ liên hệ khỏi bản chỉnh sửa', 'Remove contact from draft'],
+  missingPhone: ['Hồ sơ còn thiếu số điện thoại liên hệ. Bạn vẫn có thể lưu nháp.', 'A contact phone number is missing. You can still save a draft.'],
+  archiveProfile: ['Lưu trữ hồ sơ', 'Archive profile'], restoreProfile: ['Khôi phục hồ sơ', 'Restore profile'],
+  archivedHint: ['Hồ sơ đã lưu trữ và chỉ đọc. Liên hệ giáo vụ để khôi phục; tài khoản đăng nhập không bị khóa.', 'This archived profile is read-only. Contact staff to restore it; your sign-in account is not disabled.'],
+  archiveConfirmation: ['Xác nhận đổi trạng thái hồ sơ? Thao tác không khóa tài khoản hoặc xóa lịch sử.', 'Change the profile status? This does not disable the account or delete history.'],
+  centerName: ['Tên trung tâm', 'Center name'],
+  rootSupportHint: ['Để quản lý thành viên và lời mời, hãy chọn trung tâm bên dưới và mở phiên hỗ trợ.', 'To manage members and invitations, select a center below and start a support session.'],
   invitations: ['Lời mời thành viên', 'Membership invitations'],
   invitationsHint: ['Người nhận tự thiết lập tài khoản; quyền thành viên chỉ có hiệu lực sau khi tiếp nhận lời mời.', 'Recipients set up their own account. Membership starts only after acceptance.'],
   inviteMember: ['Mời thành viên qua email', 'Invite member by email'],
@@ -65,6 +86,11 @@ export function translate(language: Language, key: string): string {
   return labels[key]?.[language === 'vi' ? 0 : 1] || key
 }
 const errors: Record<string, [string, string]> = {
+  STUDENT_NOT_FOUND: ['Chưa có hồ sơ học viên hoặc bạn không có quyền xem.', 'Student profile not found or unavailable.'],
+  STUDENT_ACCOUNT_UNAVAILABLE: ['Tài khoản không phải học viên đang hoạt động trong trung tâm này.', 'The account is not an active student in this center.'],
+  STUDENT_EXISTS: ['Học viên đã có hồ sơ. Hãy quay lại danh sách và mở hồ sơ hiện có.', 'The student already has a profile. Return to the list and open it.'],
+  STUDENT_CONFLICT: ['Hồ sơ đã thay đổi hoặc bị trùng. Hãy sao chép phần cần giữ, rồi bấm Làm mới danh sách để tải bản mới trước khi sửa tiếp.', 'The profile changed or conflicts with an existing record. Copy edits you want to keep, then Refresh list to load the latest version.'],
+  STUDENT_ARCHIVED: ['Hồ sơ đã lưu trữ. Cần giáo vụ/quản lý khôi phục trước khi sửa.', 'The profile is archived. Staff or a manager must restore it before editing.'],
   INVALID_INVITATION: ['Lời mời không hợp lệ, đã dùng, hết hạn, bị thu hồi hoặc trung tâm đang tạm khóa. Hãy liên hệ trung tâm để nhận lời mời mới.', 'The invitation is invalid, used, expired, revoked, or its center is unavailable. Contact the center for a new invitation.'],
   INVITATION_CONFLICT: ['Đã có lời mời đang chờ cho email này tại trung tâm hoặc có thay đổi đồng thời. Hãy làm mới danh sách.', 'A pending invitation already exists for this email in the center, or a concurrent change occurred. Refresh the list.'],
   INVITATION_MEMBER_EXISTS: ['Tài khoản đã có hồ sơ thành viên tại trung tâm. Hãy quản lý hồ sơ hiện có.', 'This account already has a membership in this center. Manage the existing membership.'],

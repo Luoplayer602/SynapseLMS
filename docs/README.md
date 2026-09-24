@@ -12,6 +12,8 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [Vận hành xác thực và phân quyền](./auth-operations.md): bootstrap Root Admin, cấu hình, API, Docker và kiểm thử.
 - [Vòng đời tài khoản](./account-lifecycle.md): xác minh email, khôi phục mật khẩu, quản lý phiên và Mailpit.
 - [Mời thành viên qua email](./membership-invitations.md): quyền mời, tiếp nhận, gửi lại/thu hồi, API và checklist nghiệm thu.
+- [Hồ sơ học viên](./student-profiles.md): danh tính/mã toàn hệ thống, hồ sơ tenant, liên hệ phụ huynh, quyền và nghiệm thu.
+- [Phản hồi nghiệm thu](./test-feedback.md): lỗi nhãn/theme và trạng thái xử lý.
 - [Luồng giáo trình và tài liệu tham khảo](./workflows/learning-materials.md): thư viện, phiên bản, quyền truy cập và backlog MAT đề xuất.
 - [Luồng đăng ký và xếp lớp](./workflows/enrollment.md): duyệt khóa học, tạo hóa đơn và xếp lớp.
 - [Luồng bảo lưu và hoàn phí](./workflows/reservation-refund.md): bảo lưu từ buổi học, đề xuất và thực hiện hoàn phí.
