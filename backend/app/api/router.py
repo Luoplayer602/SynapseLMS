@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.routes.access import router as access_router
 from app.api.routes.account import router as account_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.classrooms import router as classrooms_router
 from app.api.routes.courses import router as courses_router
 from app.api.routes.health import router as health_router
 from app.api.routes.membership_invitations import router as membership_invitations_router
@@ -20,3 +21,4 @@ api_router.include_router(students_router, tags=["students"])
 api_router.include_router(courses_router, tags=["courses"])
 api_router.include_router(proficiencies_router, tags=["student-proficiencies"])
 api_router.include_router(teachers_router, tags=["teachers"])
+api_router.include_router(classrooms_router, tags=["class-foundation"])

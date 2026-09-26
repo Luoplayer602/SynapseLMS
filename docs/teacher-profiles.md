@@ -1,6 +1,6 @@
 # TCH-01/TCH-02 — Hồ sơ, năng lực và chứng chỉ giáo viên
 
-Triển khai ngày 2026-09-26, chờ người dùng nghiệm thu. Kế hoạch gốc: [teacher-profile-next-step.md](./teacher-profile-next-step.md). BUG-004 select dark mode Chrome vẫn hoãn.
+Triển khai ngày 2026-09-26; người dùng đã xác nhận toàn bộ hoạt động và nghiệm thu TCH-01/TCH-02. Kế hoạch gốc: [teacher-profile-next-step.md](./teacher-profile-next-step.md). BUG-004 select dark mode Chrome vẫn hoãn.
 
 ## Luồng sử dụng và quyền
 

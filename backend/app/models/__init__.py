@@ -1,5 +1,6 @@
 from app.models.access import AuditLog, AuthRateBucket, OrganizationInvite, SupportSession
 from app.models.auth import AccountToken, AuthSession, RefreshToken
+from app.models.classroom import Branch, LearningClass, Room
 from app.models.course import Course, CourseLanguage, CourseLevel, LevelFramework
 from app.models.identity import User, UserMembership
 from app.models.membership_invitation import MembershipInvitation
@@ -16,6 +17,9 @@ from app.models.teacher import (
 )
 
 __all__ = [
+    "Branch",
+    "Room",
+    "LearningClass",
     "TeacherCredential",
     "TeacherHistory",
     "TeacherHistoryLevel",

@@ -25,6 +25,8 @@ Mỗi tài khoản chỉ có một vai trò nghiệp vụ và một tenant đang
 
 ## Quy tắc bắt buộc
 
+- Nền lớp học đã triển khai: chi nhánh/phòng quản lý hoặc Root hỗ trợ được ghi, giáo vụ chỉ xem; lớp nháp cả quản lý/giáo vụ/Root hỗ trợ được ghi. Giáo viên/học viên chưa được truy cập. Hiện scope toàn tenant, chưa giới hạn nhân sự theo từng chi nhánh. Xem [class-foundation.md](./class-foundation.md).
+
 1. Root Admin được truy cập dữ liệu tenant để hỗ trợ kỹ thuật, nhưng phải chọn tenant, cung cấp lý do và tạo audit log cho phiên hỗ trợ.
 2. Quản lý, giáo vụ và giáo viên luôn bị giới hạn bởi `organization_id`.
 3. Giáo viên còn bị giới hạn bởi phân công lớp hoặc buổi học.

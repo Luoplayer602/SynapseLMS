@@ -33,6 +33,7 @@ Student profiles, guardian contacts and manual acceptance: [Student profiles](do
 Student proficiency, center verification, goals and history: [STU-03](docs/student-proficiencies.md).
 
 Teacher profiles, explicit teaching capabilities and credentials: [TCH-01/TCH-02](docs/teacher-profiles.md).
+Branches, rooms and draft classes with course snapshots: [Class foundation](docs/class-foundation.md).
 Course catalog, language/level settings, publication and acceptance: [Course catalog](docs/course-catalog.md).
 
 ### Without Docker

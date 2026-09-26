@@ -219,6 +219,24 @@ def require_unused(db, item):
     Database FKs remain the final guard against deleting any referenced record.
     Previously published courses keep their identity even after returning to draft.
     """
+    from app.models import LearningClass
+
+    column = (
+        LearningClass.course_id
+        if isinstance(item, Course)
+        else LearningClass.language_id
+        if isinstance(item, CourseLanguage)
+        else LearningClass.framework_id
+        if isinstance(item, LevelFramework)
+        else None
+    )
+    reference = (
+        column == item.id
+        if column is not None
+        else or_(LearningClass.entry_level_id == item.id, LearningClass.exit_level_id == item.id)
+    )
+    if db.scalar(select(LearningClass.id).where(reference).limit(1)):
+        raise APIError(409, "CATALOG_CLASS_IN_USE")
     if not isinstance(item, Course):
         from app.models import (
             TeacherHistory,

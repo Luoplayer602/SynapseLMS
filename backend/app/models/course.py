@@ -4,6 +4,7 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     String,
     Text,
     UniqueConstraint,
@@ -74,6 +75,7 @@ class CourseLevel(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 class Course(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "courses"
     __table_args__ = (
+        Index("uq_course_id_org", "id", "organization_id", unique=True),
         UniqueConstraint("organization_id", "code"),
         ForeignKeyConstraint(
             ["language_id", "organization_id"],

@@ -223,7 +223,7 @@ def test_migration_preserves_data_and_roundtrip(database_engine):
         assert connection.scalar(text("SELECT password_hash FROM users")) == "existing-hash"
         assert connection.scalar(text("SELECT count(*) FROM user_memberships")) == 1
         command.upgrade(config, "head")
-        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20260926_0009"
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == "20260926_0010"
         # The new normalized uniqueness must still work after downgrade/re-upgrade.
         with pytest.raises(IntegrityError), connection.begin_nested():
             connection.execute(

@@ -48,6 +48,8 @@ System
 
 ## Quy tắc multi-tenant
 
+Nền lớp học, migration `20260926_0010`: `branches`, `rooms`, `learning_classes` và unique index course `(id, organization_id)`. FK tổng hợp giữ lớp/phòng đúng tenant/chi nhánh và snapshot giữ FK gốc của ngôn ngữ/bộ/cấp độ; không cho xóa/đổi mã danh mục đã được lớp (kể cả lưu trữ) tham chiếu. Lớp chỉ draft/archived, snapshot khóa không đổi; ngày dự kiến chưa tạo session/reservation. Không seed/backfill. Chi tiết [class-foundation.md](./class-foundation.md).
+
 TCH-01/TCH-02, migration `20260926_0009`: `teacher_profiles` unique user/tenant; `teaching_capabilities` unique profile/ngôn ngữ và `teaching_capability_levels` giữ cấp cụ thể, có thể nhiều bộ cùng ngôn ngữ. `teacher_credentials` lưu chứng chỉ văn bản/ngày. `teacher_history` và `teacher_history_levels` giữ snapshot public/internal cùng FK gốc. Không backfill/cascade/xóa cứng; catalog guard bao gồm năng lực và lịch sử. Chi tiết [teacher-profiles.md](./teacher-profiles.md).
 
 Cập nhật triển khai hồ sơ: `student_identities` giữ mã duy nhất toàn hệ thống gắn user; `student_profiles` chứa thông tin thuộc tenant và liên kết identity; `guardian_contacts` thuộc hồ sơ cha. Không đổi chủ sở hữu hồ sơ cũ khi xây luồng chuyển. Chi tiết và API tại [hồ sơ học viên](./student-profiles.md).
