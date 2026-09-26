@@ -13,7 +13,7 @@ docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
 docker compose up -d --no-deps api web
 ```
 
-Migration hiện tại: `20260924_0007` ([danh mục khóa học](./course-catalog.md)). Xác minh email, khôi phục mật khẩu, quản lý phiên và cấu hình Mailpit được mô tả trong [vòng đời tài khoản](./account-lifecycle.md); các phần sau tại [mời thành viên qua email](./membership-invitations.md) và [hồ sơ học viên](./student-profiles.md). Migration không tự xác minh tài khoản cũ hoặc tạo hồ sơ/khóa/cấp độ giả. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy.
+Migration mới nhất: `20260926_0009` ([hồ sơ/năng lực giáo viên](./teacher-profiles.md)), sau 0008 ([trình độ và mục tiêu học viên](./student-proficiencies.md)). Xác minh email, khôi phục mật khẩu, quản lý phiên và cấu hình Mailpit được mô tả trong [vòng đời tài khoản](./account-lifecycle.md); các phần sau tại [mời thành viên qua email](./membership-invitations.md), [hồ sơ học viên](./student-profiles.md) và [danh mục khóa học](./course-catalog.md). Migration không tự xác minh tài khoản cũ hoặc tạo hồ sơ/khóa/cấp độ giả. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy. Không downgrade 0008/0009 trên DB thật đã nhập dữ liệu: thao tác xóa các bảng và dữ liệu tương ứng; cần backup/quy trình phục hồi riêng. Checkpoint triển khai thực tế ghi trong myplan.
 
 Tạo Root Admin bằng email của bạn (thay giá trị ví dụ):
 
@@ -74,6 +74,10 @@ Root truy cập tenant gửi thêm `X-Support-Session`; không lấy tenant từ
 - Quyền lớp/buổi, chi nhánh, học phí/điểm danh/điểm số sẽ được triển khai và kiểm thử cùng module tương ứng. Khung hiện tại không phải bằng chứng các module chưa tồn tại đã được phân quyền.
 
 ## Kiểm thử
+
+Checkpoint TCH-01/TCH-02 2026-09-26: 289 backend đạt / 32 skip bản SQLite concurrency (PostgreSQL đạt), 40 UI, 12 E2E Chromium; Ruff/ESLint/build đạt. Migration 0009 nâng/hạ/nâng và schema/model trên DB tạm đạt; gồm quyền/riêng tư/version/FK, năng lực/chứng chỉ/lịch sử, bảo vệ catalog, cạnh tranh ghi và thu hồi hỗ trợ. Checklist tại [giáo viên](./teacher-profiles.md), kết quả Docker/Jira cuối tại mục 24 của `myplan.txt`. Các checkpoint dưới đây là lịch sử.
+
+Checkpoint STU-03 2026-09-25: 266 backend đạt / 27 skip bản SQLite concurrency (PostgreSQL đạt), 32 UI, 11 E2E Chromium; Ruff/ESLint/build đạt. Migration nâng/hạ/nâng và schema check trên DB tạm đạt; thêm quyền/riêng tư/lịch sử, FK/catalog tham chiếu và Root đọc trình độ đồng thời với thu hồi hỗ trợ. Đặc tả/checklist tại [STU-03](./student-proficiencies.md); kết quả Docker cuối tại mục 22 của `myplan.txt`. Các checkpoint bên dưới giữ làm lịch sử.
 
 Checkpoint BUG-003/bảo trì catalog 2026-09-24: 245 backend đạt / 22 skip bản SQLite concurrency (PostgreSQL đạt); 26 UI, 10 E2E; Ruff/ESLint/build đạt. Có test điều phối deadlock và Root tải catalog đồng thời với thu hồi support/tenant/session. Docker đã cập nhật, không migration mới, vẫn head `0007`; xem [feedback](./test-feedback.md) và [catalog](./course-catalog.md).
 

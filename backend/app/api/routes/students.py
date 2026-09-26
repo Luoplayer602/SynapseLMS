@@ -28,7 +28,7 @@ from app.models import (
 router = APIRouter(prefix="/students", dependencies=[Depends(auth_guard)])
 
 
-def access(db, tenant, request, response, personal=False):
+def access(db, tenant, request, response, personal=False, personal_role="student"):
     """Serialize tenant writes and recheck authority under the identity lock.
 
     Read requests use the same short lock to avoid returning data after a concurrent
@@ -80,7 +80,7 @@ def access(db, tenant, request, response, personal=False):
         tenant.role = member.role
     if not tenant.organization.is_active:
         raise APIError(403, "TENANT_UNAVAILABLE")
-    if (personal and (tenant.actor.user.is_root_admin or tenant.role != "student")) or (
+    if (personal and (tenant.actor.user.is_root_admin or tenant.role != personal_role)) or (
         not personal and tenant.role not in {"organization_manager", "staff"}
     ):
         raise APIError(403, "FORBIDDEN")

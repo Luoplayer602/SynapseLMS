@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { api, ApiError } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { Proficiencies } from './Proficiencies'
 
 interface Guardian { full_name: string; relationship: string; phone: string; email: string | null; is_primary: boolean }
 interface StudentRow { id: string; code: string; full_name: string; archived: boolean; version: number }
@@ -37,6 +38,7 @@ export function Students({ language, personal = false, displayName = '' }: { lan
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [proficiencies, setProficiencies] = useState(false)
   useEffect(() => {
     let cancelled = false
     const path = personal ? '/students/me' : selection ? `/students/${selection}` : `/students?offset=${offset}&q=${encodeURIComponent(query)}&status=${status}`
@@ -52,7 +54,7 @@ export function Students({ language, personal = false, displayName = '' }: { lan
     return () => { cancelled = true }
   }, [personal, selection, offset, query, status, revision])
   function reload() { setLoading(true); setError(''); setRevision(n => n + 1) }
-  function back() { setSelection(''); setDetail(null); setCreating(false); setCandidate(null); setNotice(''); reload() }
+  function back() { setSelection(''); setDetail(null); setCreating(false); setCandidate(null); setNotice(''); setProficiencies(false); reload() }
   function saved(result: StudentDetail) {
     setDetail(result); setCreating(false); setCandidate(null); setNotice('updated'); setError('')
     if (!personal) setSelection(result.id)
@@ -79,7 +81,9 @@ export function Students({ language, personal = false, displayName = '' }: { lan
       {rows && <Pager language={language} offset={offset} total={rows.total} count={rows.items.length} busy={loading} onPage={n => { setOffset(n); setLoading(true) }} />}
     </>}
     {!personal && creating && !candidate && <Candidates language={language} onChoose={item => { setCandidate(item); setDetail(null); setError('') }} />}
-    {showEditor && (detail || creating) && <ProfileEditor key={detail ? `${detail.id}:${detail.version}:${revision}` : `new:${candidate?.id || 'me'}`} language={language} personal={personal} detail={detail}
+    {showEditor && detail && <button onClick={() => { setProficiencies(!proficiencies); setNotice('') }}>{t(proficiencies ? 'backToPersonalFields' : 'proficiencies')}</button>}
+    {showEditor && detail && proficiencies && <Proficiencies key={`${detail.id}:${revision}`} language={language} profileId={detail.id} personal={personal} archived={detail.archived} />}
+    {showEditor && !proficiencies && (detail || creating) && <ProfileEditor key={detail ? `${detail.id}:${detail.version}:${revision}` : `new:${candidate?.id || 'me'}`} language={language} personal={personal} detail={detail}
       candidate={candidate} defaultName={displayName} onSaved={saved} />}
   </>
 }

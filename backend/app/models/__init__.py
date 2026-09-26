@@ -4,10 +4,30 @@ from app.models.course import Course, CourseLanguage, CourseLevel, LevelFramewor
 from app.models.identity import User, UserMembership
 from app.models.membership_invitation import MembershipInvitation
 from app.models.organization import Organization
+from app.models.proficiency import ProficiencyHistory, StudentProficiency
 from app.models.student import GuardianContact, StudentIdentity, StudentProfile
+from app.models.teacher import (
+    TeacherCredential,
+    TeacherHistory,
+    TeacherHistoryLevel,
+    TeacherProfile,
+    TeachingCapability,
+    TeachingCapabilityLevel,
+)
 
 __all__ = [
-    "Course", "CourseLanguage", "CourseLevel", "LevelFramework",
+    "TeacherCredential",
+    "TeacherHistory",
+    "TeacherHistoryLevel",
+    "TeacherProfile",
+    "TeachingCapability",
+    "TeachingCapabilityLevel",
+    "StudentProficiency",
+    "ProficiencyHistory",
+    "Course",
+    "CourseLanguage",
+    "CourseLevel",
+    "LevelFramework",
     "GuardianContact",
     "StudentIdentity",
     "StudentProfile",

@@ -1,6 +1,6 @@
 # STU-03 — Trình độ đầu vào và mục tiêu học
 
-Ngày 2026-09-25. Trạng thái: kế hoạch đề xuất, chưa triển khai. Theo yêu cầu người dùng, BUG-004 trên Chrome hoãn xử lý, không còn là điều kiện bắt đầu bước nghiệp vụ này. Không tự đánh dấu các bản trước đã nghiệm thu.
+Ngày 2026-09-25. Trạng thái: người dùng đã duyệt “thực hiện kế hoạch”; đã triển khai, chờ nghiệm thu. Đặc tả thực tế và checklist tại [student-proficiencies.md](./student-proficiencies.md). Nội dung bên dưới giữ làm kế hoạch gốc. Theo yêu cầu người dùng, BUG-004 trên Chrome hoãn xử lý, không còn là điều kiện bắt đầu bước nghiệp vụ này. Không tự đánh dấu các bản trước đã nghiệm thu.
 
 ## Mục tiêu và phạm vi
 

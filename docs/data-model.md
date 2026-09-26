@@ -48,7 +48,11 @@ System
 
 ## Quy tắc multi-tenant
 
+TCH-01/TCH-02, migration `20260926_0009`: `teacher_profiles` unique user/tenant; `teaching_capabilities` unique profile/ngôn ngữ và `teaching_capability_levels` giữ cấp cụ thể, có thể nhiều bộ cùng ngôn ngữ. `teacher_credentials` lưu chứng chỉ văn bản/ngày. `teacher_history` và `teacher_history_levels` giữ snapshot public/internal cùng FK gốc. Không backfill/cascade/xóa cứng; catalog guard bao gồm năng lực và lịch sử. Chi tiết [teacher-profiles.md](./teacher-profiles.md).
+
 Cập nhật triển khai hồ sơ: `student_identities` giữ mã duy nhất toàn hệ thống gắn user; `student_profiles` chứa thông tin thuộc tenant và liên kết identity; `guardian_contacts` thuộc hồ sơ cha. Không đổi chủ sở hữu hồ sơ cũ khi xây luồng chuyển. Chi tiết và API tại [hồ sơ học viên](./student-profiles.md).
+
+STU-03, migration `20260925_0008`: `student_proficiencies` unique theo profile/bộ cấp độ, tách tự khai/xác nhận/mục tiêu và version. `proficiency_history` lưu snapshot public/internal sau từng mutation, FK giữ cả cấp độ lịch sử. FK tổng hợp ràng buộc profile/tenant/ngôn ngữ/bộ; unique index profile `(id, organization_id)` phục vụ tham chiếu. Không xóa/đổi mã danh mục được mục hiện hành hoặc lịch sử dùng, không backfill. Xem [trình độ và mục tiêu](./student-proficiencies.md).
 
 - Mọi bảng nghiệp vụ phải có `organization_id`, trực tiếp hoặc qua quan hệ cha không thể nhập nhằng.
 - Khóa duy nhất nghiệp vụ thường gồm `organization_id`, ví dụ mã học viên hoặc mã lớp.

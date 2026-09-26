@@ -29,6 +29,10 @@ Authentication, Root Admin bootstrap and browser tests: [Auth operations](docs/a
 Email verification, recovery, session management and local mailbox: [Account lifecycle](docs/account-lifecycle.md).
 Email membership invitations, permissions and acceptance checklist: [Membership invitations](docs/membership-invitations.md).
 Student profiles, guardian contacts and manual acceptance: [Student profiles](docs/student-profiles.md).
+
+Student proficiency, center verification, goals and history: [STU-03](docs/student-proficiencies.md).
+
+Teacher profiles, explicit teaching capabilities and credentials: [TCH-01/TCH-02](docs/teacher-profiles.md).
 Course catalog, language/level settings, publication and acceptance: [Course catalog](docs/course-catalog.md).
 
 ### Without Docker

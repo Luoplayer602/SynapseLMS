@@ -23,7 +23,7 @@ Phạm vi được triển khai từ kế hoạch `student-profile-next-step.md`
 - `POST /students/{id}/archive`: `version`, `archived` boolean, `reason`. Thao tác không đổi membership.
 - Các request cần header khách web và xác thực như API hiện tại. Root gửi thêm phiên hỗ trợ. Không chấp nhận `organization_id` từ body.
 
-Hồ sơ chưa gắn tài khoản, chuyển trung tâm, import, trình độ đầu vào, lịch sử khóa học/học phí, file/ảnh và AI nằm ngoài phần này.
+Trình độ đầu vào/mục tiêu đã được bổ sung tại [STU-03](./student-proficiencies.md), mở trong chi tiết hồ sơ. Hồ sơ chưa gắn tài khoản, chuyển trung tâm, import, lịch sử khóa học/học phí, file/ảnh và AI nằm ngoài phần này.
 
 ## Lưu dữ liệu và giới hạn
 

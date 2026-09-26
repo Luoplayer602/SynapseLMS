@@ -29,6 +29,7 @@ class StudentIdentity(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 class StudentProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "student_profiles"
     __table_args__ = (
+        Index("uq_student_profile_id_org", "id", "organization_id", unique=True),
         UniqueConstraint(
             "organization_id", "identity_id", name="uq_student_profile_tenant_identity"
         ),

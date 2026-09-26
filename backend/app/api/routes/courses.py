@@ -214,11 +214,46 @@ def rename(
 
 
 def require_unused(db, item):
-    """No cascade. Extend reference checks when adding student levels/classes/enrollments.
+    """No cascade. Student proficiency/history are protected; extend for classes/enrollments.
 
     Database FKs remain the final guard against deleting any referenced record.
     Previously published courses keep their identity even after returning to draft.
     """
+    if not isinstance(item, Course):
+        from app.models import (
+            TeacherHistory,
+            TeacherHistoryLevel,
+            TeachingCapability,
+            TeachingCapabilityLevel,
+        )
+
+        references = (
+            [(model, model.language_id) for model in (TeachingCapability, TeacherHistory)]
+            if isinstance(item, CourseLanguage)
+            else [
+                (model, model.framework_id if isinstance(item, LevelFramework) else model.level_id)
+                for model in (TeachingCapabilityLevel, TeacherHistoryLevel)
+            ]
+        )
+        for model, column in references:
+            if db.scalar(select(model.id).where(column == item.id).limit(1)):
+                raise APIError(409, "CATALOG_TEACHER_IN_USE")
+        from app.models import ProficiencyHistory, StudentProficiency
+
+        for model in (StudentProficiency, ProficiencyHistory):
+            condition = (
+                model.language_id == item.id
+                if isinstance(item, CourseLanguage)
+                else model.framework_id == item.id
+                if isinstance(item, LevelFramework)
+                else or_(
+                    model.self_level_id == item.id,
+                    model.verified_level_id == item.id,
+                    model.goal_level_id == item.id,
+                )
+            )
+            if db.scalar(select(model.id).where(condition).limit(1)):
+                raise APIError(409, "CATALOG_PROFICIENCY_IN_USE")
     if isinstance(item, Course):
         if item.status != "draft":
             raise APIError(409, "COURSE_DRAFT_REQUIRED")

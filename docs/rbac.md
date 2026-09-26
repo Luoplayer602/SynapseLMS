@@ -38,6 +38,10 @@ Mỗi tài khoản chỉ có một vai trò nghiệp vụ và một tenant đang
 
 ## Quyết định đã xác nhận
 
+- TCH-01/TCH-02: quản lý/giáo vụ quản lý hồ sơ/năng lực/chứng chỉ trong tenant, Root cần hỗ trợ; giáo viên chỉ xem bản thân và sửa điện thoại/giới thiệu. Không trả ghi chú/lý do nội bộ cho giáo viên. Lưu trữ hồ sơ làm toàn bộ phần giáo viên chỉ đọc nhưng không khóa tài khoản; năng lực không cấp quyền lớp/học viên/điểm. Xem [teacher-profiles.md](./teacher-profiles.md).
+
+- STU-03: học viên tự khai/sửa mục tiêu và đọc lịch sử công khai của mình; quản lý/giáo vụ và Root có hỗ trợ được thêm mục, sửa mục tiêu, xác nhận/điều chỉnh/thu hồi có căn cứ/lý do, không tự khai thay. Căn cứ/lý do nội bộ không trả qua API học viên. Hồ sơ lưu trữ chặn mọi mutation trình độ; giáo viên chưa mở quyền khi chưa có phân công. Quyền nhập điểm không thay đổi. Xem [student-proficiencies.md](./student-proficiencies.md).
+
 - Bổ sung bảo trì catalog sau BUG-003: chỉ quản lý/Root hỗ trợ được sửa mã hoặc xóa mục chưa sử dụng; khóa phải là nháp chưa từng công bố. Yêu cầu lý do/version; xóa cần mã hiện tại để xác nhận, giữ audit, không xóa dây chuyền. Giáo vụ/giáo viên/học viên không có quyền này.
 
 - Khóa học đã triển khai: quản lý/Root hỗ trợ được tạo và đổi nhãn danh mục, sửa khóa nháp và chuyển trạng thái có lý do; giáo vụ chỉ xem cấu hình, tạo/sửa nháp, không công bố/lưu trữ. Học viên chỉ đọc khóa công bố trong tenant; giáo viên chưa mở quyền khi chưa có lớp. Bảng tổng quan bên trên bao gồm quyền dự kiến của các module tương lai, không có nghĩa tất cả đã được triển khai. Chi tiết: [course-catalog.md](./course-catalog.md).

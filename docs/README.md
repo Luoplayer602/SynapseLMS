@@ -13,7 +13,10 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [Vòng đời tài khoản](./account-lifecycle.md): xác minh email, khôi phục mật khẩu, quản lý phiên và Mailpit.
 - [Mời thành viên qua email](./membership-invitations.md): quyền mời, tiếp nhận, gửi lại/thu hồi, API và checklist nghiệm thu.
 - [Hồ sơ học viên](./student-profiles.md): danh tính/mã toàn hệ thống, hồ sơ tenant, liên hệ phụ huynh, quyền và nghiệm thu.
-- [Kế hoạch trình độ và mục tiêu học STU-03](./student-proficiency-next-step.md): tự khai/xác nhận, lịch sử, quyền và bảo vệ danh mục tham chiếu; chưa triển khai.
+- [Trình độ và mục tiêu học STU-03](./student-proficiencies.md): API, tự khai/xác nhận, lịch sử, quyền, bảo vệ danh mục và checklist nghiệm thu.
+- [Kế hoạch STU-03](./student-proficiency-next-step.md): kế hoạch đã duyệt, giữ làm lịch sử.
+- [Hồ sơ/năng lực giáo viên](./teacher-profiles.md): TCH-01/TCH-02, API, quyền, chứng chỉ, lịch sử và checklist nghiệm thu.
+- [Kế hoạch giáo viên](./teacher-profile-next-step.md): kế hoạch đã duyệt, giữ làm lịch sử.
 - [Danh mục khóa học](./course-catalog.md): ngôn ngữ/bộ/cấp độ, nháp/công bố/lưu trữ, quyền và checklist nghiệm thu.
 - [Kế hoạch catalog và các bước sau](./course-catalog-next-step.md): phạm vi CRS-01/CRS-02 và thứ tự phụ thuộc các lát cắt tiếp theo.
 - [Phản hồi nghiệm thu](./test-feedback.md): lỗi nhãn/theme và trạng thái xử lý.
