@@ -18,6 +18,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [Hồ sơ/năng lực giáo viên](./teacher-profiles.md): TCH-01/TCH-02, API, quyền, chứng chỉ, lịch sử và checklist nghiệm thu.
 - [Kế hoạch giáo viên](./teacher-profile-next-step.md): kế hoạch đã duyệt, giữ làm lịch sử.
 - [Chi nhánh, phòng và lớp nháp](./class-foundation.md): API, quyền, snapshot khóa, sức chứa và checklist nghiệm thu.
+- [Phân công và lịch học cơ bản](./scheduling.md): lịch tuần nháp, xem trước, xác nhận nguyên tử, chống trùng phòng/giáo viên và checklist.
 - [Kế hoạch nền lớp học](./class-foundation-next-step.md): kế hoạch đã duyệt, giữ làm lịch sử và thứ tự triển khai phân công/lịch.
 - [Danh mục khóa học](./course-catalog.md): ngôn ngữ/bộ/cấp độ, nháp/công bố/lưu trữ, quyền và checklist nghiệm thu.
 - [Kế hoạch catalog và các bước sau](./course-catalog-next-step.md): phạm vi CRS-01/CRS-02 và thứ tự phụ thuộc các lát cắt tiếp theo.

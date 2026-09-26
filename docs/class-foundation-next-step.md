@@ -4,6 +4,8 @@ Ngày 2026-09-26. Người dùng đã duyệt triển khai chi nhánh/phòng/l�
 
 ## Phạm vi phiên kế tiếp
 
+Cập nhật 2026-09-26: nền lớp đã triển khai; lát cắt phân công/lịch cơ bản được duyệt và mô tả tại [scheduling.md](./scheduling.md). Phần dưới giữ kế hoạch gốc.
+
 Chuẩn bị cơ sở vật chất và lớp nháp: chi nhánh, phòng, tạo lớp từ khóa học, sĩ số và khoảng ngày dự kiến. Bao phủ phần nền CLS-01/CLS-02; chưa coi lớp đã mở tuyển sinh hoặc toàn bộ luồng mở lớp hoàn tất. Đã đối chiếu backlog: ORG-02/SYNAPSELMS-54, ORG-03/SYNAPSELMS-55, CLS-01/SYNAPSELMS-72, CLS-02/SYNAPSELMS-73; tái sử dụng story hiện có, không tạo trùng.
 
 ### 1. Chi nhánh và phòng học

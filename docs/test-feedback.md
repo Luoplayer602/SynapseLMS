@@ -1,5 +1,12 @@
 # Ghi nhận trong quá trình nghiệm thu
 
+## Đề xuất — Màn hình xem log dễ sử dụng (để sau)
+
+- Ngày ghi nhận: 2026-09-26. Người dùng làm rõ “không xem được” là không biết backend đã giữ phòng hay chưa, không phải lỗi trang web hoặc tài liệu. Phòng dùng theo buổi/giờ, không độc quyền theo lớp cả tuần.
+- Nhu cầu tương lai: màn hình nhật ký nghiệp vụ dễ đọc, lọc theo trung tâm, lớp/phòng/giáo viên, thời gian và người thực hiện; thể hiện tạo/sửa/xác nhận lịch, tài nguyên đã được giữ và lý do từ chối xung đột.
+- Tách audit nghiệp vụ với log kỹ thuật: quản lý chỉ xem tenant mình; Root cần quyền/phiên hỗ trợ phù hợp. Không hiển thị token, mật khẩu, SQL hoặc dữ liệu tenant khác; hạn chế thông tin cá nhân, không cung cấp sửa/xóa log.
+- Trạng thái: ĐÃ GHI NHẬN, CHƯA TRIỂN KHAI theo yêu cầu ưu tiên lịch học trước. Cần chốt quyền, thời hạn lưu, dữ liệu trước/sau và mã truy vết khi lập kế hoạch riêng; chưa cam kết tất cả log lỗi hiện được lưu.
+
 Người dùng đã xác nhận “tất cả đều ổn” sau bản bàn giao hồ sơ/theme ngày 2026-09-24. BUG-001, BUG-002 và UX-001 được ghi nhận đã nghiệm thu; các mô tả bên dưới giữ lại lịch sử tái hiện và xử lý.
 
 Cập nhật: người dùng phản hồi “test ok” với luồng vừa bàn giao. Đây là xác nhận tổng quát, không suy diễn rằng mọi ca trong checklist đã được chạy riêng.

@@ -3,6 +3,7 @@ import { api, ApiError } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import type { CourseRecord } from './Courses'
+import { ClassPlanner } from './Scheduling'
 
 type Kind = 'branches' | 'rooms' | 'classes'
 interface Page<T> { items: T[]; total: number }
@@ -43,6 +44,7 @@ function FoundationList({ kind, language, writable }: { kind: Kind; language: La
   const [options, setOptions] = useState<FoundationOptions | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState<FoundationRecord | 'new' | null>(null)
+  const [planning, setPlanning] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState(kind === 'classes' ? 'draft' : 'active')
   const [branch, setBranch] = useState('')
@@ -66,12 +68,14 @@ function FoundationList({ kind, language, writable }: { kind: Kind; language: La
     }).catch(e => { if (!cancelled) setError(failure(e)) })
     return () => { cancelled = true }
   }, [path, kind, query, status, branch, course, offset, revision])
-  function reload() { setError(''); setData(null); setOptions(null); setEditing(null); setRevision(n => n + 1) }
+  function reload() { setError(''); setData(null); setOptions(null); setEditing(null); setPlanning(''); setRevision(n => n + 1) }
+  if (planning) return <ClassPlanner classId={planning} language={language} onBack={reload} />
   return <section><button onClick={() => { setSaved(false); reload() }}>{t('refreshList')}</button>
     {saved && <p role="status">{t('updated')}</p>}{saved && error && <p>{t('savedReloadFailed')}</p>}
     {error && <p role="alert" className="error">{errorMessage(language, error)}</p>}
     {!data && !error && <p role="status">{t('loading')}</p>}
     {editing && options ? <><button onClick={() => setEditing(null)}>{t('foundationBack')}</button>
+      {kind === 'classes' && editing !== 'new' && <button onClick={() => setPlanning(editing.id)}>{t('classPlanning')}</button>}
       <FoundationEditor key={editing === 'new' ? 'new' : `${editing.id}:${editing.version}`} kind={kind} language={language} writable={writable} item={editing === 'new' ? null : editing} options={options} onSaved={() => { reload(); setSaved(true) }} />
     </> : <>
       <form className="compact-form" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setQuery(String(values.get('q'))); setStatus(String(values.get('status'))); setBranch(String(values.get('branch') || '')); setCourse(String(values.get('course') || '')); setOffset(0); setSaved(false); reload() }}>
@@ -82,7 +86,7 @@ function FoundationList({ kind, language, writable }: { kind: Kind; language: La
       </form>
       {writable && <button disabled={!options || !!error} onClick={() => { setEditing('new'); setSaved(false) }}>{t(`new_${kind}`)}</button>}
       {!error && data && <>{!data.items.length && <p>{t('empty')}</p>}{data.items.map(item => <article className="card" key={item.id}><h2>{item.name}</h2><p>{item.code} · {t(archived(item) ? 'profileArchived' : kind === 'classes' ? 'course_draft' : 'foundationActive')}</p>{item.branch_name && <p>{item.branch_name}</p>}{item.course_snapshot && <p>{item.course_snapshot.name} ({item.course_snapshot.code})</p>}
-        <button disabled={!options} onClick={() => { setEditing(item); setSaved(false) }}>{t('foundationDetail')}</button></article>)}
+        <button disabled={!options} onClick={() => { setEditing(item); setSaved(false) }}>{t('foundationDetail')}</button>{kind === 'classes' && <button onClick={() => setPlanning(item.id)}>{t('classPlanning')}</button>}</article>)}
         <div className="session-actions"><button disabled={!offset} onClick={() => { setOffset(Math.max(0, offset - 20)); reload() }}>{t('previousPage')}</button><span>{data.total ? offset + 1 : 0}–{Math.min(offset + 20, data.total)} / {data.total}</span><button disabled={offset + 20 >= data.total} onClick={() => { setOffset(offset + 20); reload() }}>{t('nextPage')}</button></div></>}
     </>}
   </section>

@@ -3,11 +3,11 @@ from datetime import timedelta
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from app.api.dependencies import DB, Manager, Root, Tenant, audit, browser_guard
+from app.api.dependencies import DB, Manager, Root, Tenant, audit, browser_guard, lock_actor
 from app.api.schemas import (
     InviteCreate,
     MemberChange,
@@ -33,6 +33,9 @@ router = APIRouter(dependencies=[Depends(browser_guard)])
 
 @router.patch("/admin/users/{user_id}")
 def change_user(user_id: UUID, data: UserChange, db: DB, root: Root):
+    # Actor before target: scheduling also holds actor then teacher account locks.
+    # Otherwise the audit FK on this root can invert that order.
+    lock_actor(db, root)
     user = db.scalar(select(User).where(User.id == user_id).with_for_update())
     if not user:
         raise APIError(404, "NOT_FOUND")
@@ -251,7 +254,18 @@ def create_member(data: MemberCreate, db: DB, manager: Manager):
 
 
 @router.patch("/members/{member_id}")
-def change_member(member_id: UUID, data: MemberChange, db: DB, manager: Manager):
+def change_member(
+    member_id: UUID,
+    data: MemberChange,
+    db: DB,
+    manager: Manager,
+    request: Request,
+    response: Response,
+):
+    from app.api.routes.courses import authorize
+
+    # Serialize role/suspension changes with schedule eligibility checks.
+    authorize(db, manager, request, response, "manage")
     # Scope the lookup before revealing whether the ID exists.
     member = db.scalar(
         select(UserMembership).where(

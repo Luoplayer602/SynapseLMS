@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     String,
     Text,
     UniqueConstraint,
@@ -58,6 +59,7 @@ class Room(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 class LearningClass(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "learning_classes"
     __table_args__ = (
+        Index("uq_learning_class_id_org", "id", "organization_id", unique=True),
         UniqueConstraint("organization_id", "code"),
         ForeignKeyConstraint(
             ["course_id", "organization_id"], ["courses.id", "courses.organization_id"]

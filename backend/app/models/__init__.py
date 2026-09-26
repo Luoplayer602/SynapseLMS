@@ -6,6 +6,7 @@ from app.models.identity import User, UserMembership
 from app.models.membership_invitation import MembershipInvitation
 from app.models.organization import Organization
 from app.models.proficiency import ProficiencyHistory, StudentProficiency
+from app.models.schedule import ClassSession, ClassTeacher, SchedulePlan, SessionTeacher
 from app.models.student import GuardianContact, StudentIdentity, StudentProfile
 from app.models.teacher import (
     TeacherCredential,
@@ -17,6 +18,10 @@ from app.models.teacher import (
 )
 
 __all__ = [
+    "ClassSession",
+    "ClassTeacher",
+    "SchedulePlan",
+    "SessionTeacher",
     "Branch",
     "Room",
     "LearningClass",

@@ -26,9 +26,11 @@ from app.api.teacher_schemas import (
 from app.core.errors import APIError
 from app.core.security import now, utc
 from app.models import (
+    ClassSession,
     CourseLanguage,
     CourseLevel,
     LevelFramework,
+    SessionTeacher,
     TeacherCredential,
     TeacherHistory,
     TeacherHistoryLevel,
@@ -290,6 +292,13 @@ def archive(
 ):
     item, _ = profile_for(db, tenant, request, response, str(profile_id))
     expected(item, data.version)
+    if data.archived and db.scalar(
+        select(ClassSession.id)
+        .join(SessionTeacher, SessionTeacher.session_id == ClassSession.id)
+        .where(SessionTeacher.teacher_profile_id == item.id, ClassSession.ends_at > now())
+        .limit(1)
+    ):
+        raise APIError(409, "SCHEDULE_TEACHER_IN_USE")
     item.archived_at = now() if data.archived else None
     item.version += 1
     audit(

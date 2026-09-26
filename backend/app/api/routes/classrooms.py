@@ -22,7 +22,7 @@ from app.api.dependencies import DB, Tenant, audit, auth_guard
 from app.api.routes.courses import Limit, Offset, Search, authorize, course_view
 from app.core.errors import APIError
 from app.core.security import now
-from app.models import Branch, Course, LearningClass, Room
+from app.models import Branch, ClassSession, Course, LearningClass, Room
 
 router = APIRouter(dependencies=[Depends(auth_guard)])
 Facility = Literal["branches", "rooms"]
@@ -204,6 +204,10 @@ def change_branch(
     active(item)
     expected(item, data.version)
     fields = data.model_dump(exclude={"version"})
+    if item.timezone != data.timezone and db.scalar(
+        select(ClassSession.id).where(ClassSession.branch_id == item.id).limit(1)
+    ):
+        raise APIError(409, "SCHEDULE_LOCKED")
     for key, value in fields.items():
         setattr(item, key, value)
     item.version += 1
@@ -230,6 +234,16 @@ def change_room(
         .limit(1)
     ):
         raise APIError(409, "ROOM_CAPACITY_IN_USE")
+    if db.scalar(
+        select(ClassSession.id)
+        .where(
+            ClassSession.room_id == item.id,
+            ClassSession.ends_at > now(),
+            ClassSession.capacity > data.capacity,
+        )
+        .limit(1)
+    ):
+        raise APIError(409, "ROOM_CAPACITY_IN_USE")
     fields = data.model_dump(exclude={"version"})
     for key, value in fields.items():
         setattr(item, key, value)
@@ -239,6 +253,15 @@ def change_room(
 
 
 def facility_unused(db, item, active_only=False):
+    session_query = select(ClassSession.id).where(
+        ClassSession.branch_id == item.id
+        if isinstance(item, Branch)
+        else ClassSession.room_id == item.id
+    )
+    if active_only:
+        session_query = session_query.where(ClassSession.ends_at > now())
+    if db.scalar(session_query.limit(1)):
+        raise APIError(409, "FACILITY_IN_USE")
     conditions = (
         [LearningClass.branch_id == item.id]
         if isinstance(item, Branch)
@@ -399,6 +422,10 @@ def change_class(
     draft(item)
     validate_facilities(db, tenant, data)
     fields = data.model_dump(exclude={"version"})
+    if db.scalar(select(ClassSession.id).where(ClassSession.class_id == item.id).limit(1)) and any(
+        getattr(item, key) != value for key, value in fields.items() if key != "name"
+    ):
+        raise APIError(409, "SCHEDULE_LOCKED")
     for key, value in fields.items():
         setattr(item, key, value)
     item.version += 1
@@ -413,6 +440,15 @@ def class_state(
     authorize(db, tenant, request, response)
     item = scoped(db, LearningClass, tenant, item_id)
     expected(item, data.version)
+    if data.status == "archived" and db.scalar(
+        select(ClassSession.id)
+        .where(
+            ClassSession.class_id == item.id,
+            ClassSession.ends_at > now(),
+        )
+        .limit(1)
+    ):
+        raise APIError(409, "SCHEDULE_LOCKED")
     if data.status == "draft":
         validate_facilities(db, tenant, item)
     item.status = data.status
@@ -441,7 +477,9 @@ def class_code(
     expected(item, data.version)
     draft(item)
     validate_facilities(db, tenant, item)
-    # Extend this guard BEFORE opening enrollment/session modules.
+    if db.scalar(select(ClassSession.id).where(ClassSession.class_id == item.id).limit(1)):
+        raise APIError(409, "SCHEDULE_LOCKED")
+    # Extend again before enrollment opens.
     item.code = data.code
     item.version += 1
     save(db, tenant, item, "class.code_change", fields=["code"], reason=data.reason)

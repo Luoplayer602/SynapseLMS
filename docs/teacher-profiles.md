@@ -90,7 +90,7 @@ Chuẩn bị một trung tâm có ngôn ngữ/bộ với hai cấp độ; tài k
 | Kết thúc support hoặc đình chỉ membership rồi tải/lưu lại | Bị chặn; không lộ dữ liệu tenant khác, không lỗi 500 |
 | Việt/Anh, desktop/mobile, sáng/tối | Nhãn đọc được và không tràn ngang; popup native select dark mode vẫn là BUG-004 đã hoãn |
 
-Không phát sinh lớp/lịch, lương, điểm hoặc quyền xem học viên từ thao tác trên. TCH-03/04/05, AI, học liệu, payroll, import, upload/xác minh chứng chỉ và chuyển giáo viên liên trung tâm để sau.
+Không tự phát sinh lớp/lịch, lương, điểm hoặc quyền xem học viên từ thao tác hồ sơ. Phân công và lịch cá nhân được bổ sung ở [scheduling.md](./scheduling.md): chặn lưu trữ hồ sơ còn buổi tương lai; không chặn khóa tài khoản/thu hồi quyền, và không tự hủy lịch đã giữ khi thu hồi. Lịch rảnh/dạy thay, AI, học liệu, payroll, import, upload/xác minh chứng chỉ và chuyển giáo viên liên trung tâm để sau.
 
 ## Vận hành và kiểm chứng
 

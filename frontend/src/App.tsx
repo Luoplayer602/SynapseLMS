@@ -12,6 +12,7 @@ import { Students } from './Students'
 import { Courses } from './Courses'
 import { Teachers } from './Teachers'
 import { Classrooms } from './Classrooms'
+import { TeachingSessions } from './Scheduling'
 
 export default function App() {
   const location = useLocation()
@@ -103,7 +104,7 @@ export default function App() {
   const learner = profile.membership?.tenant_available && profile.membership.role === 'student'
   const teacher = profile.membership?.tenant_available && profile.membership.role === 'teacher'
   return <div className="app-shell"><aside className="sidebar"><div className="brand-mark">S</div><strong>SynapseLMS</strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
-    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}{studentAdmin && <><NavLink to="/students">{t('students')}</NavLink><NavLink to="/teachers">{t('teachers')}</NavLink><NavLink to="/courses">{t('courses')}</NavLink><NavLink to="/facilities">{t('facilities')}</NavLink><NavLink to="/classes">{t('classes')}</NavLink></>}{teacher && <NavLink to="/teacher-profile">{t('myTeacherProfile')}</NavLink>}{learner && <><NavLink to="/student-profile">{t('myStudentProfile')}</NavLink><NavLink to="/course-catalog">{t('courseCatalog')}</NavLink></>}</nav></aside>
+    <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}{studentAdmin && <><NavLink to="/students">{t('students')}</NavLink><NavLink to="/teachers">{t('teachers')}</NavLink><NavLink to="/courses">{t('courses')}</NavLink><NavLink to="/facilities">{t('facilities')}</NavLink><NavLink to="/classes">{t('classes')}</NavLink></>}{teacher && <><NavLink to="/teacher-profile">{t('myTeacherProfile')}</NavLink><NavLink to="/teaching-sessions">{t('myTeachingSessions')}</NavLink></>}{learner && <><NavLink to="/student-profile">{t('myStudentProfile')}</NavLink><NavLink to="/course-catalog">{t('courseCatalog')}</NavLink></>}</nav></aside>
     <main><header className="topbar"><span>{profile.display_name || profile.email}</span><div className="topbar-actions">{languageButton}<button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
       <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
         try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
@@ -122,6 +123,7 @@ export default function App() {
         <Route path="students" element={studentAdmin ? <Students key={support?.id || profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
         <Route path="teachers" element={studentAdmin ? <Teachers key={support?.id || profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
         <Route path="teacher-profile" element={teacher ? <Teachers key={profile.membership?.id} language={language} personal /> : <Navigate to="/" replace />} />
+        <Route path="teaching-sessions" element={teacher ? <TeachingSessions key={profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
         <Route path="student-profile" element={learner ? <Students key={profile.membership?.id} language={language} personal displayName={profile.display_name || ''} /> : <Navigate to="/" replace />} />
         <Route path="invitations" element={manager || support ? <Invitations key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} /> : <Navigate to="/" replace />} />
         <Route path="members" element={manager || support ? <Members key={support?.id || profile.membership?.id} language={language} root={profile.is_root_admin} actorId={profile.id} /> : <Navigate to="/" replace />} />
