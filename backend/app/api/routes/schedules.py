@@ -1,4 +1,4 @@
-"""One editable weekly plan per class; confirmation creates immutable reservations."""
+"""Weekly plan confirmation; individual reservations are managed separately."""
 
 import json
 from datetime import UTC, datetime, timedelta
@@ -152,6 +152,10 @@ def session_view(db, row):
     )
     return {
         "id": row.id,
+        "version": row.version,
+        "status": row.status,
+        "room_id": row.room_id,
+        "branch_id": row.branch_id,
         "class_id": item.id,
         "class_name": item.name,
         "class_code": item.code,
@@ -294,6 +298,55 @@ def overlap(a_start, a_end, b_start, b_end):
     return a_start < b_end and b_start < a_end
 
 
+def resource_conflicts(db, item, entries, exclude_id=None):
+    """Shared occupied-resource check for initial confirmation and session operations."""
+    if not entries:
+        return [], {}
+    query = select(ClassSession).where(
+        ClassSession.organization_id == item.organization_id,
+        ClassSession.status == "scheduled",
+        ClassSession.starts_at < max(x["ends_at"] for x in entries),
+        ClassSession.ends_at > min(x["starts_at"] for x in entries),
+    )
+    if exclude_id:
+        query = query.where(ClassSession.id != exclude_id)
+    sessions = list(db.scalars(query.order_by(ClassSession.starts_at, ClassSession.id)))
+    teacher_map = {}
+    if sessions:
+        for link in db.scalars(
+            select(SessionTeacher).where(SessionTeacher.session_id.in_([s.id for s in sessions]))
+        ):
+            teacher_map.setdefault(link.session_id, set()).add(str(link.teacher_profile_id))
+    conflicts, busy_rooms = [], {}
+    for entry in entries:
+        for row in sessions:
+            if not overlap(
+                entry["starts_at"], entry["ends_at"], utc(row.starts_at), utc(row.ends_at)
+            ):
+                continue
+            if row.room_id:
+                busy_rooms.setdefault(entry["slot"], set()).add(str(row.room_id))
+            kinds = []
+            if entry["room_id"] and entry["room_id"] == str(row.room_id):
+                kinds.append("room")
+            if set(entry["teacher_ids"]) & teacher_map.get(row.id, set()):
+                kinds.append("teacher")
+            if row.class_id == item.id:
+                kinds.append("class")
+            for kind in kinds:
+                conflicts.append(
+                    {
+                        "slot": entry["slot"],
+                        "date": entry["date"],
+                        "type": kind,
+                        "class_code": db.get(LearningClass, row.class_id).code,
+                        "starts_at": utc(row.starts_at),
+                        "ends_at": utc(row.ends_at),
+                    }
+                )
+    return conflicts, busy_rooms
+
+
 def preview(db, item, plan):
     if not plan:
         raise APIError(409, "SCHEDULE_DRAFT_REQUIRED")
@@ -359,28 +412,7 @@ def preview(db, item, plan):
                     {"slot": index, "code": "SCHEDULE_OVERRIDE_REQUIRED", "teacher_id": teacher_id}
                 )
     entries.sort(key=lambda x: (x["starts_at"], x["slot"]))
-    sessions = []
-    if entries:
-        sessions = list(
-            db.scalars(
-                select(ClassSession)
-                .where(
-                    ClassSession.organization_id == item.organization_id,
-                    ClassSession.starts_at < max(x["ends_at"] for x in entries),
-                    ClassSession.ends_at > entries[0]["starts_at"],
-                )
-                .order_by(ClassSession.starts_at, ClassSession.id)
-            )
-        )
-    session_teacher_map = {
-        row.id: set(
-            db.scalars(
-                select(SessionTeacher.teacher_profile_id).where(SessionTeacher.session_id == row.id)
-            )
-        )
-        for row in sessions
-    }
-    conflicts = []
+    conflicts, busy_rooms = resource_conflicts(db, item, entries)
     room_checks = [
         {
             "slot": i,
@@ -403,33 +435,10 @@ def preview(db, item, plan):
                         "ends_at": other["ends_at"],
                     }
                 )
-        for row in sessions:
-            if not overlap(
-                entry["starts_at"], entry["ends_at"], utc(row.starts_at), utc(row.ends_at)
-            ):
-                continue
-            if row.room_id:
-                room_checks[entry["slot"]]["unavailable_room_ids"].append(str(row.room_id))
-            types = []
-            if entry["room_id"] and entry["room_id"] == str(row.room_id):
-                types.append("room")
-            if set(entry["teacher_ids"]) & {str(x) for x in session_teacher_map[row.id]}:
-                types.append("teacher")
-            if row.class_id == item.id:
-                types.append("class")
-            for kind in types:
-                conflicts.append(
-                    {
-                        "slot": entry["slot"],
-                        "date": entry["date"],
-                        "type": kind,
-                        "class_code": db.get(LearningClass, row.class_id).code,
-                        "starts_at": utc(row.starts_at),
-                        "ends_at": utc(row.ends_at),
-                    }
-                )
     for check in room_checks:
-        check["unavailable_room_ids"] = sorted(set(check["unavailable_room_ids"]))
+        check["unavailable_room_ids"] = sorted(
+            set(check["unavailable_room_ids"]) | busy_rooms.get(check["slot"], set())
+        )
     fingerprint = digest(
         json.dumps(
             jsonable_encoder(
@@ -512,6 +521,9 @@ def confirm_schedule(
             timezone=result["timezone"],
             capacity=item.capacity,
             format=item.format,
+            override_reason=next(
+                (a.override_reason for a in assigned(db, item) if a.override_reason), ""
+            ),
         )
         db.add(row)
         db.flush()
@@ -549,6 +561,7 @@ def my_sessions(
         .where(
             ClassSession.organization_id == tenant.organization.id,
             TeacherProfile.user_id == tenant.actor.user.id,
+            ClassSession.status == "scheduled",
         )
     )
     return classrooms.page(

@@ -33,7 +33,7 @@ it('preview never confirms until a separate explicit confirmation', async () => 
   await screen.findByText('Planned session count: 1 · Asia/Ho_Chi_Minh')
   expect(api).toHaveBeenCalledExactlyOnceWith('/classes/c/schedule/preview?version=3')
   fireEvent.click(screen.getByRole('button', { name: 'Confirm schedule' }))
-  expect(screen.getByText(/Rescheduling\/cancellation is not available/)).toBeInTheDocument()
+  expect(screen.getByText(/Only individual future sessions/)).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
   await waitFor(() => expect(api).toHaveBeenLastCalledWith('/classes/c/schedule/confirm', 'POST', expect.objectContaining({ version: 3, preview_digest: preview.preview_digest, confirmation_key: expect.any(String) })))
 })

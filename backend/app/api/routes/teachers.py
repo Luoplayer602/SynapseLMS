@@ -295,7 +295,11 @@ def archive(
     if data.archived and db.scalar(
         select(ClassSession.id)
         .join(SessionTeacher, SessionTeacher.session_id == ClassSession.id)
-        .where(SessionTeacher.teacher_profile_id == item.id, ClassSession.ends_at > now())
+        .where(
+            SessionTeacher.teacher_profile_id == item.id,
+            ClassSession.ends_at > now(),
+            ClassSession.status == "scheduled",
+        )
         .limit(1)
     ):
         raise APIError(409, "SCHEDULE_TEACHER_IN_USE")

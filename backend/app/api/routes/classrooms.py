@@ -22,7 +22,7 @@ from app.api.dependencies import DB, Tenant, audit, auth_guard
 from app.api.routes.courses import Limit, Offset, Search, authorize, course_view
 from app.core.errors import APIError
 from app.core.security import now
-from app.models import Branch, ClassSession, Course, LearningClass, Room
+from app.models import Branch, ClassSession, Course, LearningClass, Room, SessionHistory
 
 router = APIRouter(dependencies=[Depends(auth_guard)])
 Facility = Literal["branches", "rooms"]
@@ -239,6 +239,7 @@ def change_room(
         .where(
             ClassSession.room_id == item.id,
             ClassSession.ends_at > now(),
+            ClassSession.status == "scheduled",
             ClassSession.capacity > data.capacity,
         )
         .limit(1)
@@ -253,13 +254,29 @@ def change_room(
 
 
 def facility_unused(db, item, active_only=False):
+    if not active_only:
+        field = "branch_id" if isinstance(item, Branch) else "room_id"
+        if db.scalar(
+            select(SessionHistory.id)
+            .where(
+                SessionHistory.organization_id == item.organization_id,
+                or_(
+                    SessionHistory.before[field].as_string() == str(item.id),
+                    SessionHistory.after[field].as_string() == str(item.id),
+                ),
+            )
+            .limit(1)
+        ):
+            raise APIError(409, "FACILITY_IN_USE")
     session_query = select(ClassSession.id).where(
         ClassSession.branch_id == item.id
         if isinstance(item, Branch)
         else ClassSession.room_id == item.id
     )
     if active_only:
-        session_query = session_query.where(ClassSession.ends_at > now())
+        session_query = session_query.where(
+            ClassSession.ends_at > now(), ClassSession.status == "scheduled"
+        )
     if db.scalar(session_query.limit(1)):
         raise APIError(409, "FACILITY_IN_USE")
     conditions = (
@@ -445,6 +462,7 @@ def class_state(
         .where(
             ClassSession.class_id == item.id,
             ClassSession.ends_at > now(),
+            ClassSession.status == "scheduled",
         )
         .limit(1)
     ):

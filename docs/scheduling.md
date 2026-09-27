@@ -1,6 +1,8 @@
 # Phân công giáo viên và lịch học cơ bản
 
-Kế hoạch được người dùng duyệt ngày 2026-09-26; đã triển khai, chờ nghiệm thu. CLS-03, phần lịch tuần/sinh buổi/chống trùng SCH-01/02/03. Không phải hoàn tất toàn bộ vận hành lịch hay lịch rảnh giáo viên.
+Kế hoạch được người dùng duyệt ngày 2026-09-26; đã triển khai và được người dùng xác nhận pass các test. CLS-03, phần lịch tuần/sinh buổi/chống trùng SCH-01/02/03. Không phải hoàn tất toàn bộ vận hành lịch hay lịch rảnh giáo viên. Kế hoạch tiếp nối đã duyệt tại [đổi/hủy buổi và dạy thay](./session-operations-next-step.md).
+
+Cập nhật sau nghiệm thu: đã bổ sung [vận hành từng buổi và lịch tuần](./session-operations.md). Tài liệu này giữ hợp đồng xác nhận mẫu ban đầu; các giới hạn đổi/hủy buổi bên dưới được thay bằng quy tắc vận hành mới. Mẫu tuần/cấu trúc lớp vẫn khóa, buổi tương lai có thể đổi/hủy/khôi phục/dạy thay.
 
 ## Quy tắc đã chọn cho lát cắt này
 
@@ -11,7 +13,7 @@ Kế hoạch được người dùng duyệt ngày 2026-09-26; đã triển khai
 - Giờ nhập theo múi giờ IANA của chi nhánh, lưu UTC và tên múi giờ trên buổi. Từ chối giờ không tồn tại hoặc nhập nhằng do DST, không tự chọn offset. Chưa thay đổi múi giờ chi nhánh có lịch xác nhận.
 - Xác nhận kiểm tra lại dưới khóa tenant và tạo toàn bộ buổi/phân công trong một transaction; không lưu một phần, không tự retry. `confirmation_key` + digest bản xem trước bảo đảm gửi lại cùng yêu cầu không nhân đôi; dữ liệu đổi sau xem trước phải xem lại. Xem trước không bảo đảm tài nguyên còn trống đến lúc xác nhận.
 - Sau xác nhận khóa mẫu lịch/phân công và cấu trúc lớp (ngày, sĩ số, chi nhánh, phòng mặc định, hình thức), vẫn sửa được tên lớp. Chặn sửa mã lớp đã có buổi; chặn lưu trữ lớp/giáo viên/cơ sở vật chất còn buổi tương lai và giảm sức chứa phòng dưới sĩ số buổi tương lai, kể cả phòng khác mặc định lớp. Không ngăn việc thu hồi quyền/khóa tài khoản vì an toàn; lịch đã giữ vẫn tồn tại và chưa tự hủy.
-- Lớp vẫn trạng thái nháp/lưu trữ trong module hiện hành; trạng thái **lịch đã xác nhận** độc lập, chưa mở tuyển sinh. Chưa có API sửa/xóa/hủy buổi hoặc giải phóng đặt phòng. Cần xem trước kỹ; luồng đổi/hủy/dạy thay sẽ làm ở lát cắt kế tiếp.
+- Lớp vẫn trạng thái nháp/lưu trữ trong module hiện hành; trạng thái **lịch đã xác nhận** độc lập, chưa mở tuyển sinh. Buổi scheduled giữ tài nguyên, buổi cancelled không giữ. Điều chỉnh từng buổi dùng API riêng trong tài liệu vận hành, không sinh lại mẫu tuần hoặc xóa cứng buổi.
 - Ghi audit nghiệp vụ, chưa có màn hình xem log. Nhu cầu xem log đã ghi vào `test-feedback.md` theo yêu cầu người dùng, để sau.
 
 ## Kiểm chứng và bàn giao
@@ -39,7 +41,7 @@ Audit: `class.teachers`, `schedule.draft`, `schedule.confirm`. Đây là nhật 
 
 ## Checklist nghiệm thu trên Chrome
 
-Chuẩn bị dữ liệu thử: khóa công bố có cấp đầu ra, chi nhánh/phòng đủ sức chứa, hai lớp cùng khoảng ngày, tài khoản giáo viên active và hồ sơ có năng lực đúng ngôn ngữ/cấp đầu ra. Root mở hỗ trợ trung tâm trước; kiểm tra lịch cá nhân bằng tài khoản giáo viên riêng. Dùng buổi thử có ngày tương lai; bản này chưa có nút hủy lịch đã xác nhận.
+Chuẩn bị dữ liệu thử: khóa công bố có cấp đầu ra, chi nhánh/phòng đủ sức chứa, hai lớp cùng khoảng ngày, tài khoản giáo viên active và hồ sơ có năng lực đúng ngôn ngữ/cấp đầu ra. Root mở hỗ trợ trung tâm trước; kiểm tra lịch cá nhân bằng tài khoản giáo viên riêng. Dùng buổi thử có ngày tương lai; thao tác hủy/khôi phục từng buổi theo checklist vận hành bổ sung.
 
 | Thao tác | Kết quả mong đợi |
 | --- | --- |

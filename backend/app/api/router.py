@@ -9,6 +9,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.membership_invitations import router as membership_invitations_router
 from app.api.routes.proficiencies import router as proficiencies_router
 from app.api.routes.schedules import router as schedules_router
+from app.api.routes.session_operations import router as session_operations_router
 from app.api.routes.students import router as students_router
 from app.api.routes.teachers import router as teachers_router
 
@@ -24,3 +25,4 @@ api_router.include_router(proficiencies_router, tags=["student-proficiencies"])
 api_router.include_router(teachers_router, tags=["teachers"])
 api_router.include_router(classrooms_router, tags=["class-foundation"])
 api_router.include_router(schedules_router, tags=["scheduling"])
+api_router.include_router(session_operations_router, tags=["session-operations"])

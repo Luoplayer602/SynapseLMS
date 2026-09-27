@@ -3,10 +3,11 @@ import { api, ApiError } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import type { FoundationRecord } from './Classrooms'
+import { SessionPanel } from './SessionOperations'
 
 interface TeacherOption { id: string; name: string; active: boolean; qualified: boolean }
 export interface WeeklySlot { weekday: number; starts_at: string; ends_at: string; room_id: string | null; teacher_ids: string[] }
-interface SessionRow { id: string; class_code: string; class_name: string; branch_name: string; room_name: string | null; starts_at: string; ends_at: string; timezone: string; format: string; teachers: { id: string; name: string }[] }
+interface SessionRow { id: string; status?: string; class_code: string; class_name: string; branch_name: string; room_name: string | null; starts_at: string; ends_at: string; timezone: string; format: string; teachers: { id: string; name: string }[] }
 export interface PlanningContext { class: FoundationRecord; teachers: TeacherOption[]; rooms: FoundationRecord[]; assignments: { teacher_id: string; override_reason: string }[]; plan: { starts_on: string; ends_on: string; slots: WeeklySlot[]; confirmed_at: string | null } | null; sessions: SessionRow[] }
 interface PreviewSession { slot: number; date: string; starts_at: string; ends_at: string; room_id: string | null; teacher_ids: string[] }
 export interface SchedulePreview { version: number; timezone: string; can_confirm: boolean; preview_digest: string; sessions: PreviewSession[]; issues: { code: string; slot?: number; teacher_id?: string }[]; conflicts: { type: string; date: string; slot: number; class_code: string; starts_at: string; ends_at: string }[]; room_checks: { slot: number; unavailable_room_ids: string[] }[] }
@@ -102,13 +103,13 @@ export function PlanningEditor({ data, language, onSaved }: { data: PlanningCont
         {confirmation && <div><p>{t('confirmScheduleWarning')}</p><button disabled={disabled} onClick={() => void write('/schedule/confirm', { version: preview.version, preview_digest: preview.preview_digest, confirmation_key: confirmationKey }, 'POST')}>{t('confirm')}</button><button disabled={busy} onClick={() => setConfirmation(false)}>{t('cancel')}</button></div>}
       </>}
     </section>}
-    <section><h3>{t('confirmedSessions')}</h3>{!data.sessions.length && <p>{t('noConfirmedSessions')}</p>}{data.sessions.map(row => <SessionCard key={row.id} row={row} language={language} />)}</section>
+    <section><h3>{t('confirmedSessions')}</h3>{!data.sessions.length && <p>{t('noConfirmedSessions')}</p>}{data.sessions.map(row => <div key={row.id}><SessionCard row={row} language={language} /><SessionPanel id={row.id} language={language} onChanged={updated => onSaved({ ...data, sessions: data.sessions.map(s => s.id === updated.id ? updated : s) })} /></div>)}</section>
   </>
 }
 
 function SessionCard({ row, language }: { row: SessionRow; language: Language }) {
   const t = (key: string) => translate(language, key)
-  return <article className="card"><h3>{row.class_name} ({row.class_code})</h3><p>{stamp(row.starts_at, row.timezone, language)} → {stamp(row.ends_at, row.timezone, language)}</p><p>{row.timezone} · {row.branch_name} · {row.room_name || t('format_online')}</p><p>{row.teachers.map(x => x.name).join(', ')}</p></article>
+  return <article className="card"><h3>{row.class_name} ({row.class_code})</h3><p>{t(`session_${row.status || 'scheduled'}`)}</p><p>{stamp(row.starts_at, row.timezone, language)} → {stamp(row.ends_at, row.timezone, language)}</p><p>{row.timezone} · {row.branch_name} · {row.room_name || t('format_online')}</p><p>{row.teachers.map(x => x.name).join(', ')}</p></article>
 }
 
 export function TeachingSessions({ language }: { language: Language }) {

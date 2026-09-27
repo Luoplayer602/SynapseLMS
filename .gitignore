@@ -25,3 +25,4 @@ Thumbs.db
 # Browser test artifacts
 frontend/test-results/
 frontend/playwright-report/
+backend/test-results/

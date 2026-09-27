@@ -66,6 +66,6 @@ Dấu hiệu thất bại cần gửi lại: thông báo lỗi chung thay vì l�
 
 Bổ sung sau checkpoint nền lớp: đã có [phân công và lịch cơ bản](./scheduling.md). Phòng mặc định/ngày dự kiến của lớp vẫn không tự giữ chỗ; chỉ xác nhận lịch mới tạo buổi và giữ tài nguyên. Khi đã có buổi, khóa cấu trúc/mã lớp và múi giờ chi nhánh; chặn lưu trữ tài nguyên/lớp còn buổi tương lai hoặc giảm sức chứa phòng dưới sĩ số buổi (kể cả phòng không phải mặc định). Tên lớp vẫn sửa được. Các quy tắc nháp phía trên áp dụng trước xác nhận.
 
-Chưa lịch rảnh/dạy thay/đổi-hủy buổi, đăng ký/xếp lớp, học phí, điểm danh/điểm, AI hoặc thư viện học liệu. Không đánh dấu hoàn tất toàn bộ CLS-01 chỉ vì đã tạo được lớp nháp hoặc xác nhận lịch.
+Đã bổ sung [đổi/hủy/khôi phục/dạy thay và lịch tuần](./session-operations.md) cho từng buổi tương lai, không mở khóa cấu trúc lớp. Chưa lịch rảnh, đăng ký/xếp lớp, học phí, điểm danh/điểm, AI hoặc thư viện học liệu. Không đánh dấu hoàn tất toàn bộ CLS-01 chỉ vì đã tạo được lớp nháp hoặc xác nhận lịch.
 
 Kết quả kiểm thử/deploy/Jira cuối cùng được ghi tại mục 26 `myplan.txt`.

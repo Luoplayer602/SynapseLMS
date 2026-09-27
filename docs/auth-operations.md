@@ -4,7 +4,11 @@
 
 ## Khởi động Docker
 
+Cập nhật migration mới nhất: **20260926_0012** — [vận hành buổi/lịch tuần](./session-operations.md). Giữ dữ liệu buổi và phân công hiện có; không downgrade DB thật, đặc biệt khi có session_history. Các mốc 0011 trở về trước bên dưới là nền/hồ sơ triển khai cũ. Kết quả hiện tại đọc `docs/current-state.md` và myplan mục 29.
+
 Từ thư mục gốc:
+
+Checkpoint 2026-09-27: Docker API/web đã đồng bộ, DB xác minh `20260926_0012 (head)` và Alembic check sạch; dữ liệu 83 buổi hiện có được bảo toàn. Bộ kiểm thử: 402 backend đạt/55 skip SQLite concurrency (kiểm tra trên PostgreSQL), 66 UI và 14 E2E đạt. Người dùng chỉ cần làm mới trình duyệt để nghiệm thu; các lệnh dưới dùng cho lần triển khai tiếp theo.
 
 ```powershell
 docker compose build api web
@@ -13,7 +17,7 @@ docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
 docker compose up -d --no-deps api web
 ```
 
-Migration mới nhất: `20260926_0011` ([phân công và lịch cơ bản](./scheduling.md)), sau 0010 ([chi nhánh/phòng/lớp nháp](./class-foundation.md)), 0009 ([hồ sơ/năng lực giáo viên](./teacher-profiles.md)) và 0008 ([trình độ và mục tiêu học viên](./student-proficiencies.md)). Xác minh email, khôi phục mật khẩu, quản lý phiên và cấu hình Mailpit được mô tả trong [vòng đời tài khoản](./account-lifecycle.md); các phần sau tại [mời thành viên qua email](./membership-invitations.md), [hồ sơ học viên](./student-profiles.md) và [danh mục khóa học](./course-catalog.md). Migration không tự xác minh tài khoản cũ hoặc tạo hồ sơ/khóa/cấp độ/chi nhánh/phòng/lớp/buổi giả. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy. Không downgrade 0008/0009/0010/0011 trên DB thật đã nhập dữ liệu: thao tác xóa các bảng và dữ liệu tương ứng; cần backup/quy trình phục hồi riêng. Checkpoint triển khai thực tế ghi trong myplan.
+Các migration nền: `20260926_0011` ([phân công và lịch cơ bản](./scheduling.md)), 0010 ([chi nhánh/phòng/lớp nháp](./class-foundation.md)), 0009 ([hồ sơ/năng lực giáo viên](./teacher-profiles.md)) và 0008 ([trình độ và mục tiêu học viên](./student-proficiencies.md)). Xác minh email, khôi phục mật khẩu, quản lý phiên và Mailpit tại [vòng đời tài khoản](./account-lifecycle.md); các phần sau tại [mời thành viên](./membership-invitations.md), [hồ sơ học viên](./student-profiles.md) và [danh mục khóa học](./course-catalog.md). Migration không tự xác minh tài khoản cũ hoặc tạo dữ liệu nghiệp vụ giả. API/web được rebuild khi sửa mã; database có thể tiếp tục chạy. Không downgrade DB thật đã nhập dữ liệu; cần backup/quy trình phục hồi riêng. Checkpoint triển khai thực tế ghi trong myplan.
 
 Tạo Root Admin bằng email của bạn (thay giá trị ví dụ):
 

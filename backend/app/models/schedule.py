@@ -71,10 +71,10 @@ class ClassSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             ["room_id", "branch_id", "organization_id"],
             ["rooms.id", "rooms.branch_id", "rooms.organization_id"],
         ),
-        UniqueConstraint("class_id", "starts_at"),
         UniqueConstraint("id", "class_id", "organization_id"),
         CheckConstraint("ends_at > starts_at", name="ck_session_times"),
         CheckConstraint("capacity >= 1", name="ck_session_capacity"),
+        CheckConstraint("status IN ('scheduled', 'cancelled')", name="ck_session_status"),
         CheckConstraint("format IN ('offline', 'online', 'hybrid')", name="ck_session_format"),
         CheckConstraint(
             "(format = 'online' AND room_id IS NULL) OR "
@@ -91,6 +91,9 @@ class ClassSession(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     timezone: Mapped[str] = mapped_column(String(100))
     capacity: Mapped[int]
     format: Mapped[str] = mapped_column(String(16))
+    status: Mapped[str] = mapped_column(String(16), default="scheduled", server_default="scheduled")
+    version: Mapped[int] = mapped_column(default=1, server_default="1")
+    override_reason: Mapped[str] = mapped_column(String(500), default="", server_default="")
 
 
 class SessionTeacher(UUIDPrimaryKeyMixin, Base):
@@ -100,14 +103,6 @@ class SessionTeacher(UUIDPrimaryKeyMixin, Base):
             ["session_id", "class_id", "organization_id"],
             ["class_sessions.id", "class_sessions.class_id", "class_sessions.organization_id"],
         ),
-        ForeignKeyConstraint(
-            ["class_id", "teacher_profile_id", "organization_id"],
-            [
-                "class_teachers.class_id",
-                "class_teachers.teacher_profile_id",
-                "class_teachers.organization_id",
-            ],
-        ),
         teacher_key(),
         UniqueConstraint("session_id", "teacher_profile_id"),
     )
@@ -115,3 +110,27 @@ class SessionTeacher(UUIDPrimaryKeyMixin, Base):
     session_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     class_id: Mapped[UUID] = mapped_column(Uuid)
     teacher_profile_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+
+
+class SessionHistory(UUIDPrimaryKeyMixin, Base):
+    __tablename__ = "session_history"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["session_id", "class_id", "organization_id"],
+            ["class_sessions.id", "class_sessions.class_id", "class_sessions.organization_id"],
+        ),
+        UniqueConstraint("organization_id", "request_key"),
+        UniqueConstraint("session_id", "version"),
+    )
+    organization_id: Mapped[UUID] = mapped_column(Uuid)
+    class_id: Mapped[UUID] = mapped_column(Uuid)
+    session_id: Mapped[UUID] = mapped_column(Uuid, index=True)
+    actor_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    action: Mapped[str] = mapped_column(String(16))
+    reason: Mapped[str] = mapped_column(String(500))
+    request_key: Mapped[UUID] = mapped_column(Uuid)
+    request_digest: Mapped[str] = mapped_column(String(64))
+    version: Mapped[int]
+    before: Mapped[dict] = mapped_column(JSON)
+    after: Mapped[dict] = mapped_column(JSON)

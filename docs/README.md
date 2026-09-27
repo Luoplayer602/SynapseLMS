@@ -4,6 +4,9 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 
 ## Tài liệu hiện có
 
+- [Checkpoint hiện tại](./current-state.md): đọc trước khi tiếp tục để không tải lại toàn bộ lịch sử; phạm vi, file chính, kiểm thử và giới hạn.
+- [Vận hành buổi và lịch tuần](./session-operations.md): đổi/hủy/khôi phục/dạy thay, lịch sử nội bộ, API và nghiệm thu.
+
 - [PRD](./prd.md): mục tiêu, phạm vi và tiêu chí thành công của sản phẩm.
 - [Ma trận phân quyền](./rbac.md): quyền của từng vai trò và giới hạn dữ liệu.
 - [Mô hình dữ liệu](./data-model.md): thực thể chính và quy tắc multi-tenant.
@@ -19,6 +22,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [Kế hoạch giáo viên](./teacher-profile-next-step.md): kế hoạch đã duyệt, giữ làm lịch sử.
 - [Chi nhánh, phòng và lớp nháp](./class-foundation.md): API, quyền, snapshot khóa, sức chứa và checklist nghiệm thu.
 - [Phân công và lịch học cơ bản](./scheduling.md): lịch tuần nháp, xem trước, xác nhận nguyên tử, chống trùng phòng/giáo viên và checklist.
+- [Kế hoạch vận hành từng buổi](./session-operations-next-step.md): đề xuất đổi lịch, hủy/khôi phục và dạy thay; chờ duyệt triển khai.
 - [Kế hoạch nền lớp học](./class-foundation-next-step.md): kế hoạch đã duyệt, giữ làm lịch sử và thứ tự triển khai phân công/lịch.
 - [Danh mục khóa học](./course-catalog.md): ngôn ngữ/bộ/cấp độ, nháp/công bố/lưu trữ, quyền và checklist nghiệm thu.
 - [Kế hoạch catalog và các bước sau](./course-catalog-next-step.md): phạm vi CRS-01/CRS-02 và thứ tự phụ thuộc các lát cắt tiếp theo.

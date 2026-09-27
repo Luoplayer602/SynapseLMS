@@ -35,6 +35,8 @@ Student proficiency, center verification, goals and history: [STU-03](docs/stude
 Teacher profiles, explicit teaching capabilities and credentials: [TCH-01/TCH-02](docs/teacher-profiles.md).
 Branches, rooms and draft classes with course snapshots: [Class foundation](docs/class-foundation.md).
 Teacher assignments, weekly drafts, conflict-safe confirmation and own teaching schedule: [Scheduling](docs/scheduling.md).
+Individual session changes, cancellation/restoration, substitutes and weekly agenda: [Session operations](docs/session-operations.md).
+Resume development from the concise [current checkpoint](docs/current-state.md).
 Course catalog, language/level settings, publication and acceptance: [Course catalog](docs/course-catalog.md).
 
 ### Without Docker
