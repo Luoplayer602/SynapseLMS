@@ -4,7 +4,9 @@
 
 ## Khởi động Docker
 
-Cập nhật migration đã triển khai ngày 2026-09-27: **20260927_0013 (head)** — [tuyển sinh, học phí, điểm danh và thông báo](./admissions-delivery.md), sau 0012 vận hành buổi/lịch tuần. Alembic check sạch; API/web chạy image khớp workspace, health API/web/module Admissions/Mailpit HTTP 200. OpenAPI có 24 path admissions/attendance/notifications, không có test helpers. Count/SHA256 10 bảng cũ khớp trước/sau; 11 bảng mới rỗng lúc bàn giao. DB/Mailpit giữ nguyên container/StartedAt, volume và cổng DB 5432 của người dùng. Chi tiết: [checkpoint](./next-session-handoff.md), myplan mục 30. Chờ nghiệm thu, 19 story Jira vẫn In Progress.
+Hiện tại đã deploy **20260928_0014 (head)** ngày2026-09-28, API/web chạy image mới, Alembic check/health/OpenAPI đạt. Backup đã phục hồi thử;45 bảng cũ khớp count/hash, backfill1 period đúng effective_at; DB/Mailpit/volume/compose5432 giữ nguyên. Đợt0014 chờ nghiệm thu, bằng chứng/test/Jira/checklist tại [kế hoạch mục9](./plans/reservation-refund.md) và [current-state](./current-state.md).
+
+Mốc lịch sử triển khai ngày2026-09-27: **20260927_0013** — [tuyển sinh, học phí, điểm danh và thông báo](./admissions-delivery.md), sau 0012 vận hành buổi/lịch tuần. Alembic check sạch; API/web chạy image khớp workspace, health API/web/module Admissions/Mailpit HTTP 200. OpenAPI có 24 path admissions/attendance/notifications, không có test helpers. Count/SHA256 10 bảng cũ khớp trước/sau; 11 bảng mới rỗng lúc bàn giao. DB/Mailpit giữ nguyên container/StartedAt, volume và cổng DB 5432 của người dùng. Chi tiết: [checkpoint](./next-session-handoff.md), myplan mục 30. Người dùng đã nghiệm thu phạm vi0013; 19 story Jira vẫn In Progress, chưa đồng bộ trạng thái mới. Baseline trên là tại lúc triển khai; trạng thái hiện tại xem [current-state](./current-state.md).
 
 Giữ dữ liệu buổi và phân công hiện có; không downgrade DB thật, đặc biệt khi có session_history hoặc dữ liệu tài chính. Các mốc 0012 trở về trước bên dưới là hồ sơ triển khai cũ.
 

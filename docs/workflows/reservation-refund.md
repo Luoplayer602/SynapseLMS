@@ -1,84 +1,60 @@
-# Luồng bảo lưu và hoàn phí
+# Bảo lưu, tiếp tục cùng lớp và hoàn phí
 
-**Phiên bản:** 0.1  
-**Trạng thái:** Đã chốt luồng chính
+Phiên bản0014, triển khai theo [kế hoạch đã duyệt](../plans/reservation-refund.md). Trạng thái deploy/test/nghiệm thu mới nhất ở [current-state](../current-state.md); checklist nghiệm thu theo vai trò nằm ở mục7 kế hoạch.
 
-## Nguyên tắc
+## Quyền và giới hạn
 
-- Bảo lưu có hiệu lực từ một buổi học cụ thể, không bắt buộc bảo lưu toàn bộ khóa từ đầu.
-- Giáo vụ chọn buổi bắt đầu bảo lưu và nhập lý do.
-- Bảo lưu không tự động dừng hoặc xóa các kỳ trả góp; nghĩa vụ thanh toán tiếp tục theo lịch đã lập.
-- Sau khi ghi nhận bảo lưu, hệ thống tính và đề xuất số tiền có thể hoàn dựa trên phần chưa học.
-- Buổi được chọn làm mốc bắt đầu bảo lưu được tính là buổi chưa học và đủ điều kiện xem xét hoàn.
-- Giá trị hoàn được tính trên học phí ròng sau giảm giá; trung tâm có thể cấu hình phí khấu trừ.
-- Giáo vụ có quyền xác nhận hoặc điều chỉnh khoản hoàn, nhưng phải nhập lý do khi khác đề xuất.
-- Khoản hoàn được bù trừ công nợ trước; chỉ phần còn lại mới được hoàn bằng tiền mặt hoặc chuyển khoản.
-- Không giữ tiền thành ví hoặc số dư dùng cho khóa sau.
+Giáo vụ/quản lý/Root có phiên hỗ trợ đúng tenant được bảo lưu, hủy, tiếp tục, lập và duyệt đề xuất, ghi nhận chi trực tiếp. Chỉ quản lý/Root hỗ trợ sửa chính sách khấu trừ. Học viên chỉ đọc quyền học, tiền và thông báo của mình; không có lý do/actor nội bộ. Giáo viên chỉ có roster/điểm danh các buổi được giao, không có API hoàn phí.
 
-## Trạng thái bảo lưu
+Tiếp tục cùng lớp chỉ được **trước quyết toán hoàn dương**, kể cả trường hợp toàn bộ tiền hoàn dùng bù nợ. NO_REFUND (duyệt0) không chặn tiếp tục. Đề xuất chưa duyệt tự hủy cùng transaction khi tiếp tục. Hủy đăng ký chặn tiếp tục. Không chuyển lớp, không giữ chỗ, không bù buổi/gia hạn khóa, không ví, không gọi ngân hàng, không sửa/xóa khoản hoàn đã duyệt.
 
-```text
-REQUESTED
-  → CONFIRMED
-      → REFUND_PROPOSED
-          → REFUND_APPROVED
-              → REFUNDED
-          → NO_REFUND
-  → REJECTED
-  → CANCELLED
-```
+## Quyền học theo buổi
 
-## Cách tính đề xuất
+- Giáo vụ chọn buổi scheduled thuộc chính lớp, chưa bắt đầu, nhập lý do và xem preview trước khi xác nhận. Buổi mốc thuộc phần chưa học.
+- Quyền học lưu thành các khoảng UTC [starts_at, ends_at). Bảo lưu/hủy đóng khoảng đang mở; tiếp tục tạo khoảng mới cùng enrollment, không sinh hóa đơn mới. Mốc không được lùi/chồng khoảng trước.
+- Trạng thái suspended/cancelled thể hiện thao tác đã ghi nhận; quyền học chỉ dừng từ giờ mốc. UI hiển thị các khoảng để phân biệt mốc tương lai.
+- Tiếp tục kiểm tra hồ sơ/tài khoản học viên, lớp/tài nguyên/giáo viên còn hoạt động, sức chứa từng buổi và trùng lịch. Ngoại lệ cho chính lớp đã bắt đầu, không thay điều kiện tuyển sinh mới.
+- Lịch cá nhân/roster/chuyên cần/sức chứa/trùng lịch/người nhận thông báo dựa trên quyền học tại giờ bắt đầu từng buổi. Lịch sử điểm danh trước mốc giữ nguyên. Không cho dừng qua sheet đã tồn tại tại/sau mốc.
+- Buổi đã dùng làm mốc không được đổi giờ/hủy/khôi phục đổi trạng thái trong đợt này; thay phòng/giáo viên vẫn phải qua guard hiện hành.
+- Hủy waiting không cần mốc vì chưa có lớp. Không xóa hóa đơn, nghĩa vụ hoặc tự tạo enrollment. Không cho đăng ký mới cùng khóa để lách nghĩa vụ.
+- Hồ sơ còn nợ, bảo lưu hoặc hoàn chờ chi không được archive.
 
-Phiên bản MVP sử dụng công thức cấu hình được theo trung tâm:
+## Quyết toán tiền nguyên VND
+
+T = học phí ròng; P = tổng khoản thu chưa đảo; N = tổng buổi scheduled tại lúc xác nhận dừng; n = số buổi trong tập đó từ mốc. Buổi vắng/muộn/có phép đã diễn ra vẫn sử dụng quyền học; buổi cancelled không tính. Snapshot lưu nguồn và phiên bản để truy vết.
 
 ```text
-giá trị mỗi buổi = học phí ròng / tổng số buổi tính phí
-giá trị chưa học = giá trị mỗi buổi × số buổi đủ điều kiện hoàn
-đề xuất hoàn = min(số tiền đã thanh toán, giá trị chưa học) - phí khấu trừ
-bù trừ công nợ = min(đề xuất hoàn, công nợ hiện tại)
-tiền hoàn thực tế = max(0, đề xuất hoàn - công nợ hiện tại)
-công nợ sau bù trừ = max(0, công nợ hiện tại - đề xuất hoàn)
+U = floor(T × n / N)                 # waiting: U = T
+E = min(P, U)
+phí = cố định hoặc floor(E × tỷ lệ / 100)
+G đề xuất = max(0, E − phí)
+D = T − P − bù nợ đã ghi
+O = min(G được duyệt, D)
+X = G được duyệt − O
 ```
 
-Trong đó:
+N không hợp lệ thì chặn, không chia0. Giáo vụ được đổi G trong khoảng0..P, bắt buộc lý do nếu khác đề xuất. Từ chối/hủy đề xuất cũng cần lý do. Chính sách mặc định khấu trừ0, cố định hoặc phần trăm nguyên0..100, có version và snapshot.
 
-- Học phí ròng là học phí sau giảm giá.
-- Buổi bắt đầu bảo lưu và các buổi sau được xem xét là chưa học.
-- Trung tâm có thể cấu hình phí khấu trừ hoặc tỷ lệ không hoàn.
-- Đề xuất không bao giờ âm và không vượt tổng tiền thực tế đã thu.
-- Khoản trả góp chưa thanh toán vẫn là công nợ cho đến khi có điều chỉnh tài chính rõ ràng.
+Ví dụ T1.000.000, P700.000, n/N=1/2, phí0: G500.000, D300.000 → bù300.000 và chi200.000. P0 thì G0, nợ vẫn còn. Chưa thanh toán không đồng nghĩa được miễn khoản học chưa sử dụng.
 
-## Luồng xử lý
+Duyệt ghi bù nợ và khoản chờ chi cùng transaction. X0/G>0 hoàn tất ngay; G0 là no_refund; X>0 chờ giáo vụ ghi nhận toàn bộ chi một lần bằng cash/transfer và tham chiếu. Chỉ xác nhận chi sau khi tiền đã trả bên ngoài.
 
-1. Giáo vụ chọn Enrollment và buổi bắt đầu bảo lưu.
-2. Hệ thống kiểm tra buổi thuộc lớp, chưa bị bảo lưu trước đó và hiển thị các buổi bị ảnh hưởng.
-3. Giáo vụ xác nhận, nhập lý do; Enrollment chuyển trạng thái bảo lưu từ buổi đã chọn.
-4. Hệ thống không thay đổi lịch trả góp hiện tại.
-5. Hệ thống tạo bản đề xuất hoàn phí kèm công thức và dữ liệu nguồn.
-6. Giáo vụ chấp nhận đề xuất hoặc điều chỉnh có lý do.
-7. Hệ thống dùng khoản hoàn để bù trừ công nợ và hiển thị phép tính.
-8. Nếu còn tiền phải trả cho học viên, giáo vụ ghi nhận hoàn bằng tiền mặt hoặc chuyển khoản cùng mã tham chiếu nếu có.
-9. Hệ thống tạo điều chỉnh công nợ và giao dịch hoàn tương ứng, lưu audit log; không tạo số dư nội bộ.
+Không sửa Invoice.total/snapshot/kỳ gốc hoặc dùng Payment âm. Công nợ = tổng − thực thu − bù nợ; chi hoàn không cộng lại nợ. Thu phân bổ vào kỳ sớm trước, bù nợ tiếp phần thiếu sớm nhất. DTO tách paid/offset/remaining; số nợ trong phép tính hoàn là snapshot tại lúc lập đề xuất, khác số dư hiện tại.
 
-## Quy tắc dữ liệu và audit
+Mỗi request tối đa một quyết toán dương (unique settled_request_id). Đã quyết toán dương thì chặn đảo khoản thu của hóa đơn và tiếp tục học. NO_REFUND không khóa vĩnh viễn quyết toán/đảo thu. Sửa sai quyết toán đã duyệt ngoài phạm vi0014.
 
-- Không xóa hóa đơn, thanh toán hoặc giao dịch hoàn.
-- Đề xuất và số tiền hoàn thực tế phải được lưu riêng.
-- Số bù trừ công nợ và công nợ trước/sau bù trừ phải được lưu để đối soát.
-- Mọi điều chỉnh khỏi số tiền đề xuất phải có lý do.
-- Refund có idempotency key để tránh hoàn hai lần.
-- Audit log lưu Enrollment, buổi bắt đầu, công thức, dữ liệu nguồn, người thao tác và thời điểm.
+## Trạng thái, API và tính nguyên tử
 
-## Kiểm thử tối thiểu
+Enrollment.state: active → suspended → active hoặc cancelled; waiting bị hủy lưu AdmissionRequest.cancelled_at, API trả cancelled. Giữ request.status cũ để tránh thay constraint/FK của dữ liệu0013.
 
-- Không thể chọn buổi không thuộc Enrollment.
-- Bảo lưu không tự động hủy kỳ trả góp.
-- Đề xuất không vượt số tiền đã thanh toán.
-- Buổi bắt đầu bảo lưu được tính trong phần chưa học.
-- Học phí ròng sau giảm giá và phí khấu trừ cấu hình được được áp dụng đúng.
-- Khoản hoàn được bù trừ công nợ trước; chỉ phần dư mới tạo giao dịch chi tiền.
-- Giảm giá được phản ánh trong học phí ròng.
-- Điều chỉnh đề xuất không có lý do bị từ chối.
-- Retry không tạo giao dịch hoàn trùng.
-- Chỉ chấp nhận phương thức tiền mặt hoặc chuyển khoản cho phần thực chi.
+RefundCase.status: proposed → rejected/cancelled/no_refund/pending/paid; pending → paid khi ghi chi. paid có thể chỉ bù nợ, phải đọc offset_amount/cash_amount/disbursement để phân biệt.
+
+- GET /api/v1/enrollments và /{request_id}: yêu cầu đã có hóa đơn, kể cả waiting; ID trên route là **AdmissionRequest.id**, enrollment_id trả riêng.
+- POST /enrollments/{request_id}/preview và /operations: action suspend/resume/cancel; version, request_key, reason, session_id; xác nhận cần source_digest.
+- GET/PUT /refunds/policy; POST /refunds/preview, POST/GET /refunds; GET /refunds/{case_id}.
+- POST /refunds/{case_id}/decision: approve/reject/cancel, version, amount, reason, request_key.
+- POST /refunds/{case_id}/disburse: version, cash/transfer, reference, request_key.
+
+Preview không ghi nghiệp vụ. Xác nhận tính lại dưới khóa tenant/actor, kiểm quyền và version; thay nguồn thu/đảo thu/lịch/policy làm đề xuất hết hiệu lực trả409. Replay cùng key/payload không tạo trùng. Quyền học/sổ tiền/history/audit/inbox commit cùng transaction; lỗi bất kỳ rollback toàn bộ. Inbox không chứa lý do tài chính.
+
+Sáu bảng mới: enrollment_periods, enrollment_operations, refund_policies, refund_cases, invoice_adjustments, refund_disbursements. Migration20260928_0014 backfill một period mở/enrollment cũ với starts_at=effective_at. Không tạo nghiệp vụ tài chính hoặc đổi ngày/số tiền cũ. Downgrade từ chối nếu phải bỏ dữ liệu, kể cả periods đã backfill; không dùng để rollback DB thật.

@@ -27,3 +27,6 @@ frontend/test-results/
 frontend/playwright-report/
 backend/test-results/
 frontend/admissions-ui-results.json
+frontend/reservation-ui-results.json
+.local-backups/
+ui-design/

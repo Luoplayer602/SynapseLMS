@@ -379,12 +379,16 @@ def archive(
         raise APIError(409, "STUDENT_CONFLICT")
     if data.archived:
         from app.models import AdmissionRequest, ClassSession, Enrollment
+        from app.services import enrollment_lifecycle as life
+
+        life.archive_guard(db, item.id)
 
         pending = db.scalar(
             select(AdmissionRequest.id)
             .where(
                 AdmissionRequest.student_id == item.id,
                 AdmissionRequest.status.in_(["submitted", "waiting"]),
+                AdmissionRequest.cancelled_at.is_(None),
             )
             .limit(1)
         )
@@ -396,6 +400,7 @@ def archive(
             )
             .where(
                 Enrollment.student_id == item.id,
+                life.active_clause(ClassSession.starts_at),
                 ClassSession.ends_at > now(),
                 ClassSession.status == "scheduled",
             )

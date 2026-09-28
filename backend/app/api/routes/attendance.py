@@ -20,6 +20,7 @@ from app.models import (
     TeacherProfile,
 )
 from app.services import admissions as svc
+from app.services.enrollment_lifecycle import active_clause
 
 router = APIRouter(prefix="/attendance", dependencies=[Depends(auth_guard)])
 
@@ -56,7 +57,7 @@ def roster(db, session):
             .join(Enrollment, Enrollment.student_id == StudentProfile.id)
             .where(
                 Enrollment.class_id == session.class_id,
-                Enrollment.effective_at <= session.starts_at,
+                active_clause(session.starts_at),
             )
             .order_by(StudentProfile.full_name, StudentProfile.id)
         )
@@ -188,7 +189,7 @@ def mine(
         .join(Enrollment, Enrollment.class_id == ClassSession.class_id)
         .where(
             Enrollment.student_id == profile.id,
-            Enrollment.effective_at <= ClassSession.starts_at,
+            active_clause(ClassSession.starts_at),
             ClassSession.status == "scheduled",
             ClassSession.starts_at <= now(),
         )

@@ -848,3 +848,21 @@ Một backlog item chỉ hoàn thành khi:
 - Bảo toàn dữ liệu: cả count/SHA256 toàn hàng của 10 bảng cũ trước/sau khớp checkpoint (2 trung tâm/8 users/2 học viên/1 giáo viên/1 khóa/2 lớp/83 buổi/83 liên kết giáo viên/2 mẫu/0 history); 11 bảng mới đều rỗng lúc bàn giao. DB/Mailpit giữ nguyên container/StartedAt, volume synapselms_postgres_data; compose.yaml cổng5432 giữ nguyên. Không sửa .env/seed/commit/stage.
 - Jira comment thành công, tất cả vẫn In Progress: SYNAPSELMS-80→10108;81→10109;82→10110;147→10111;155→10112;161→10113;162→10114;86→10115;87→10116;88→10117;89→10118;90→10119;92→10120;95→10121;96→10122;97→10123;98→10124;99→10125;149→10126. Mỗi comment ghi phạm vi/test/deployment/checklist; FEE-07 và ATT-05 ghi rõ chỉ một phần, chưa Done.
 - Đã chốt current-state/auth-operations/admissions-delivery/next-session-handoff. Checklist theo Root/quản lý, giáo vụ, giáo viên, học viên nằm trong docs/admissions-delivery.md: phí1 triệu/giảm10%/hai kỳ450k; thu300k còn600k, đảo nợ900k; nháp/chốt/sửa điểm danh có lý do; inbox đúng người; chặn trùng/hết chỗ/sai quyền/stale version/thu quá nợ. Chưa tạo dữ liệu nghiệm thu thật, không sửa giờ DB; chờ phản hồi người dùng.
+
+## 31. Nghiệm thu0013 và kế hoạch bảo lưu/hoàn phí — 2026-09-27
+
+- Người dùng xác nhận “Đã nghiệm thu đạt toàn bộ phạm vi đã bàn giao” cho đợt tuyển sinh/học phí/điểm danh/thông báo. Không suy diễn hoàn thành PDF server hoặc báo cáo chuyên cần cả lớp. Phiên chỉ lập kế hoạch nên chưa đổi Jira.
+- Kế hoạch mới lưu duy nhất tại docs/plans/reservation-refund.md, chưa duyệt code/deploy. Người dùng chọn tiếp tục học lại cùng lớp sau bảo lưu, chưa chuyển lớp; giáo vụ được duyệt và ghi nhận hoàn trực tiếp. Giữ công thức/chính sách gốc ở docs/workflows/reservation-refund.md. Câu hỏi còn lại và trạng thái đợt xem kế hoạch, không chép lại tại đây.
+- Kiểm tra thực tế: Docker ở0013, code image khớp workspace; DB đã có dữ liệu nghiệp vụ, phải chụp baseline mới trước migration tiếp. Jira19 story0013 vẫn In Progress;78/79/152 hiện Done. Giữ mọi thay đổi của người dùng, không subagent/stage/commit/.env/seed/volume. Đề cử GPT gpt-6-astra high.
+
+## 32. Triển khai bảo lưu và hoàn phí0014 — 2026-09-28
+
+- Người dùng duyệt phương án đầu: chỉ tiếp tục cùng lớp trước quyết toán hoàn dương, kể cả bù nợ; NO_REFUND không chặn. Giáo vụ duyệt/ghi chi trực tiếp. Không chuyển lớp/bù buổi/giữ chỗ hoặc sửa sai hoàn đã duyệt.
+- Đã code/test/deploy20260928_0014; quyền học theo khoảng và sổ bù nợ/chi tách khoản thu. Backend hồi quy225 đạt/26skip SQLite (PostgreSQL tương ứng đạt); UI76 và2 E2E bị ảnh hưởng đạt. Backup restore/migrate thử đạt;45 bảng cũ khớp count/hash,1 period backfill đúng. Giữ DB/Mailpit/volume/compose5432/.env/dữ liệu; không stage/commit/subagent.
+- Jira84/91 In Progress, comment10127/10128; chờ người dùng nghiệm thu0014. Kết quả/báo cáo/source manifest và checklist tập trung tại docs/plans/reservation-refund.md mục7/9, checkpoint docs/current-state.md; không chép lại kế hoạch vào đây. Nghiệm thu0013 và19 story cũ vẫn tách riêng.
+
+## 33. Hướng giao diện Soft và kế hoạch auth — 2026-09-28
+
+- Người dùng chọn Synapse Soft mặc định; Neo Pop/Clay Garden/Liquid Glass định hướng phần thưởng chuỗi ngày làm bài tập AI. Giữ màn chào nhanh khi tải thật, bổ sung mobile từ PC; login chung, role lấy từ backend. Chưa chốt ngưỡng streak/quyền mở theme, chưa triển khai AI/phần thưởng.
+- Đánh giá có giới hạn chưa thấy backend blocker cho UI auth; điểm số/bài kiểm tra và bài tập AI vẫn là phần nghiệp vụ quan trọng còn thiếu.0014 vẫn chờ người dùng nghiệm thu, không suy diễn đã hoàn tất nghiệm thu.
+- Kế hoạch duy nhất tại docs/plans/auth-soft-experience.md: đăng nhập/đăng ký/chào và vỏ các nhánh email, giữ React/Vite/API/quyền, mobile/light-dark/reduced-motion. Phiên này chỉ tài liệu; chưa duyệt code/deploy, không test hoặc đổi Jira.

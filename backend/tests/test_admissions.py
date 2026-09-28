@@ -85,6 +85,8 @@ def admissions(schedule, monkeypatch):  # noqa: F811
     s = schedule
     for module in [
         "app.services.admissions",
+        "app.services.enrollment_lifecycle",
+        "app.api.routes.enrollment_lifecycle",
         "app.api.routes.admissions",
         "app.api.routes.attendance",
         "app.api.routes.session_operations",
@@ -699,3 +701,538 @@ def test_populated_financial_migration_refuses_loss(admissions):
             command.downgrade(migration_config(connection), "20260926_0012")
     with Session(f[1]) as db:
         assert db.scalar(select(func.count()).select_from(Invoice)) == 1
+
+
+def lifecycle_request(s, path, body, status=200, headers=None):
+    response = s["f"][0].post("/api/v1" + path, headers=headers or s["f"][5], json=body)
+    assert response.status_code == status, response.text
+    return response.json()
+
+
+def lifecycle_detail(s, request_id, personal=False):
+    response = s["f"][0].get(
+        "/api/v1/enrollments/" + request_id, headers=s["learner"] if personal else s["f"][5]
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def lifecycle_operation(s, request_id, action, session_id=None):
+    detail = lifecycle_detail(s, request_id)
+    body = payload(
+        action=action,
+        version=detail["version"],
+        session_id=session_id,
+        reason="PRIVATE operation reason",
+    )
+    preview = lifecycle_request(s, f"/enrollments/{request_id}/preview", body)
+    body["source_digest"] = preview["source_digest"]
+    result = lifecycle_request(s, f"/enrollments/{request_id}/operations", body)
+    assert lifecycle_request(s, f"/enrollments/{request_id}/operations", body) == result
+    return result
+
+
+def lifecycle_second_session(s):
+    from datetime import timedelta
+
+    from app.models import ClassSession, SessionTeacher
+
+    with Session(s["f"][1]) as db:
+        old = db.get(ClassSession, UUID(s["session"]["id"]))
+        values = {
+            c.name: getattr(old, c.name)
+            for c in ClassSession.__table__.columns
+            if c.name not in {"id", "starts_at", "ends_at"}
+        }
+        new = ClassSession(
+            **values,
+            starts_at=old.starts_at + timedelta(hours=2),
+            ends_at=old.ends_at + timedelta(hours=2),
+        )
+        db.add(new)
+        db.flush()
+        db.add(
+            SessionTeacher(
+                organization_id=old.organization_id,
+                class_id=old.class_id,
+                session_id=new.id,
+                teacher_profile_id=UUID(s["teacher"]),
+            )
+        )
+        db.commit()
+        return str(new.id)
+
+
+def refund_proposal(s, request_id):
+    quote = lifecycle_request(s, "/refunds/preview", payload(request_id=request_id))
+    body = payload(request_id=request_id, source_digest=quote["source_digest"])
+    case = lifecycle_request(s, "/refunds", body)
+    assert lifecycle_request(s, "/refunds", body) == case
+    return case
+
+
+def lifecycle_paid(s, amount):
+    row, _ = approve(s, submit(s))
+    invoice = lifecycle_detail(s, row["id"])["invoice"]
+    payment = (
+        lifecycle_request(
+            s,
+            f"/admissions/invoices/{invoice['id']}/payments",
+            payload(amount=amount, method="cash"),
+        )
+        if amount
+        else None
+    )
+    return row, invoice, payment
+
+
+def test_reservation_periods_resume_and_personal_history(admissions, monkeypatch):
+    from app.api.routes.attendance import roster
+    from app.models import ClassSession, EnrollmentPeriod
+
+    s, f = admissions, admissions["f"]
+    second = lifecycle_second_session(s)
+    row, _invoice, _payment = lifecycle_paid(s, 700)
+    first = s["session"]["id"]
+    lifecycle_operation(s, row["id"], "suspend", first)
+    assert f[0].get(BASE + "/my-sessions", headers=s["learner"]).json()["total"] == 0
+    case = refund_proposal(s, row["id"])
+    lifecycle_operation(s, row["id"], "resume", second)
+    detail = lifecycle_detail(s, row["id"], True)
+    assert len(detail["periods"]) == 2
+    assert detail["refunds"][0]["status"] == "cancelled"
+    assert "PRIVATE" not in str(detail)
+    assert "snapshot" not in detail["refunds"][0]
+    assert detail["invoice"]["total"] == 1000
+    with Session(f[1]) as db:
+        assert len(roster(db, db.get(ClassSession, UUID(first)))) == 0
+        assert len(roster(db, db.get(ClassSession, UUID(second)))) == 1
+        assert db.scalar(select(func.count()).select_from(EnrollmentPeriod)) == 2
+    lifecycle_request(
+        s,
+        f"/refunds/{case['id']}/decision",
+        payload(version=case["version"], action="approve", amount=700),
+        409,
+    )
+    lifecycle_operation(s, row["id"], "suspend", second)
+    assert lifecycle_detail(s, row["id"])["state"] == "suspended"
+
+
+@pytest.mark.parametrize(
+    "amount,offset,cash,debt",
+    [(0, 0, 0, 1000), (300, 300, 0, 400), (700, 300, 200, 0), (1000, 0, 500, 0)],
+)
+def test_refund_settlement_accounting_and_retry(admissions, amount, offset, cash, debt):
+    from app.models import InvoiceAdjustment, RefundCase, RefundDisbursement
+
+    s, f = admissions, admissions["f"]
+    second = lifecycle_second_session(s)
+    row, invoice, payment = lifecycle_paid(s, amount)
+    lifecycle_operation(s, row["id"], "suspend", second)
+    case = refund_proposal(s, row["id"])
+    assert case["proposed"] == min(amount, 500)
+    body = payload(version=case["version"], action="approve", amount=case["proposed"])
+    approved = lifecycle_request(s, f"/refunds/{case['id']}/decision", body)
+    assert lifecycle_request(s, f"/refunds/{case['id']}/decision", body) == approved
+    assert (approved["offset_amount"], approved["cash_amount"]) == (offset, cash)
+    detail = f[0].get(BASE + "/invoices/" + invoice["id"], headers=s["learner"]).json()
+    assert detail["total"] == 1000 and detail["paid"] == amount
+    assert detail["remaining"] == sum(p["remaining"] for p in detail["installments"]) == debt
+    if amount:
+        lifecycle_request(
+            s,
+            f"/admissions/payments/{payment['payment_id']}/reverse",
+            payload(reason="Wrong original receipt"),
+            409,
+        )
+        lifecycle_request(
+            s,
+            f"/enrollments/{row['id']}/preview",
+            payload(action="resume", version=2, session_id=second, reason="Resume"),
+            409,
+        )
+    if cash:
+        payout = payload(version=approved["version"], method="transfer", reference="Bank reference")
+        paid = lifecycle_request(s, f"/refunds/{case['id']}/disburse", payout)
+        assert lifecycle_request(s, f"/refunds/{case['id']}/disburse", payout) == paid
+        assert paid["status"] == "paid" and paid["disbursement"]["amount"] == cash
+        lifecycle_request(
+            s, f"/refunds/{case['id']}/disburse", {**payout, "request_key": str(uuid4())}, 409
+        )
+        assert lifecycle_detail(s, row["id"])["invoice"]["remaining"] == debt
+    with Session(f[1]) as db:
+        assert db.scalar(select(func.count()).select_from(RefundCase)) == 1
+        assert db.scalar(select(func.count()).select_from(InvoiceAdjustment)) == int(offset > 0)
+        assert db.scalar(select(func.count()).select_from(RefundDisbursement)) == int(cash > 0)
+
+
+@pytest.mark.parametrize("change", ["payment", "reverse", "policy", "schedule"])
+def test_refund_stale_sources_rollback(admissions, change):
+    from app.models import ClassSession
+
+    s, f = admissions, admissions["f"]
+    second = lifecycle_second_session(s)
+    row, invoice, payment = lifecycle_paid(s, 700)
+    lifecycle_operation(s, row["id"], "suspend", second)
+    case = refund_proposal(s, row["id"])
+    if change == "payment":
+        lifecycle_request(
+            s, f"/admissions/invoices/{invoice['id']}/payments", payload(amount=1, method="cash")
+        )
+    elif change == "reverse":
+        lifecycle_request(
+            s,
+            f"/admissions/payments/{payment['payment_id']}/reverse",
+            payload(reason="Receipt wrong"),
+        )
+    elif change == "policy":
+        result = f[0].put(
+            "/api/v1/refunds/policy", headers=f[5], json=payload(version=0, kind="fixed", value=50)
+        )
+        assert result.status_code == 200, result.text
+    else:
+        with Session(f[1]) as db:
+            db.get(ClassSession, UUID(s["session"]["id"])).version += 1
+            db.commit()
+    lifecycle_request(
+        s, f"/refunds/{case['id']}/decision", payload(version=1, action="approve", amount=500), 409
+    )
+    assert lifecycle_detail(s, row["id"])["refunds"][0]["status"] == "proposed"
+
+
+def test_refund_permissions_tenant_override_and_zero_resume(admissions):
+    s = admissions
+    row, _invoice, _payment = lifecycle_paid(s, 700)
+    lifecycle_operation(s, row["id"], "suspend", s["session"]["id"])
+    for headers in (s["learner"], s["personal"]):
+        lifecycle_request(s, "/refunds/preview", payload(request_id=row["id"]), 403, headers)
+    lifecycle_request(s, "/refunds/preview", payload(request_id=str(uuid4())), 404)
+    case = refund_proposal(s, row["id"])
+    lifecycle_request(
+        s, f"/refunds/{case['id']}/decision", payload(version=1, action="approve", amount=701), 409
+    )
+    lifecycle_request(
+        s, f"/refunds/{case['id']}/decision", payload(version=1, action="approve", amount=0), 422
+    )
+    lifecycle_request(
+        s,
+        f"/refunds/{case['id']}/decision",
+        payload(version=1, action="approve", amount=0, reason="No refund requested"),
+    )
+    assert lifecycle_operation(s, row["id"], "resume", s["session"]["id"])["state"] == "active"
+
+
+def test_reservation_cancel_waiting_blocks_placement_and_keeps_invoice(admissions):
+    s, f = admissions, admissions["f"]
+    response = f[0].post(
+        BASE + "/requests",
+        headers=f[5],
+        json=payload(
+            student_id=s["student"],
+            course_id=f[6]["id"],
+            availability=[],
+        ),
+    )
+    row, _ = approve(s, response.json())
+    assert row["status"] == "waiting"
+    detail = lifecycle_operation(s, row["id"], "cancel")
+    assert detail["invoice"]["remaining"] == 1000
+    assert detail["state"] == "cancelled"
+    assert (
+        f[0].get(BASE + "/requests/" + row["id"] + "/candidates", headers=f[5]).json()["items"]
+        == []
+    )
+    lifecycle_request(
+        s,
+        f"/admissions/requests/{row['id']}/placement",
+        payload(version=detail["version"], class_id=s["class_id"], reason="Manual"),
+        409,
+    )
+    assert refund_proposal(s, row["id"])["proposed"] == 0
+    lifecycle_request(
+        s, "/admissions/requests", payload(student_id=s["student"], course_id=f[6]["id"]), 409
+    )
+
+
+def test_refund_policy_rounding_staff_permission_and_snapshot(admissions):
+    s, f = admissions, admissions["f"]
+    _uid, _mid = seed_user(f[1], f[2], role="staff", email="refund-staff@example.com")
+    headers = login(f[0], "refund-staff@example.com")
+    assert (
+        f[0]
+        .put(
+            "/api/v1/refunds/policy",
+            headers=headers,
+            json=payload(version=0, kind="percent", value=10),
+        )
+        .status_code
+        == 403
+    )
+    assert (
+        f[0]
+        .put(
+            "/api/v1/refunds/policy",
+            headers=f[5],
+            json=payload(version=0, kind="percent", value=101),
+        )
+        .status_code
+        == 422
+    )
+    assert (
+        f[0]
+        .put(
+            "/api/v1/refunds/policy",
+            headers=f[5],
+            json=payload(version=0, kind="percent", value=33),
+        )
+        .status_code
+        == 200
+    )
+    row, _invoice, _payment = lifecycle_paid(s, 701)
+    lifecycle_operation(s, row["id"], "suspend", s["session"]["id"])
+    case = refund_proposal(s, row["id"])
+    assert case["proposed"] == 701 - 701 * 33 // 100
+    lifecycle_request(
+        s,
+        f"/refunds/{case['id']}/decision",
+        payload(version=1, action="approve", amount=case["proposed"]),
+        headers=headers,
+    )
+    assert (
+        f[0]
+        .put(
+            "/api/v1/refunds/policy", headers=f[5], json=payload(version=1, kind="fixed", value=999)
+        )
+        .status_code
+        == 200
+    )
+    assert lifecycle_detail(s, row["id"])["refunds"][0]["calculation"]["policy"]["value"] == 33
+
+
+def test_reservation_populated_migration_backfill(admissions):
+    from sqlalchemy import delete
+
+    from app.models import EnrollmentPeriod
+
+    s, f = admissions, admissions["f"]
+    _row, _invoice, _payment = lifecycle_paid(s, 700)
+    with f[1].begin() as connection:
+        # Reconstruct the previous schema only inside the isolated test database.
+        connection.execute(delete(EnrollmentPeriod))
+        command.downgrade(migration_config(connection), "20260927_0013")
+        from sqlalchemy import text
+
+        old = [
+            tuple(r)
+            for r in connection.execute(
+                text("SELECT id, organization_id, effective_at FROM enrollments ORDER BY id")
+            )
+        ]
+        invoices = [
+            tuple(r) for r in connection.execute(text("SELECT * FROM invoices ORDER BY id"))
+        ]
+        command.upgrade(migration_config(connection), "head")
+        assert [
+            tuple(r)
+            for r in connection.execute(
+                text("SELECT id, organization_id, effective_at FROM enrollments ORDER BY id")
+            )
+        ] == old
+        assert [
+            tuple(r) for r in connection.execute(text("SELECT * FROM invoices ORDER BY id"))
+        ] == invoices
+        assert connection.scalar(select(func.count()).select_from(EnrollmentPeriod)) == 1
+
+
+@pytest.mark.parametrize("operation", ["decision", "disburse"])
+def test_refund_concurrent_single_settlement(admissions, operation):
+    s, f = admissions, admissions["f"]
+    if f[1].dialect.name != "postgresql":
+        pytest.skip("row locks require PostgreSQL")
+    row, _invoice, _payment = lifecycle_paid(s, 1000)
+    lifecycle_operation(s, row["id"], "suspend", s["session"]["id"])
+    case = refund_proposal(s, row["id"])
+    body = {"version": 1, "action": "approve", "amount": 1000}
+    if operation == "disburse":
+        case = lifecycle_request(s, f"/refunds/{case['id']}/decision", payload(**body))
+        body = {"version": case["version"], "method": "cash"}
+    barrier = Barrier(2)
+
+    def call(_):
+        with TestClient(f[0].app) as client:
+            barrier.wait()
+            return client.post(
+                f"/api/v1/refunds/{case['id']}/{operation}", headers=f[5], json=payload(**body)
+            ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(call, range(2))) == [200, 409]
+
+
+def test_reservation_boundaries_history_capacity_and_tenant(admissions, monkeypatch):
+    from app.api.routes.attendance import roster
+    from app.models import ClassSession, EnrollmentOperation
+
+    s, f = admissions, admissions["f"]
+    second = lifecycle_second_session(s)
+    row, _invoice, _payment = lifecycle_paid(s, 700)
+    first = s["session"]["id"]
+    first_time = datetime.fromisoformat(s["session"]["starts_at"])
+    monkeypatch.setattr("app.api.routes.attendance.now", lambda: first_time)
+    mark = payload(
+        version=0,
+        finalized=True,
+        records=[{"student_id": s["student"], "status": "present", "note": "Kept"}],
+    )
+    lifecycle_request(s, f"/attendance/sessions/{first}", mark, 405, s["personal"])
+    assert (
+        f[0]
+        .put(f"/api/v1/attendance/sessions/{first}", headers=s["personal"], json=mark)
+        .status_code
+        == 200
+    )
+    lifecycle_operation(s, row["id"], "suspend", second)
+    with Session(f[1]) as db:
+        assert len(roster(db, db.get(ClassSession, UUID(first)))) == 1
+        assert len(roster(db, db.get(ClassSession, UUID(second)))) == 0
+        assert db.scalar(select(func.count()).select_from(EnrollmentOperation)) == 1
+    mine = f[0].get("/api/v1/attendance/mine", headers=s["learner"]).json()
+    assert mine["counts"]["present"] == 1
+    lifecycle_request(
+        s,
+        f"/class-sessions/{second}/operations",
+        payload(version=1, action="cancel", reason="Cancel boundary"),
+        409,
+    )
+    seed_user(f[1], f[3], email="refund-foreign@example.com")
+    foreign = login(f[0], "refund-foreign@example.com")
+    assert f[0].get(f"/api/v1/enrollments/{row['id']}", headers=foreign).status_code == 404
+    lifecycle_request(s, "/refunds/preview", payload(request_id=row["id"]), 404, foreign)
+    # Capacity is checked against each session, including enrollment fixtures inserted directly.
+    with Session(f[1]) as db:
+        db.get(ClassSession, UUID(second)).capacity = 1
+        db.commit()
+    sid, _ = add_student(s, "resume-occupant@example.com")
+    with Session(f[1]) as db:
+        other = AdmissionRequest(
+            organization_id=UUID(f[2]),
+            student_id=UUID(sid),
+            course_id=UUID(f[6]["id"]),
+            format="any",
+            availability=[],
+            status="placed",
+        )
+        db.add(other)
+        db.flush()
+        db.add(
+            Enrollment(
+                organization_id=UUID(f[2]),
+                request_id=other.id,
+                student_id=UUID(sid),
+                class_id=UUID(s["class_id"]),
+                effective_at=datetime(2026, 9, 27, tzinfo=UTC),
+            )
+        )
+        db.commit()
+    lifecycle_request(
+        s,
+        f"/enrollments/{row['id']}/preview",
+        payload(version=2, action="resume", session_id=second, reason="Resume full"),
+        409,
+    )
+
+
+def test_refund_transaction_rolls_back_when_notification_fails(admissions, monkeypatch):
+    from app.models import InvoiceAdjustment, RefundCase
+
+    s, f = admissions, admissions["f"]
+    row, _invoice, _payment = lifecycle_paid(s, 700)
+    lifecycle_operation(s, row["id"], "suspend", s["session"]["id"])
+    case = refund_proposal(s, row["id"])
+
+    def fail(*args, **kwargs):
+        raise RuntimeError("injected notification failure")
+
+    monkeypatch.setattr("app.api.routes.enrollment_lifecycle.notify", fail)
+    with pytest.raises(RuntimeError, match="injected"):
+        lifecycle_request(
+            s, f"/refunds/{case['id']}/decision", payload(version=1, action="approve", amount=700)
+        )
+    with Session(f[1]) as db:
+        assert db.get(RefundCase, UUID(case["id"])).status == "proposed"
+        assert db.scalar(select(func.count()).select_from(InvoiceAdjustment)) == 0
+
+
+@pytest.mark.parametrize("competitor", ["collect", "reverse"])
+def test_refund_concurrent_receipt_changes(admissions, competitor):
+    s, f = admissions, admissions["f"]
+    if f[1].dialect.name != "postgresql":
+        pytest.skip("row locks require PostgreSQL")
+    second = lifecycle_second_session(s)
+    row, invoice, payment = lifecycle_paid(s, 700)
+    lifecycle_operation(s, row["id"], "suspend", second)
+    case = refund_proposal(s, row["id"])
+    paths = [
+        f"/refunds/{case['id']}/decision",
+        f"/admissions/invoices/{invoice['id']}/payments"
+        if competitor == "collect"
+        else f"/admissions/payments/{payment['payment_id']}/reverse",
+    ]
+    bodies = [
+        payload(version=1, action="approve", amount=500),
+        payload(amount=1, method="cash")
+        if competitor == "collect"
+        else payload(reason="Receipt entered wrong"),
+    ]
+    barrier = Barrier(2)
+
+    def call(i):
+        with TestClient(f[0].app) as client:
+            barrier.wait()
+            return client.post("/api/v1" + paths[i], headers=f[5], json=bodies[i]).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(call, range(2))) == [200, 409]
+
+
+def test_reservation_concurrent_resume_and_last_seat(admissions):
+    from app.models import ClassSession
+    from app.services.enrollment_lifecycle import attendees
+
+    s, f = admissions, admissions["f"]
+    if f[1].dialect.name != "postgresql":
+        pytest.skip("row locks require PostgreSQL")
+    with Session(f[1]) as db:
+        db.get(LearningClass, UUID(s["class_id"])).capacity = 1
+        db.get(ClassSession, UUID(s["session"]["id"])).capacity = 1
+        db.commit()
+    row, _invoice, _payment = lifecycle_paid(s, 700)
+    lifecycle_operation(s, row["id"], "suspend", s["session"]["id"])
+    body = payload(
+        version=2, action="resume", session_id=s["session"]["id"], reason="Resume reserved course"
+    )
+    preview = lifecycle_request(s, f"/enrollments/{row['id']}/preview", body)
+    body["source_digest"] = preview["source_digest"]
+    s["student"], _ = add_student(s, "last-seat-new@example.com")
+    other = submit(s)
+    barrier = Barrier(2)
+
+    def call(i):
+        with TestClient(f[0].app) as client:
+            barrier.wait()
+            path = (
+                f"/enrollments/{row['id']}/operations"
+                if i == 0
+                else f"/admissions/requests/{other['id']}/decision"
+            )
+            return client.post(
+                "/api/v1" + path,
+                headers=f[5],
+                json=body if i == 0 else payload(version=1, action="approve"),
+            ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert set(pool.map(call, range(2))) <= {200, 409}
+    with Session(f[1]) as db:
+        session = db.get(ClassSession, UUID(s["session"]["id"]))
+        assert len(attendees(db, session.class_id, session.starts_at)) == 1

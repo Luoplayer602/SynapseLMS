@@ -203,6 +203,17 @@ export function translate(language: Language, key: string): string {
   return labels[key]?.[language === 'vi' ? 0 : 1] || key
 }
 const errors: Record<string, [string, string]> = {
+  LIFECYCLE_STATE: ['Trạng thái đăng ký không cho phép thao tác này.', 'This action is unavailable in the current enrollment state.'],
+  LIFECYCLE_SESSION: ['Chọn buổi tương lai hợp lệ, không trước mốc quyền học gần nhất.', 'Choose an eligible future session, not before the latest learning boundary.'],
+  LIFECYCLE_CLASS_UNAVAILABLE: ['Lớp, phòng hoặc giáo viên không còn sẵn sàng.', 'The class, room or teacher is unavailable.'],
+  LIFECYCLE_ATTENDANCE_EXISTS: ['Đã có sheet điểm danh trong phần lịch bị ảnh hưởng; hãy kiểm tra lại.', 'An attendance sheet exists in the affected schedule. Review it first.'],
+  LIFECYCLE_BOUNDARY_LOCKED: ['Buổi này là mốc bảo lưu/tiếp tục; không thể đổi giờ hoặc hủy.', 'This session is a suspension/resumption boundary; its time and status cannot change.'],
+  REFUND_SETTLED: ['Đã quyết toán hoàn phí; không tiếp tục học hoặc đảo khoản thu.', 'Refund settled; resumption and receipt reversal are unavailable.'],
+  REFUND_OPEN_CASE: ['Đã có đề xuất hoàn đang chờ duyệt.', 'A refund proposal is already awaiting a decision.'],
+  REFUND_STATE: ['Trạng thái hoàn phí đã đổi. Hãy làm mới.', 'Refund status changed. Refresh the page.'],
+  REFUND_EXCEEDS_PAID: ['Khoản hoàn không được vượt số thực thu hợp lệ.', 'The refund cannot exceed valid receipts.'],
+  BUSINESS_STALE: ['Dữ liệu đã thay đổi. Làm mới và xem lại đề xuất trước khi xác nhận.', 'Data changed. Refresh and review the proposal before confirming.'],
+
   SESSION_PAST: ['Buổi đã bắt đầu hoặc giờ mới không còn ở tương lai. Hãy làm mới.', 'The session has started or the new time is not in the future. Refresh.'], SESSION_STATE: ['Trạng thái buổi đã đổi; hãy làm mới trước khi tiếp tục.', 'The session state changed; refresh before continuing.'], SESSION_REQUEST_REUSED: ['Mã yêu cầu đã được dùng cho nội dung khác. Hãy làm mới.', 'The request key was used for different content. Refresh.'], SESSION_AGENDA_RANGE: ['Khoảng xem lịch tối đa 31 ngày, ngày kết thúc không trước ngày bắt đầu.', 'Agenda range is at most 31 days; end must not precede start.'],
   SCHEDULE_LOCKED: ['Đã có lịch xác nhận nên không thể thay đổi như yêu cầu. Lịch không tự bị sửa/hủy; hãy làm mới để kiểm tra.', 'Confirmed sessions prevent this change. Schedules are not automatically rewritten/cancelled; refresh to inspect.'],
   SCHEDULE_TEACHER_UNAVAILABLE: ['Giáo viên không còn hoạt động hoặc chưa được phân công vào lớp.', 'A teacher is inactive or not assigned to this class.'],

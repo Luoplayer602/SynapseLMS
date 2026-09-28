@@ -1,6 +1,6 @@
 # Bàn giao phiên tiếp theo — 2026-09-27
 
-Đây là checkpoint mới nhất, ưu tiên hơn các ghi chú tiến độ cũ trong current-state/myplan. Đã hoàn tất triển khai Docker 0013, kiểm tra dữ liệu và comment 19 story Jira ngày 2026-09-27; hiện chờ người dùng nghiệm thu thủ công. Không còn tác vụ triển khai hoặc kiểm thử tự động đang chờ.
+Đây là **hồ sơ lịch sử bàn giao0013**, giữ bằng chứng tại thời điểm triển khai. Trạng thái mới nhất đọc [current-state](./current-state.md): người dùng đã xác nhận nghiệm thu toàn bộ phạm vi đã bàn giao ngày2026-09-27, và đã triển khai0014 theo [kế hoạch bảo lưu/hoàn phí](./plans/reservation-refund.md). Những câu “chờ nghiệm thu” và bảng mới rỗng bên dưới mô tả mốc bàn giao cũ, không phải trạng thái hiện tại.
 
 ## Mục tiêu và cách làm
 

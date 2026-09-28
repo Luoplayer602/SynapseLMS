@@ -34,6 +34,8 @@ Mỗi tài khoản chỉ có một vai trò nghiệp vụ và một tenant đang
 5. Giáo vụ được thực hiện hoàn phí; mỗi lần hoàn phải có lý do, số tiền, người thực hiện, thời điểm và audit log.
 6. Chỉ giáo viên phụ trách được nhập hoặc sửa nội dung điểm. Quản lý có thể xem/khóa bảng điểm; giáo vụ chỉ được xem.
 7. Thay đổi học phí, hoàn phí, điểm đã khóa, điểm danh đã chốt và quyền người dùng đều phải có audit log.
+
+Bổ sung0014: giáo vụ/quản lý/Root hỗ trợ được bảo lưu, hủy, tiếp tục cùng lớp, lập và duyệt/ghi nhận hoàn trực tiếp; chỉ quản lý/Root hỗ trợ sửa chính sách khấu trừ. Giáo viên không có quyền API hoàn phí; học viên đọc của mình, không lý do/actor nội bộ. Quy tắc chi tiết: [bảo lưu và hoàn phí](./workflows/reservation-refund.md).
 8. Quyền chi tiết có thể cấu hình theo tenant nhưng không được vượt quá giới hạn an toàn của vai trò gốc.
 9. Chuyển trung tâm kết thúc membership cũ và mở membership mới; không tạo hai membership hoạt động đồng thời.
 10. Trung tâm mới chỉ đọc lịch sử do trung tâm cũ tạo, đặc biệt không được sửa hoặc thu hộ các khoản công nợ nguồn.

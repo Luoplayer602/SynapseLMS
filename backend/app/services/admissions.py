@@ -31,6 +31,7 @@ from app.models import (
     User,
     UserMembership,
 )
+from app.services import enrollment_lifecycle as life
 
 
 def scoped(db, model, tenant, target):
@@ -133,16 +134,19 @@ def own_student(db, tenant):
 
 
 def paid(db, invoice):
-    return db.scalar(
-        select(func.coalesce(func.sum(Payment.amount), 0)).where(
-            Payment.invoice_id == invoice.id, Payment.reversed_at.is_(None)
+    # PostgreSQL SUM(bigint) returns Decimal; keep all VND amounts integral.
+    return int(
+        db.scalar(
+            select(func.coalesce(func.sum(Payment.amount), 0)).where(
+                Payment.invoice_id == invoice.id, Payment.reversed_at.is_(None)
+            )
         )
     )
 
 
 def debt(db, student_id):
     return sum(
-        i.total - paid(db, i)
+        i.total - paid(db, i) - life.offset(db, i)
         for i in db.scalars(select(Invoice).where(Invoice.student_id == student_id))
     )
 
@@ -185,6 +189,7 @@ def session_conflict(db, student_id, candidate_sessions, exclude_session=None):
             .join(Enrollment, Enrollment.class_id == ClassSession.class_id)
             .where(
                 Enrollment.student_id == student_id,
+                life.active_clause(ClassSession.starts_at),
                 ClassSession.status == "scheduled",
                 ClassSession.ends_at > now(),
             )
@@ -262,13 +267,13 @@ def candidates(db, tenant, req):
             .where(ClassSession.class_id == item.id, ClassSession.starts_at <= now())
             .limit(1)
         )
-        count = db.scalar(
-            select(func.count()).select_from(Enrollment).where(Enrollment.class_id == item.id)
-        )
         if (
             not sessions
             or begun
-            or count >= min([item.capacity, *(s.capacity for s in sessions)])
+            or any(
+                len(life.attendees(db, item.id, s.starts_at)) >= min(item.capacity, s.capacity)
+                for s in sessions
+            )
             or session_conflict(db, req.student_id, sessions)
         ):
             continue
@@ -304,7 +309,10 @@ def candidates(db, tenant, req):
                 "id": item.id,
                 "name": item.name,
                 "code": item.code,
-                "seats_left": item.capacity - count,
+                "seats_left": min(
+                    min(item.capacity, s.capacity) - len(life.attendees(db, item.id, s.starts_at))
+                    for s in sessions
+                ),
                 "warnings": warnings,
             }
         )
@@ -327,13 +335,15 @@ def place(db, tenant, req, class_id):
 
 def enrollment_session_guard(db, row, candidate):
     """Used by individual session edits after their existing resource checks."""
+    life.protect_session_boundary(db, row, candidate)
     if candidate["status"] != "scheduled":
         return
     from types import SimpleNamespace
 
     new = SimpleNamespace(starts_at=candidate["starts_at"], ends_at=candidate["ends_at"])
-    for student_id in db.scalars(
-        select(Enrollment.student_id).where(Enrollment.class_id == row.class_id)
-    ):
+    enrolled = life.attendees(db, row.class_id, candidate["starts_at"])
+    if len(enrolled) > row.capacity:
+        raise APIError(409, "ADMISSION_NO_SEAT")
+    for student_id in (e.student_id for e in enrolled):
         if session_conflict(db, student_id, [new], exclude_session=row.id):
             raise APIError(409, "ADMISSION_STUDENT_CONFLICT")

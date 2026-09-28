@@ -29,6 +29,7 @@ from app.models import (
     TeacherProfile,
 )
 from app.services import admissions as admissions_service
+from app.services import enrollment_lifecycle as lifecycle
 
 router = APIRouter(dependencies=[Depends(auth_guard)])
 
@@ -242,8 +243,8 @@ def candidate(db, tenant, row, data):
         admissions_service.enrollment_session_guard(
             db, row, {"status": status, "starts_at": start, "ends_at": end}
         )
-    except APIError:
-        issues.append("ADMISSION_STUDENT_CONFLICT")
+    except APIError as error:
+        issues.append(error.code)
     return {
         "starts_at": start,
         "ends_at": end,
@@ -323,7 +324,11 @@ def apply_operation(
             select(StudentIdentity.user_id)
             .join(StudentProfile, StudentProfile.identity_id == StudentIdentity.id)
             .join(Enrollment, Enrollment.student_id == StudentProfile.id)
-            .where(Enrollment.class_id == row.class_id)
+            .where(
+                Enrollment.class_id == row.class_id,
+                lifecycle.active_clause(row.starts_at)
+                | lifecycle.active_clause(datetime.fromisoformat(before["starts_at"])),
+            )
         )
     )
     teacher_ids = set(teachers_of(db, row)) | {UUID(t["id"]) for t in before["teachers"]}

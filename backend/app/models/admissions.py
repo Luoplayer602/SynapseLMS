@@ -99,6 +99,7 @@ class AdmissionRequest(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     discount_code: Mapped[str] = mapped_column(String(40), default="")
     status: Mapped[str] = mapped_column(String(16), default="submitted")
     reason: Mapped[str] = mapped_column(String(500), default="")
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     version: Mapped[int] = mapped_column(default=1)
 
 
@@ -117,6 +118,8 @@ class Enrollment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     student_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     class_id: Mapped[UUID] = mapped_column(Uuid, index=True)
     effective_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    state: Mapped[str] = mapped_column(String(16), default="active", server_default="active")
+    version: Mapped[int] = mapped_column(default=1, server_default="1")
 
 
 class Invoice(UUIDPrimaryKeyMixin, TimestampMixin, Base):

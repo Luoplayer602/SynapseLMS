@@ -1,6 +1,8 @@
 # Đợt tuyển sinh và vận hành học viên
 
-Kế hoạch được duyệt ngày 2026-09-27; đã triển khai Docker/migration 0013 ngày 2026-09-27, chờ người dùng nghiệm thu thủ công. 19 story Jira đã có comment kết quả, giữ In Progress.
+Phần mở rộng0014 đã code/test/deploy ngày2026-09-28: [bảo lưu, tiếp tục cùng lớp, hoàn phí](./workflows/reservation-refund.md). Quyền học/roster/lịch theo các khoảng; công nợ trừ bù nợ hợp lệ; chặn đảo khoản thu sau quyết toán hoàn dương. Các câu “chưa bảo lưu/hoàn phí” dưới đây chỉ mô tả phạm vi bàn giao0013. Trạng thái hiện tại ở [current-state](./current-state.md).
+
+Kế hoạch được duyệt và triển khai Docker/migration0013 ngày2026-09-27; người dùng đã xác nhận nghiệm thu toàn bộ phạm vi bàn giao trong ngày. 19 story Jira đã có comment kết quả, hiện vẫn In Progress; phiên lập kế hoạch tiếp theo chưa cập nhật Jira. Các giới hạn bên dưới vẫn áp dụng.
 
 Phạm vi: học phí khóa/trả góp/mã giảm giá; yêu cầu đăng ký và duyệt tạo hóa đơn nguyên tử; tự xếp khi đúng một lựa chọn chắc chắn, hàng chờ thủ công; thu tiền/đảo khoản thu/phiếu thu in; lịch học viên; điểm danh theo giáo viên từng buổi; thông báo trong ứng dụng. Không bảo lưu/hoàn phí/chuyển lớp/AI/học liệu/cổng thanh toán trong đợt này.
 

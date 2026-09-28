@@ -15,6 +15,14 @@ from app.models.admissions import (
 from app.models.auth import AccountToken, AuthSession, RefreshToken
 from app.models.classroom import Branch, LearningClass, Room
 from app.models.course import Course, CourseLanguage, CourseLevel, LevelFramework
+from app.models.enrollment_lifecycle import (
+    EnrollmentOperation,
+    EnrollmentPeriod,
+    InvoiceAdjustment,
+    RefundCase,
+    RefundDisbursement,
+    RefundPolicy,
+)
 from app.models.identity import User, UserMembership
 from app.models.membership_invitation import MembershipInvitation
 from app.models.organization import Organization
@@ -37,6 +45,12 @@ from app.models.teacher import (
 )
 
 __all__ = [
+    "EnrollmentOperation",
+    "EnrollmentPeriod",
+    "InvoiceAdjustment",
+    "RefundCase",
+    "RefundDisbursement",
+    "RefundPolicy",
     "AdmissionOpening",
     "AdmissionRequest",
     "AdmissionSettings",

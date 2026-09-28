@@ -41,6 +41,7 @@ from app.models import (
     StudentProfile,
 )
 from app.services import admissions as svc
+from app.services import enrollment_lifecycle as life
 
 router = APIRouter(prefix="/admissions", dependencies=[Depends(auth_guard)])
 
@@ -88,29 +89,39 @@ def request_view(db, row):
     enrollment = db.scalar(select(Enrollment).where(Enrollment.request_id == row.id))
     result["class_name"] = db.get(LearningClass, enrollment.class_id).name if enrollment else None
     result["class_id"] = enrollment.class_id if enrollment else None
+    if row.cancelled_at:
+        result["status"] = "cancelled"
     return result
 
 
 def invoice_view(db, row):
     received = svc.paid(db, row)
+    adjustment = life.offset(db, row)
     allocation = received
+    offset_allocation = adjustment
     installments = []
     for part in row.installments:
         allocated = min(allocation, part["amount"])
         allocation -= allocated
+        credited = min(offset_allocation, part["amount"] - allocated)
+        offset_allocation -= credited
         installments.append(
             {
                 **part,
                 "paid": allocated,
-                "remaining": part["amount"] - allocated,
-                "overdue": part["due_on"] < now().date().isoformat() and allocated < part["amount"],
+                "offset": credited,
+                "remaining": part["amount"] - allocated - credited,
+                "overdue": part["due_on"] < now().date().isoformat()
+                and allocated + credited < part["amount"],
             }
         )
     return {
         **view(row, "id request_id student_id gross discount total snapshot created_at"),
         "student_name": db.get(StudentProfile, row.student_id).full_name,
         "paid": received,
-        "remaining": row.total - received,
+        "offset": adjustment,
+        "refund_settled": bool(life.settled(db, row.request_id)),
+        "remaining": row.total - received - adjustment,
         "installments": installments,
         "overdue": sum(i["remaining"] for i in installments if i["overdue"]),
     }
@@ -304,9 +315,7 @@ def openings(
 
     def render(row):
         opening = db.scalar(select(AdmissionOpening).where(AdmissionOpening.class_id == row.id))
-        count = db.scalar(
-            select(func.count()).select_from(Enrollment).where(Enrollment.class_id == row.id)
-        )
+        count = life.peak_count(db, row.id)
         return {
             **view(row, "id name code capacity status"),
             "enrolled": count,
@@ -420,6 +429,7 @@ def class_roster(
             "student_name": db.get(StudentProfile, row.student_id).full_name,
             "effective_at": row.effective_at,
             "request_id": row.request_id,
+            "state": row.state,
         },
     )
 
@@ -602,7 +612,11 @@ def placement_choices(
 ):
     staff(db, tenant, request, response)
     row = svc.scoped(db, AdmissionRequest, tenant, request_id)
-    return {"items": svc.candidates(db, tenant, row) if row.status == "waiting" else []}
+    return {
+        "items": svc.candidates(db, tenant, row)
+        if row.status == "waiting" and not row.cancelled_at
+        else []
+    }
 
 
 @router.post("/requests/{request_id}/placement")
@@ -621,9 +635,11 @@ def manual_place(
         return old
     svc.expected(row, body.version)
     svc.student_ready(db, tenant, svc.scoped(db, StudentProfile, tenant, row.student_id))
-    if row.status != "waiting" or body.class_id not in [
-        x["id"] for x in svc.candidates(db, tenant, row)
-    ]:
+    if (
+        row.cancelled_at
+        or row.status != "waiting"
+        or body.class_id not in [x["id"] for x in svc.candidates(db, tenant, row)]
+    ):
         raise APIError(409, "ADMISSION_NO_SEAT")
     before = request_view(db, row)
     svc.place(db, tenant, row, body.class_id)
@@ -697,7 +713,7 @@ def collect(
     fp, old = svc.replay(db, tenant, "payment.collect", invoice_id, body)
     if old is not None:
         return old
-    if body.amount > row.total - svc.paid(db, row):
+    if body.amount > row.total - svc.paid(db, row) - life.offset(db, row):
         raise APIError(409, "PAYMENT_EXCEEDS_DEBT")
     before = invoice_view(db, row)
     payment = Payment(
@@ -744,6 +760,8 @@ def reverse(
         return old
     if row.reversed_at:
         raise APIError(409, "PAYMENT_REVERSED")
+    if life.settled(db, db.get(Invoice, row.invoice_id).request_id):
+        raise APIError(409, "REFUND_SETTLED")
     before = view(row, "id amount method reference")
     row.reversed_at, row.reversed_by, row.reversal_reason = now(), tenant.actor.user.id, body.reason
     db.flush()
@@ -802,6 +820,7 @@ def my_sessions(
         .join(Enrollment, Enrollment.class_id == ClassSession.class_id)
         .where(
             Enrollment.student_id == own.id,
+            life.active_clause(ClassSession.starts_at),
             ClassSession.organization_id == tenant.organization.id,
             ClassSession.status == "scheduled",
             ClassSession.ends_at >= now(),
