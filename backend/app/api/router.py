@@ -2,11 +2,14 @@ from fastapi import APIRouter
 
 from app.api.routes.access import router as access_router
 from app.api.routes.account import router as account_router
+from app.api.routes.admissions import router as admissions_router
+from app.api.routes.attendance import router as attendance_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.classrooms import router as classrooms_router
 from app.api.routes.courses import router as courses_router
 from app.api.routes.health import router as health_router
 from app.api.routes.membership_invitations import router as membership_invitations_router
+from app.api.routes.notifications import router as notifications_router
 from app.api.routes.proficiencies import router as proficiencies_router
 from app.api.routes.schedules import router as schedules_router
 from app.api.routes.session_operations import router as session_operations_router
@@ -14,6 +17,9 @@ from app.api.routes.students import router as students_router
 from app.api.routes.teachers import router as teachers_router
 
 api_router = APIRouter()
+api_router.include_router(admissions_router, tags=["admissions"])
+api_router.include_router(attendance_router, tags=["attendance"])
+api_router.include_router(notifications_router, tags=["notifications"])
 api_router.include_router(health_router, tags=["system"])
 api_router.include_router(auth_router, tags=["auth"])
 api_router.include_router(account_router, tags=["account"])

@@ -37,6 +37,7 @@ Branches, rooms and draft classes with course snapshots: [Class foundation](docs
 Teacher assignments, weekly drafts, conflict-safe confirmation and own teaching schedule: [Scheduling](docs/scheduling.md).
 Individual session changes, cancellation/restoration, substitutes and weekly agenda: [Session operations](docs/session-operations.md).
 Resume development from the concise [current checkpoint](docs/current-state.md).
+Admissions, installment fees, placement, receipts, attendance and in-app notifications: [Operations delivery](docs/admissions-delivery.md).
 Course catalog, language/level settings, publication and acceptance: [Course catalog](docs/course-catalog.md).
 
 ### Without Docker

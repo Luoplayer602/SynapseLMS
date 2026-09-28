@@ -1,0 +1,120 @@
+import { randomUUID } from 'node:crypto'
+import { expect, test } from '@playwright/test'
+import type { Page } from '@playwright/test'
+
+const base = 'http://127.0.0.1:8011/api/v1'
+const password = 'admission-module-password!'
+async function signIn(page: Page, email: string) {
+  await page.goto('/')
+  await page.getByLabel('Email', { exact: true }).fill(email)
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Chào mừng đến SynapseLMS' })).toBeVisible()
+  await page.getByRole('button', { name: 'English', exact: true }).click()
+}
+
+test('course request through approval, placement, installment receipt and teacher attendance', async ({ page, browser, request }, testInfo) => {
+  await request.post('http://127.0.0.1:8011/__test/reset-rate')
+  const common = { 'X-Synapse-Client': 'web', Origin: 'http://127.0.0.1:5180' }
+  const login = await request.post(base + '/auth/login', { headers: common, data: { email: 'root@example.com', password: 'e2e-root-password-2026!' } })
+  const rootHeaders = { ...common, Authorization: `Bearer ${(await login.json()).access_token}` }
+  // Keep this broad workflow isolated from older fixtures that share demo-a.
+  const createdCenter = await request.post(base + '/admin/organizations', { headers: rootHeaders, data: { name: 'Admission E2E center', slug: 'admission-e2e' } })
+  expect(createdCenter.ok(), await createdCenter.text()).toBe(true)
+  const center = await createdCenter.json()
+  const support = await (await request.post(base + '/admin/support-sessions', { headers: rootHeaders, data: { organization_id: center.id, reason: 'Admission E2E fixtures' } })).json()
+  const headers = { ...rootHeaders, 'X-Support-Session': support.id }
+  async function send(path: string, data: object, method = 'POST') {
+    const result = await request.fetch(base + path, { headers, method, data })
+    expect(result.ok(), `${path}: ${await result.text()}`).toBe(true)
+    return result.json()
+  }
+  const language = await send('/course-settings/languages', { code: 'ENR-EN', name: 'Admission English' })
+  const scale = await send('/course-settings/frameworks', { code: 'ENR-S', name: 'Admission scale', language_id: language.id })
+  const level = await send('/course-settings/levels', { code: 'ENR-L1', name: 'Admission level', framework_id: scale.id, rank: 1 })
+  const course = await send('/courses', { code: 'ENR-COURSE', name: 'Admission course', language_id: language.id, framework_id: scale.id, exit_level_id: level.id, objectives: 'Learn languages' })
+  await send(`/courses/${course.id}/state`, { version: 1, status: 'published', reason: 'Publish fixture' })
+  const branch = await send('/facilities/branches', { code: 'ENR-B', name: 'Admission branch' })
+  const room = await send('/facilities/rooms', { branch_id: branch.id, code: 'ENR-R', name: 'Admission room', capacity: 20 })
+  for (const role of ['teacher', 'staff', 'student']) await send('/members', { email: `enr-${role}@example.com`, role, display_name: role, password, reason: 'Admission fixture' })
+  const members = await (await request.get(base + '/members', { headers })).json()
+  const teacherAccount = members.find((x: { email: string }) => x.email === 'enr-teacher@example.com')
+  const studentAccount = members.find((x: { email: string }) => x.email === 'enr-student@example.com')
+  const teacher = await send('/teachers', { user_id: teacherAccount.user_id, full_name: 'Admission Teacher' })
+  await send(`/teachers/${teacher.id}/capabilities`, { language_id: language.id, level_ids: [level.id], reason: 'Verified capability' })
+  await send('/students', { user_id: studentAccount.user_id, full_name: 'Admission Student', phone: '0900000000', date_of_birth: '2000-01-01' })
+  const future = new Date(Date.now() + 7 * 86400000), day = future.toISOString().slice(0, 10), weekday = (future.getUTCDay() + 6) % 7
+  const cls = await send('/classes', { code: 'ENR-A', name: 'Admission Class', course_id: course.id, branch_id: branch.id, room_id: room.id, capacity: 15, starts_on: day, ends_on: day, format: 'offline' })
+  await send(`/classes/${cls.id}/teachers`, { version: 1, teacher_ids: [teacher.id] }, 'PUT')
+  await send(`/classes/${cls.id}/schedule`, { version: 2, starts_on: day, ends_on: day, slots: [{ weekday, starts_at: '18:00', ends_at: '19:30', room_id: room.id, teacher_ids: [teacher.id] }] }, 'PUT')
+  const preview = await (await request.get(base + `/classes/${cls.id}/schedule/preview`, { headers })).json()
+  const confirmed = await send(`/classes/${cls.id}/schedule/confirm`, { version: preview.version, preview_digest: preview.preview_digest, confirmation_key: randomUUID() })
+  await send(`/admissions/fees/${course.id}`, { request_key: randomUUID(), version: 0, amount: 1000000, installments: [{ days: 0, percent: 50 }, { days: 30, percent: 50 }] }, 'PUT')
+  await send(`/admissions/openings/${cls.id}`, { request_key: randomUUID(), version: 0, enabled: true }, 'PUT')
+
+  await signIn(page, 'enr-student@example.com')
+  await page.getByRole('link', { name: 'Admissions', exact: true }).click()
+  await page.getByRole('combobox', { name: 'Student', exact: true }).selectOption({ label: 'Admission Student' })
+  await page.getByRole('combobox', { name: 'Course', exact: true }).selectOption(course.id)
+  await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('offline')
+  await page.getByRole('combobox', { name: 'Preferred branch', exact: true }).selectOption(branch.id)
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await page.getByLabel('Weekday (0 = Monday, 6 = Sunday)').fill(String(weekday))
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Submit request', exact: true }).click()
+  await expect(page.getByText('Submitted', { exact: false })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Approve & issue invoice' })).toHaveCount(0)
+
+  const staffContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5180' })
+  const staff = await staffContext.newPage()
+  await signIn(staff, 'enr-staff@example.com')
+  await staff.getByRole('link', { name: 'Admissions', exact: true }).click()
+  const approval = staff.locator('form').filter({ has: staff.getByRole('heading', { name: 'Approve & issue invoice', exact: true }) })
+  await approval.getByRole('checkbox').check()
+  await approval.getByRole('button', { name: 'Approve & issue invoice', exact: true }).click()
+  await expect(staff.getByText('Placed · Admission Class')).toBeVisible()
+  await staff.getByRole('link', { name: 'Fees & collections', exact: true }).click()
+  await staff.getByRole('button', { name: 'Details / Collect', exact: true }).click()
+  const collect = staff.locator('form').filter({ has: staff.getByRole('heading', { name: 'Record payment', exact: true }) })
+  await collect.getByLabel('Amount (VND)').fill('400000')
+  await collect.getByRole('combobox', { name: 'Method', exact: true }).selectOption('cash')
+  await collect.getByRole('checkbox').check()
+  await collect.getByRole('button', { name: 'Record payment', exact: true }).click()
+  await expect(staff.getByText(/Outstanding: 600.000 VND/)).toBeVisible()
+  await staff.getByRole('button', { name: 'Internal receipt', exact: true }).click()
+  await expect(staff.getByRole('button', { name: 'Print receipt' })).toBeVisible()
+  await staff.setViewportSize({ width: 390, height: 844 })
+  await staff.emulateMedia({ colorScheme: 'dark' })
+  await staff.screenshot({ path: testInfo.outputPath('admission-finance-mobile-dark.png'), fullPage: true })
+  expect(await staff.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await staff.emulateMedia({ media: 'print' })
+  await expect(staff.locator('.receipt-print')).toBeVisible()
+  await expect(staff.getByRole('navigation').first()).toBeHidden()
+  await staff.screenshot({ path: testInfo.outputPath('admission-receipt-print.png'), fullPage: true })
+  await staff.emulateMedia({ media: 'screen' })
+
+  const teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5180' })
+  const teacherPage = await teacherContext.newPage()
+  await signIn(teacherPage, 'enr-teacher@example.com')
+  await teacherPage.getByRole('link', { name: 'Attendance', exact: true }).click()
+  await teacherPage.getByRole('button', { name: 'Attendance roster', exact: true }).click()
+  await expect(teacherPage.getByRole('button', { name: 'Save draft', exact: true })).toBeDisabled()
+  const stamp = new Date(new Date(confirmed.sessions[0].starts_at).getTime() + 60000).toISOString()
+  await request.post('http://127.0.0.1:8011/__test/attendance-clock', { params: { value: stamp } })
+  try {
+    await teacherPage.getByRole('button', { name: 'Refresh', exact: true }).click()
+    await teacherPage.getByRole('combobox', { name: 'Attendance', exact: true }).selectOption('present')
+    await teacherPage.getByRole('checkbox', { name: 'Finalize attendance', exact: true }).check()
+    await teacherPage.getByRole('checkbox', { name: 'I confirm these details and this action.', exact: true }).check()
+    await teacherPage.getByRole('button', { name: 'Finalize attendance', exact: true }).click()
+    await expect(teacherPage.getByText('Finalized', { exact: true })).toBeVisible()
+    await page.getByRole('link', { name: 'My learning', exact: true }).click()
+    await expect(page.getByText('Attendance rate: 100%')).toBeVisible()
+    await page.getByRole('link', { name: 'Notifications', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Payment recorded', exact: true })).toBeVisible()
+  } finally {
+    await request.post('http://127.0.0.1:8011/__test/attendance-clock', { params: { value: 'reset' } })
+    await teacherContext.close()
+    await staffContext.close()
+  }
+})

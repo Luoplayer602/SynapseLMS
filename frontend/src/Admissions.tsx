@@ -1,0 +1,175 @@
+import { useEffect, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
+import { Link } from 'react-router'
+import { createPortal } from 'react-dom'
+import { api, ApiError } from './api'
+import type { Language } from './i18n'
+import { errorMessage } from './i18n'
+import { SessionSummary } from './SessionOperations'
+import type { SessionRow } from './SessionOperations'
+import './admissions.css'
+
+type Page<T> = { items: T[]; total: number }
+type Option = { id: string; name: string }
+type Fee = { version: number; amount: number; installments: { days: number; percent: number }[] }
+type Options = { courses: (Option & { code: string; fee: Fee | null })[]; students: { id: string; full_name: string }[]; branches: (Option & { timezone: string })[] }
+type RequestRow = { id: string; version: number; student_name: string; course_name: string; class_name: string | null; status: string; reason: string; discount_code: string }
+type Invoice = { id: string; student_name: string; total: number; gross: number; discount: number; paid: number; remaining: number; overdue: number; created_at: string; snapshot: { course_name: string; currency: string }; installments: { due_on: string; amount: number; paid: number; remaining: number; overdue: boolean }[] }
+type Payment = { id: string; amount: number; method: string; reference: string; created_at: string; reversed_at: string | null; reversal_reason: string; actor_id: string }
+type InvoiceDetail = Invoice & { organization_name: string; payments: Payment[] }
+type AttendanceRecord = { student_id: string; student_name: string; status: string; note: string }
+type Sheet = { session: SessionRow; version: number; finalized: boolean; can_edit: boolean; records: AttendanceRecord[] }
+type Notice = { id: string; kind: string; target_id: string; created_at: string; read_at: string | null; session?: { class_name: string; starts_at: string; ends_at: string; timezone: string; room_name: string | null } | null }
+const words: Record<string, [string, string]> = {
+  admissions: ['Tuyển sinh', 'Admissions'], finances: ['Học phí & thu tiền', 'Fees & collections'], settings: ['Thiết lập tuyển sinh', 'Admission settings'], attendance: ['Điểm danh', 'Attendance'], study: ['Học tập của tôi', 'My learning'], notices: ['Thông báo', 'Notifications'],
+  requests: ['Yêu cầu đăng ký', 'Course requests'], submit: ['Gửi yêu cầu', 'Submit request'], course: ['Khóa học', 'Course'], student: ['Học viên', 'Student'], branch: ['Chi nhánh mong muốn', 'Preferred branch'], any: ['Không giới hạn', 'Any'], format: ['Hình thức', 'Format'], offline: ['Trực tiếp', 'In person'], online: ['Trực tuyến', 'Online'], hybrid: ['Kết hợp', 'Hybrid'], code: ['Mã giảm giá', 'Discount code'],
+  available: ['Lịch rảnh (giờ địa phương của chi nhánh)', 'Availability (branch local time)'], availabilityHint: ['Để trống nếu chưa rõ; giáo vụ sẽ xác nhận và xếp lớp thủ công.', 'Leave empty if unknown; staff will confirm and place manually.'], add: ['Thêm', 'Add'], remove: ['Bỏ', 'Remove'], day: ['Thứ (0 = Thứ hai, 6 = Chủ nhật)', 'Weekday (0 = Monday, 6 = Sunday)'], start: ['Từ', 'From'], end: ['Đến', 'To'],
+  submitted: ['Chờ duyệt', 'Submitted'], rejected: ['Từ chối', 'Rejected'], waiting: ['Chờ xếp lớp', 'Waiting for placement'], placed: ['Đã xếp lớp', 'Placed'], approve: ['Duyệt & tạo hóa đơn', 'Approve & issue invoice'], reject: ['Từ chối yêu cầu', 'Reject request'], reason: ['Lý do', 'Reason'], candidates: ['Xem lớp phù hợp', 'Find eligible classes'], place: ['Xếp vào lớp', 'Place in class'], seats: ['Chỗ còn lại', 'Seats left'],
+  refresh: ['Làm mới', 'Refresh'], previous: ['Trước', 'Previous'], next: ['Sau', 'Next'], empty: ['Chưa có dữ liệu.', 'No records.'], loading: ['Đang tải…', 'Loading…'], save: ['Lưu', 'Save'], confirm: ['Tôi xác nhận thông tin và thao tác này.', 'I confirm these details and this action.'], success: ['Đã lưu. Danh sách được làm mới.', 'Saved. The list is refreshing.'], uncertain: ['Chưa xác định kết quả. Hãy làm mới và kiểm tra dữ liệu trước khi thao tác tiếp.', 'Outcome uncertain. Refresh and check records before another operation.'],
+  fee: ['Học phí khóa (VND)', 'Course fee (VND)'], installments: ['Các kỳ trả góp', 'Installments'], days: ['Ngày sau khi duyệt', 'Days after approval'], percent: ['Tỷ lệ (%)', 'Percent (%)'], feeHint: ['Tổng tỷ lệ phải là 100%; ngày tăng dần, không trùng. Hóa đơn đã lập không đổi khi sửa giá.', 'Percentages must total 100%; days must be unique and ascending. Existing invoices never change.'], blockDebt: ['Chặn đăng ký mới khi còn công nợ (kể cả chưa đến hạn)', 'Block new requests with outstanding debt (including not-yet-due amounts)'], openings: ['Lớp nhận học viên', 'Classes accepting admissions'], open: ['Mở nhận học viên', 'Open admissions'], close: ['Dừng nhận học viên', 'Close admissions'], amount: ['Số tiền (VND)', 'Amount (VND)'], remaining: ['Còn phải trả', 'Outstanding'], paid: ['Đã thu', 'Paid'], overdue: ['Quá hạn', 'Overdue'], gross: ['Học phí gốc', 'Gross fee'], discount: ['Giảm giá', 'Discount'], total: ['Phải thu', 'Total due'], detail: ['Chi tiết / Thu tiền', 'Details / Collect'], collect: ['Ghi nhận thu tiền', 'Record payment'], method: ['Phương thức', 'Method'], cash: ['Tiền mặt', 'Cash'], transfer: ['Chuyển khoản', 'Bank transfer'], reference: ['Mã tham chiếu', 'Reference'], reverse: ['Đảo khoản thu nhập nhầm', 'Reverse incorrect receipt'], reversed: ['Đã đảo khoản thu', 'Reversed'], print: ['In phiếu thu', 'Print receipt'], receipt: ['Phiếu thu nội bộ', 'Internal receipt'], noTax: ['Không phải hóa đơn thuế. Đảo khoản thu không phải hoàn học phí.', 'Not a tax invoice. Reversal is not a tuition refund.'],
+  discounts: ['Mã giảm giá', 'Discount codes'], kind: ['Loại', 'Type'], fixed: ['Số tiền', 'Fixed amount'], value: ['Giá trị', 'Value'], starts: ['Có hiệu lực từ', 'Valid from'], ends: ['Hết hạn', 'Valid through'], uses: ['Số lượt tối đa', 'Usage limit'], used: ['Đã dùng', 'Used'], disable: ['Vô hiệu hóa', 'Disable'], enable: ['Kích hoạt', 'Enable'],
+  unmarked: ['Chưa điểm danh', 'Unmarked'], present: ['Có mặt', 'Present'], absent: ['Vắng', 'Absent'], late: ['Muộn', 'Late'], excused: ['Có phép', 'Excused'], note: ['Ghi chú (học viên xem được sau chốt)', 'Note (visible to student once finalized)'], draft: ['Lưu nháp', 'Save draft'], finalize: ['Chốt điểm danh', 'Finalize attendance'], finalized: ['Đã chốt', 'Finalized'], roster: ['Danh sách điểm danh', 'Attendance roster'], attendanceHint: ['Chỉ giáo viên của buổi được ghi, từ lúc buổi bắt đầu. Sau chốt, mọi sửa đổi cần lý do.', 'Only assigned teachers may record from session start. Changes after finalization require a reason.'], history: ['Lịch sử', 'History'], rate: ['Tỷ lệ chuyên cần', 'Attendance rate'], rateHint: ['(Có mặt + Muộn) / (Có mặt + Muộn + Vắng); không tính Có phép và Chưa điểm danh.', '(Present + Late) / (Present + Late + Absent); excludes Excused and Unmarked.'], read: ['Đánh dấu đã đọc', 'Mark read'], follow: ['Mở nghiệp vụ', 'Open workflow'],
+  'admission.submitted': ['Có yêu cầu đăng ký mới', 'New course request'], 'admission.waiting': ['Đã duyệt, cần xếp lớp thủ công', 'Approved, manual placement needed'], 'admission.placed': ['Đã duyệt và xếp lớp', 'Approved and placed'], 'admission.rejected': ['Yêu cầu bị từ chối', 'Request rejected'], 'payment.collected': ['Đã ghi nhận thanh toán', 'Payment recorded'], 'payment.reversed': ['Khoản thu đã được đảo', 'Payment reversed'], 'session.reschedule': ['Buổi học đổi lịch/phòng', 'Session rescheduled'], 'session.cancel': ['Buổi học đã hủy', 'Session cancelled'], 'session.restore': ['Buổi học được khôi phục', 'Session restored'], 'session.substitute': ['Buổi học đổi giáo viên', 'Session teacher changed'],
+  ADMISSION_LEVEL_REVIEW: ['Cần xác nhận trình độ', 'Level needs review'], ADMISSION_AVAILABILITY_REVIEW: ['Cần xác nhận lịch rảnh', 'Availability needs review'], BUSINESS_STALE: ['Dữ liệu đã thay đổi. Hãy làm mới.', 'Data changed. Please refresh.'], BUSINESS_KEY_REUSED: ['Mã yêu cầu đã dùng. Hãy làm mới.', 'Request key was used. Refresh.'], BUSINESS_CONFLICT: ['Dữ liệu xung đột. Hãy làm mới.', 'Conflicting update. Refresh.'], BUSINESS_NOT_FOUND: ['Không tìm thấy hoặc không có quyền.', 'Not found or not permitted.'], BUSINESS_REASON_REQUIRED: ['Cần lý do ít nhất 3 ký tự.', 'A reason of at least 3 characters is required.'], ADMISSION_PROFILE_REQUIRED: ['Cần hồ sơ học viên có họ tên, ngày sinh và điện thoại.', 'Student profile requires name, birth date and phone.'], STUDENT_UNAVAILABLE: ['Học viên không hoạt động.', 'Student is inactive.'], ADMISSION_FEE_REQUIRED: ['Khóa cần được công bố và có học phí.', 'Course must be published with a fee policy.'], ADMISSION_DUPLICATE: ['Học viên đã có yêu cầu/đăng ký khóa này.', 'Student already requested/enrolled in this course.'], ADMISSION_DEBT_BLOCKED: ['Còn công nợ; chính sách trung tâm đang chặn đăng ký.', 'Outstanding debt blocks admission under center policy.'], ADMISSION_CLASS_NOT_READY: ['Cần lịch đã xác nhận và lớp chưa bắt đầu.', 'Class needs confirmed sessions and must not have started.'], ADMISSION_STATE: ['Yêu cầu không còn ở trạng thái cho phép.', 'Request state no longer permits this action.'], ADMISSION_NO_SEAT: ['Lớp không còn phù hợp/còn chỗ. Hãy làm mới.', 'Class unavailable or full. Refresh.'], DISCOUNT_DUPLICATE: ['Mã giảm giá đã tồn tại.', 'Discount code already exists.'], DISCOUNT_UNAVAILABLE: ['Mã giảm giá hết hạn, hết lượt hoặc không áp dụng.', 'Discount expired, exhausted or inapplicable.'], PAYMENT_EXCEEDS_DEBT: ['Số tiền vượt khoản còn phải trả.', 'Payment exceeds outstanding amount.'], PAYMENT_REVERSED: ['Khoản thu đã được đảo.', 'Payment already reversed.'], ATTENDANCE_NOT_STARTED: ['Buổi chưa bắt đầu hoặc đã hủy.', 'Session has not started or is cancelled.'], ATTENDANCE_ROSTER_CHANGED: ['Danh sách học viên đã đổi. Hãy làm mới.', 'Roster changed. Refresh.'], ATTENDANCE_UNMARKED: ['Cần điểm danh tất cả học viên trước khi chốt.', 'Mark every student before finalizing.'],
+}
+const tr = (language: Language, key: string) => words[key]?.[language === 'vi' ? 0 : 1] || key
+const money = (value: number) => new Intl.NumberFormat('vi-VN').format(value) + ' VND'
+const fail = (language: Language, e: unknown) => e instanceof ApiError ? (words[e.code] ? tr(language, e.code) : errorMessage(language, e.code)) : tr(language, 'uncertain')
+
+function useResource<T>(path: string, revision = 0) {
+  const [state, setState] = useState<{ data?: T; error?: unknown; path: string; revision: number }>({ path: '', revision: -1 })
+  useEffect(() => {
+    let alive = true
+    api<T>(path).then(data => { if (alive) setState({ data, path, revision }) }).catch(error => { if (alive) setState({ error, path, revision }) })
+    return () => { alive = false }
+  }, [path, revision])
+  return state.path === path && state.revision === revision ? state : { data: undefined, error: undefined }
+}
+function Load({ language, error }: { language: Language; error?: unknown }) { return <p role={error ? 'alert' : 'status'}>{error ? fail(language, error) : tr(language, 'loading')}</p> }
+function Select({ label, name, options, optional = false }: { label: string; name: string; options: Option[]; optional?: boolean }) { return <label>{label}<select name={name} required={!optional} defaultValue=""><option value="">—</option>{options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label> }
+function Field({ label, name, type = 'text', required = true, value, min, max }: { label: string; name: string; type?: string; required?: boolean; value?: string | number; min?: number; max?: number }) { return <label>{label}<input name={name} type={type} required={required} defaultValue={value} min={min} max={max} maxLength={500} /></label> }
+function Pager({ language, offset, total, setOffset }: { language: Language; offset: number; total: number; setOffset: (n: number) => void }) { return <div><button type="button" disabled={!offset} onClick={() => setOffset(Math.max(0, offset - 20))}>{tr(language, 'previous')}</button> {Math.min(offset + 1, total)}–{Math.min(offset + 20, total)} / {total} <button type="button" disabled={offset + 20 >= total} onClick={() => setOffset(offset + 20)}>{tr(language, 'next')}</button></div> }
+
+export function BusinessForm({ language, title, path, method = 'POST', body, onDone, children, disabled = false }: { language: Language; title: string; path: string; method?: string; body: (f: FormData) => object; onDone: () => void; children?: ReactNode; disabled?: boolean }) {
+  const [busy, setBusy] = useState(false), [locked, setLocked] = useState(false), [error, setError] = useState('')
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault(); if (busy || locked) return
+    const form = new FormData(e.currentTarget)
+    setBusy(true); setError('')
+    try { await api(path, method, { ...body(form), request_key: crypto.randomUUID() }); setLocked(true); onDone() }
+    catch (e) { setError(fail(language, e)); if (!(e instanceof ApiError) || e.status >= 500 || e.status === 409) setLocked(true) }
+    finally { setBusy(false) }
+  }
+  return <form className="card compact-form" onSubmit={submit}><h3>{title}</h3><fieldset disabled={busy || locked || disabled}>{children}<label className="check"><input type="checkbox" required />{tr(language, 'confirm')}</label><button className="primary">{busy ? tr(language, 'loading') : title}</button></fieldset>{error && <p role="alert" className="error">{error}</p>}{locked && <p role="status">{tr(language, 'refresh')}</p>}</form>
+}
+
+function NewRequest({ language, options, done }: { language: Language; options: Options; done: () => void }) {
+  const t = (key: string) => tr(language, key)
+  const [slots, setSlots] = useState<{ weekday: number; starts_at: string; ends_at: string }[]>([])
+  return <BusinessForm language={language} title={t('submit')} path="/admissions/requests" onDone={done} body={f => ({ course_id: f.get('course'), student_id: f.get('student'), branch_id: f.get('branch') || null, format: f.get('format'), discount_code: f.get('code'), availability: slots })}>
+    <Select name="student" label={t('student')} options={options.students.map(s => ({ id: s.id, name: s.full_name }))} /><Select name="course" label={t('course')} options={options.courses.map(c => ({ id: c.id, name: `${c.name} — ${c.fee ? money(c.fee.amount) : t('ADMISSION_FEE_REQUIRED')}` }))} /><Select name="branch" label={t('branch')} options={options.branches.map(b => ({ id: b.id, name: `${b.name} (${b.timezone})` }))} optional /><Select name="format" label={t('format')} options={['any', 'offline', 'online', 'hybrid'].map(id => ({ id, name: t(id) }))} /><Field name="code" label={t('code')} required={false} />
+    <h4>{t('available')}</h4><p>{t('availabilityHint')}</p>{slots.map((slot, index) => <div className="business-grid" key={index}><label>{t('day')}<input type="number" min={0} max={6} required value={slot.weekday} onChange={e => setSlots(slots.map((s, i) => i === index ? { ...s, weekday: Number(e.target.value) } : s))} /></label>{(['starts_at', 'ends_at'] as const).map(key => <label key={key}>{t(key === 'starts_at' ? 'start' : 'end')}<input type="time" required value={slot[key]} onChange={e => setSlots(slots.map((s, i) => i === index ? { ...s, [key]: e.target.value } : s))} /></label>)}<button type="button" onClick={() => setSlots(slots.filter((_, i) => i !== index))}>{t('remove')}</button></div>)}<button type="button" disabled={slots.length >= 28} onClick={() => setSlots([...slots, { weekday: 0, starts_at: '18:00', ends_at: '21:00' }])}>{t('add')}</button>
+  </BusinessForm>
+}
+
+function Placement({ language, row, done }: { language: Language; row: RequestRow; done: () => void }) {
+  const { data, error } = useResource<{ items: (Option & { code: string; seats_left: number; warnings: string[] })[] }>(`/admissions/requests/${row.id}/candidates`)
+  const t = (key: string) => tr(language, key)
+  if (!data) return <Load language={language} error={error} />
+  return <><p>{!data.items.length && t('empty')}</p>{data.items.map(c => <p key={c.id}>{c.name}: {t('seats')} {c.seats_left}. {c.warnings.map(t).join('; ')}</p>)}<BusinessForm language={language} title={t('place')} path={`/admissions/requests/${row.id}/placement`} body={f => ({ version: row.version, class_id: f.get('class'), reason: f.get('reason') })} onDone={done} disabled={!data.items.length}><Select name="class" label={t('candidates')} options={data.items} /><Field name="reason" label={t('reason')} /></BusinessForm></>
+}
+
+export function Admissions({ language, staff }: { language: Language; staff: boolean }) {
+  const t = (key: string) => tr(language, key)
+  const [revision, setRevision] = useState(0), [offset, setOffset] = useState(0), [selected, setSelected] = useState('')
+  const options = useResource<Options>('/admissions/options', revision)
+  const rows = useResource<Page<RequestRow>>(`/admissions/requests?offset=${offset}`, revision)
+  const done = () => { setSelected(''); setRevision(n => n + 1) }
+  return <><h1>{t('admissions')}</h1><button onClick={done}>{t('refresh')}</button>{options.data ? <NewRequest key={revision} language={language} options={options.data} done={done} /> : <Load language={language} error={options.error} />}<h2>{t('requests')}</h2>{!rows.data ? <Load language={language} error={rows.error} /> : <><p>{!rows.data.items.length && t('empty')}</p>{rows.data.items.map(row => <article className="card" key={`${row.id}:${revision}`}><h3>{row.student_name} — {row.course_name}</h3><p>{t(row.status)} · {row.class_name}</p><p>{row.reason}</p><p>{t('code')}: {row.discount_code || '—'}</p>{staff && row.status === 'submitted' && <><p>{language === 'vi' ? 'Duyệt tạo nghĩa vụ học phí ngay, kể cả chưa xếp được lớp. Học phí và mã giảm giá được kiểm tra theo cấu hình hiện tại.' : 'Approval creates a financial obligation even without placement. Current fee and discount rules apply.'}</p><BusinessForm language={language} title={t('approve')} path={`/admissions/requests/${row.id}/decision`} body={() => ({ version: row.version, action: 'approve' })} onDone={done} /><BusinessForm language={language} title={t('reject')} path={`/admissions/requests/${row.id}/decision`} body={f => ({ version: row.version, action: 'reject', reason: f.get('reason') })} onDone={done}><Field name="reason" label={t('reason')} /></BusinessForm></>}{staff && row.status === 'waiting' && <><button onClick={() => setSelected(selected === row.id ? '' : row.id)}>{t('candidates')}</button>{selected === row.id && <Placement language={language} row={row} done={done} />}</>}</article>)}<Pager language={language} offset={offset} total={rows.data.total} setOffset={setOffset} /></>}</>
+}
+
+function FeeEditor({ language, course, done }: { language: Language; course: Options['courses'][number]; done: () => void }) {
+  const t = (k: string) => tr(language, k)
+  const [parts, setParts] = useState(course.fee?.installments || [{ days: 0, percent: 100 }])
+  return <BusinessForm language={language} title={`${t('save')}: ${course.name}`} path={`/admissions/fees/${course.id}`} method="PUT" onDone={done} body={f => ({ version: course.fee?.version || 0, amount: Number(f.get('amount')), installments: parts })}><Field label={t('fee')} name="amount" type="number" min={0} max={1000000000} value={course.fee?.amount || 0} /><h4>{t('installments')}</h4><p>{t('feeHint')}</p>{parts.map((part, index) => <div className="business-grid" key={index}>{(['days', 'percent'] as const).map(k => <label key={k}>{t(k)}<input type="number" required min={k === 'days' ? 0 : 1} max={k === 'days' ? 730 : 100} value={part[k]} onChange={e => setParts(parts.map((p, i) => i === index ? { ...p, [k]: Number(e.target.value) } : p))} /></label>)}<button type="button" disabled={parts.length === 1} onClick={() => setParts(parts.filter((_, i) => i !== index))}>{t('remove')}</button></div>)}<button type="button" disabled={parts.length >= 24} onClick={() => setParts([...parts, { days: parts[parts.length - 1].days + 30, percent: 1 }])}>{t('add')}</button></BusinessForm>
+}
+
+export function AdmissionSettings({ language, manager }: { language: Language; manager: boolean }) {
+  const t = (k: string) => tr(language, k)
+  const [revision, setRevision] = useState(0), [offset, setOffset] = useState(0), [discountOffset, setDiscountOffset] = useState(0)
+  const options = useResource<Options>('/admissions/options', revision)
+  const settings = useResource<{ version: number; block_debt: boolean }>('/admissions/settings', revision)
+  const classes = useResource<Page<{ id: string; name: string; version: number; enabled: boolean; enrolled: number; capacity: number }>>(`/admissions/openings?offset=${offset}`, revision)
+  const codes = useResource<Page<{ id: string; code: string; version: number; active: boolean; used: number; max_uses: number; kind: string; value: number; ends_on: string }>>(`/admissions/discounts?offset=${discountOffset}`, revision)
+  const done = () => setRevision(n => n + 1)
+  return <><h1>{t('settings')}</h1><button onClick={done}>{t('refresh')}</button>{manager && settings.data && <BusinessForm key={`settings:${revision}`} language={language} title={t('save')} path="/admissions/settings" method="PUT" body={f => ({ version: settings.data!.version, block_debt: f.get('block') === 'on' })} onDone={done}><label className="check"><input type="checkbox" name="block" defaultChecked={settings.data.block_debt} />{t('blockDebt')}</label></BusinessForm>}{!options.data ? <Load language={language} error={options.error} /> : <>{options.data.courses.map(c => <details key={`${c.id}:${revision}`}><summary>{c.name} — {c.fee ? money(c.fee.amount) : '—'}</summary><FeeEditor language={language} course={c} done={done} /></details>)}<h2>{t('discounts')}</h2><BusinessForm key={`code:${revision}`} language={language} title={t('add')} path="/admissions/discounts" onDone={done} body={f => ({ code: f.get('code'), course_id: f.get('course') || null, kind: f.get('kind'), value: Number(f.get('value')), starts_on: f.get('starts'), ends_on: f.get('ends'), max_uses: Number(f.get('uses')) })}><Field label={t('code')} name="code" /><Select name="course" label={t('course')} options={options.data.courses} optional /><Select name="kind" label={t('kind')} options={['fixed', 'percent'].map(id => ({ id, name: t(id) }))} /><Field label={t('value')} name="value" type="number" min={1} /><Field label={t('starts')} name="starts" type="date" /><Field label={t('ends')} name="ends" type="date" /><Field label={t('uses')} name="uses" type="number" min={1} /></BusinessForm></>}
+    {codes.data ? <>{codes.data.items.map(c => <BusinessForm key={`${c.id}:${revision}`} language={language} title={`${c.code}: ${t(c.active ? 'disable' : 'enable')}`} path={`/admissions/discounts/${c.id}`} method="PUT" body={() => ({ version: c.version, active: !c.active })} onDone={done}><p>{t(c.kind)} {c.value} · {t('used')} {c.used}/{c.max_uses} · {c.ends_on}</p></BusinessForm>)}<Pager language={language} offset={discountOffset} total={codes.data.total} setOffset={setDiscountOffset} /></> : <Load language={language} error={codes.error} />}
+    <h2>{t('openings')}</h2>{classes.data ? <>{classes.data.items.map(c => <BusinessForm key={`${c.id}:${revision}`} language={language} title={`${c.name}: ${t(c.enabled ? 'close' : 'open')}`} path={`/admissions/openings/${c.id}`} method="PUT" body={() => ({ version: c.version, enabled: !c.enabled })} onDone={done}><p>{c.enrolled}/{c.capacity}</p><ClassRoster language={language} id={c.id} /></BusinessForm>)}<Pager language={language} offset={offset} total={classes.data.total} setOffset={setOffset} /></> : <Load language={language} error={classes.error} />}</>
+}
+
+function ClassRoster({ language, id }: { language: Language; id: string }) {
+  const [open, setOpen] = useState(false)
+  return <><button type="button" onClick={() => setOpen(!open)}>{language === 'vi' ? 'Danh sách lớp' : 'Class roster'}</button>{open && <RosterPage language={language} id={id} />}</>
+}
+function RosterPage({ language, id }: { language: Language; id: string }) {
+  const [offset, setOffset] = useState(0)
+  const { data, error } = useResource<Page<{ id: string; student_name: string; effective_at: string }>>(`/admissions/classes/${id}/roster?offset=${offset}`)
+  return data ? <section>{!data.items.length && <p>{tr(language, 'empty')}</p>}{data.items.map(r => <p key={r.id}>{r.student_name} — {new Date(r.effective_at).toLocaleString()}</p>)}<Pager language={language} offset={offset} total={data.total} setOffset={setOffset} /></section> : <Load language={language} error={error} />
+}
+
+function InvoicePanel({ language, id, staff, done }: { language: Language; id: string; staff: boolean; done: () => void }) {
+  const t = (k: string) => tr(language, k)
+  const { data, error } = useResource<InvoiceDetail>(`/admissions/invoices/${id}`)
+  const [receipt, setReceipt] = useState<Payment | null>(null)
+  if (!data) return <Load language={language} error={error} />
+  return <><h3>{data.snapshot.course_name}</h3><p>{t('gross')}: {money(data.gross)} · {t('discount')}: {money(data.discount)} · {t('total')}: {money(data.total)}</p>{data.installments.map((p, i) => <p key={i}>{p.due_on} (UTC): {money(p.amount)} · {t('remaining')}: {money(p.remaining)} {p.overdue && t('overdue')}</p>)}{staff && data.remaining > 0 && <BusinessForm language={language} title={t('collect')} path={`/admissions/invoices/${id}/payments`} onDone={done} body={f => ({ amount: Number(f.get('amount')), method: f.get('method'), reference: f.get('reference') })}><Field name="amount" label={t('amount')} type="number" min={1} max={data.remaining} /><Select name="method" label={t('method')} options={['cash', 'transfer'].map(id => ({ id, name: t(id) }))} /><Field name="reference" label={t('reference')} required={false} /></BusinessForm>}
+    <p>{t('noTax')}</p>{data.payments.map(p => <article className="card" key={p.id}><p>{money(p.amount)} · {t(p.method)} · {p.reference} · {new Date(p.created_at).toLocaleString()}</p><p>{p.reversed_at && `${t('reversed')}: ${p.reversal_reason}`}</p><button onClick={() => setReceipt(p)}>{t('receipt')}</button>{staff && !p.reversed_at && <BusinessForm language={language} title={t('reverse')} path={`/admissions/payments/${p.id}/reverse`} onDone={done} body={f => ({ reason: f.get('reason') })}><Field name="reason" label={t('reason')} /></BusinessForm>}</article>)}
+    {receipt && <><section className="card business-receipt"><ReceiptContent language={language} invoice={data} receipt={receipt} /><button onClick={() => window.print()}>{t('print')}</button></section>{createPortal(<section className="receipt-print" aria-hidden="true"><ReceiptContent language={language} invoice={data} receipt={receipt} /></section>, document.body)}</>}</>
+}
+
+function ReceiptContent({ language, invoice, receipt }: { language: Language; invoice: InvoiceDetail; receipt: Payment }) {
+  const t = (k: string) => tr(language, k)
+  return <><h2>{t('receipt')}</h2><p>{invoice.organization_name}</p><p>{invoice.student_name} — {invoice.snapshot.course_name}</p><p>{receipt.id}</p><p>{new Date(receipt.created_at).toLocaleString()}</p><p>{money(receipt.amount)} · {t(receipt.method)} · {receipt.reference}</p><p>{receipt.reversed_at && t('reversed')}</p><p>{t('noTax')}</p></>
+}
+
+export function Finances({ language, staff }: { language: Language; staff: boolean }) {
+  const t = (k: string) => tr(language, k)
+  const [revision, setRevision] = useState(0), [offset, setOffset] = useState(0), [selected, setSelected] = useState('')
+  const { data, error } = useResource<Page<Invoice>>(`/admissions/invoices?offset=${offset}`, revision)
+  const done = () => setRevision(n => n + 1)
+  return <><h1>{t('finances')}</h1><button onClick={done}>{t('refresh')}</button>{!data ? <Load language={language} error={error} /> : <><p>{!data.items.length && t('empty')}</p>{data.items.map(row => <article className="card" key={`${row.id}:${revision}`}><h2>{row.student_name} — {row.snapshot.course_name}</h2><p>{t('paid')}: {money(row.paid)} · {t('remaining')}: {money(row.remaining)} · {t('overdue')}: {money(row.overdue)}</p><button onClick={() => setSelected(selected === row.id ? '' : row.id)}>{t('detail')}</button>{selected === row.id && <InvoicePanel language={language} id={row.id} staff={staff} done={done} />}</article>)}<Pager language={language} offset={offset} total={data.total} setOffset={setOffset} /></>}</>
+}
+
+function SheetEditor({ language, sheet, done }: { language: Language; sheet: Sheet; done: () => void }) {
+  const t = (k: string) => tr(language, k)
+  const [records, setRecords] = useState(sheet.records), [finalized, setFinalized] = useState(sheet.finalized)
+  return <BusinessForm language={language} title={t(finalized ? 'finalize' : 'draft')} path={`/attendance/sessions/${sheet.session.id}`} method="PUT" disabled={!sheet.can_edit} onDone={done} body={f => ({ version: sheet.version, finalized, reason: f.get('reason') || '', records: records.map(({ student_id, status, note }) => ({ student_id, status, note })) })}><p>{t('attendanceHint')}</p>{sheet.finalized && <p>{t('finalized')}</p>}{records.map((r, index) => <div className="card" key={r.student_id}><h4>{r.student_name}</h4><label>{t('attendance')}<select value={r.status} onChange={e => setRecords(records.map((x, i) => i === index ? { ...x, status: e.target.value } : x))}>{['unmarked', 'present', 'absent', 'late', 'excused'].map(k => <option key={k} value={k}>{t(k)}</option>)}</select></label><label>{t('note')}<input value={r.note} maxLength={500} onChange={e => setRecords(records.map((x, i) => i === index ? { ...x, note: e.target.value } : x))} /></label></div>)}<label className="check"><input type="checkbox" disabled={sheet.finalized} checked={finalized} onChange={e => setFinalized(e.target.checked)} />{t('finalize')}</label><Field name="reason" label={t('reason')} required={sheet.finalized} /></BusinessForm>
+}
+function AttendancePanel({ language, id, done }: { language: Language; id: string; done: () => void }) {
+  const { data, error } = useResource<Sheet>(`/attendance/sessions/${id}`)
+  const history = useResource<Page<{ id: string; created_at: string; before: { correction_reason: string }; result: Sheet }>>(`/attendance/sessions/${id}/history`)
+  return <>{data ? <SheetEditor language={language} sheet={data} done={done} /> : <Load language={language} error={error} />}<details><summary>{tr(language, 'history')}</summary>{history.data?.items.map(h => <article key={h.id}><p>{new Date(h.created_at).toLocaleString()} — {h.before.correction_reason}</p>{h.result.records.map(r => <p key={r.student_id}>{r.student_name}: {tr(language, r.status)} {r.note}</p>)}</article>)}</details></>
+}
+export function Attendance({ language }: { language: Language }) {
+  const [revision, setRevision] = useState(0), [offset, setOffset] = useState(0), [selected, setSelected] = useState('')
+  const { data, error } = useResource<Page<SessionRow>>(`/attendance/sessions?offset=${offset}`, revision)
+  return <><h1>{tr(language, 'attendance')}</h1><button onClick={() => setRevision(n => n + 1)}>{tr(language, 'refresh')}</button>{!data ? <Load language={language} error={error} /> : <>{data.items.map(s => <article className="card" key={`${s.id}:${revision}`}><SessionSummary row={s} language={language} /><button onClick={() => setSelected(selected === s.id ? '' : s.id)}>{tr(language, 'roster')}</button>{selected === s.id && <AttendancePanel language={language} id={s.id} done={() => setRevision(n => n + 1)} />}</article>)}<Pager language={language} offset={offset} total={data.total} setOffset={setOffset} /></>}</>
+}
+export function MyLearning({ language }: { language: Language }) {
+  const [revision, setRevision] = useState(0), [offset, setOffset] = useState(0), [marksOffset, setMarksOffset] = useState(0)
+  const sessions = useResource<Page<SessionRow>>(`/admissions/my-sessions?offset=${offset}`, revision)
+  const marks = useResource<Page<{ session: SessionRow; status: string; note: string }> & { attendance_percent: number | null }>(`/attendance/mine?offset=${marksOffset}`, revision)
+  return <><h1>{tr(language, 'study')}</h1><button onClick={() => setRevision(n => n + 1)}>{tr(language, 'refresh')}</button>{sessions.data ? <>{sessions.data.items.map(s => <article className="card" key={s.id}><SessionSummary row={s} language={language} /></article>)}<Pager language={language} offset={offset} total={sessions.data.total} setOffset={setOffset} /></> : <Load language={language} error={sessions.error} />}<h2>{tr(language, 'attendance')}</h2>{marks.data ? <><p>{tr(language, 'rate')}: {marks.data.attendance_percent ?? '—'}%</p><p>{tr(language, 'rateHint')}</p>{marks.data.items.map(m => <article className="card" key={m.session.id}><SessionSummary row={m.session} language={language} /><p>{tr(language, m.status)} — {m.note}</p></article>)}<Pager language={language} offset={marksOffset} total={marks.data.total} setOffset={setMarksOffset} /></> : <Load language={language} error={marks.error} />}</>
+}
+
+export function NotificationBell({ language }: { language: Language }) {
+  const [revision, setRevision] = useState(0)
+  const { data } = useResource<{ unread: number }>('/notifications?limit=1', revision)
+  useEffect(() => { const timer = window.setInterval(() => setRevision(n => n + 1), 60000); return () => window.clearInterval(timer) }, [])
+  return <Link to="/notifications" aria-label={tr(language, 'notices')}>🔔 {data?.unread || 0}</Link>
+}
+export function Notifications({ language, role }: { language: Language; role: 'staff' | 'student' | 'teacher' }) {
+  const [revision, setRevision] = useState(0), [offset, setOffset] = useState(0), [error, setError] = useState('')
+  const result = useResource<Page<Notice> & { unread: number }>(`/notifications?offset=${offset}`, revision)
+  return <><h1>{tr(language, 'notices')} ({result.data?.unread || 0})</h1><button onClick={() => { setError(''); setRevision(n => n + 1) }}>{tr(language, 'refresh')}</button>{error && <p role="alert">{error}</p>}{!result.data ? <Load language={language} error={result.error} /> : <>{result.data.items.map(n => <article className="card" key={n.id}><h3>{tr(language, n.kind)}</h3><p>{new Date(n.created_at).toLocaleString()}</p>{n.session && <p>{n.session.class_name} · {new Date(n.session.starts_at).toLocaleString(language === 'vi' ? 'vi-VN' : 'en-GB', { timeZone: n.session.timezone })} · {n.session.timezone} · {n.session.room_name}</p>}<Link to={n.kind.startsWith('session.') ? role === 'teacher' ? '/teaching-sessions' : role === 'student' ? '/my-learning' : '/class-calendar' : n.kind.startsWith('payment.') ? '/finances' : '/admissions'}>{tr(language, 'follow')}</Link>{!n.read_at && <button onClick={async () => { try { await api(`/notifications/${n.id}/read`, 'POST'); setRevision(x => x + 1) } catch (e) { setError(fail(language, e)) } }}>{tr(language, 'read')}</button>}</article>)}<Pager language={language} offset={offset} total={result.data.total} setOffset={setOffset} /></>}</>
+}

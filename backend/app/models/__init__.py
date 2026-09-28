@@ -1,4 +1,17 @@
 from app.models.access import AuditLog, AuthRateBucket, OrganizationInvite, SupportSession
+from app.models.admissions import (
+    AdmissionOpening,
+    AdmissionRequest,
+    AdmissionSettings,
+    AttendanceSheet,
+    BusinessOperation,
+    DiscountCode,
+    Enrollment,
+    FeePolicy,
+    Invoice,
+    Notification,
+    Payment,
+)
 from app.models.auth import AccountToken, AuthSession, RefreshToken
 from app.models.classroom import Branch, LearningClass, Room
 from app.models.course import Course, CourseLanguage, CourseLevel, LevelFramework
@@ -24,6 +37,17 @@ from app.models.teacher import (
 )
 
 __all__ = [
+    "AdmissionOpening",
+    "AdmissionRequest",
+    "AdmissionSettings",
+    "AttendanceSheet",
+    "BusinessOperation",
+    "DiscountCode",
+    "Enrollment",
+    "FeePolicy",
+    "Invoice",
+    "Notification",
+    "Payment",
     "SessionHistory",
     "ClassSession",
     "ClassTeacher",

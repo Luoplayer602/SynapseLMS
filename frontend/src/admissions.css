@@ -1,0 +1,11 @@
+.business-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; align-items: end; }
+.business-navigation { display: grid; gap: 8px; margin-top: 12px; }
+.business-navigation a { color: inherit; }
+.compact-form fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 12px; }
+.business-receipt { overflow-wrap: anywhere; }
+.receipt-print { display: none; }
+@media print {
+  body > * { display: none !important; }
+  body > .receipt-print { display: block !important; font: 12pt sans-serif; padding: 16px; overflow-wrap: anywhere; }
+  body, .receipt-print, .receipt-print * { color: black !important; background: white !important; }
+}

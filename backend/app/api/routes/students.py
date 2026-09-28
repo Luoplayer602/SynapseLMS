@@ -377,6 +377,32 @@ def archive(
     item = scoped(db, tenant, profile_id)
     if item.version != data.version:
         raise APIError(409, "STUDENT_CONFLICT")
+    if data.archived:
+        from app.models import AdmissionRequest, ClassSession, Enrollment
+
+        pending = db.scalar(
+            select(AdmissionRequest.id)
+            .where(
+                AdmissionRequest.student_id == item.id,
+                AdmissionRequest.status.in_(["submitted", "waiting"]),
+            )
+            .limit(1)
+        )
+        future = db.scalar(
+            select(Enrollment.id)
+            .join(
+                ClassSession,
+                ClassSession.class_id == Enrollment.class_id,
+            )
+            .where(
+                Enrollment.student_id == item.id,
+                ClassSession.ends_at > now(),
+                ClassSession.status == "scheduled",
+            )
+            .limit(1)
+        )
+        if pending or future:
+            raise APIError(409, "STUDENT_ENROLLMENT_IN_USE")
     item.archived_at = now() if data.archived else None
     item.version += 1
     audit(

@@ -19,12 +19,16 @@ from app.core.security import digest, now, utc
 from app.models import (
     Branch,
     ClassSession,
+    Enrollment,
     LearningClass,
     Room,
     SessionHistory,
     SessionTeacher,
+    StudentIdentity,
+    StudentProfile,
     TeacherProfile,
 )
+from app.services import admissions as admissions_service
 
 router = APIRouter(dependencies=[Depends(auth_guard)])
 
@@ -234,6 +238,12 @@ def candidate(db, tenant, row, data):
             ],
             exclude_id=row.id,
         )
+    try:
+        admissions_service.enrollment_session_guard(
+            db, row, {"status": status, "starts_at": start, "ends_at": end}
+        )
+    except APIError:
+        issues.append("ADMISSION_STUDENT_CONFLICT")
     return {
         "starts_at": start,
         "ends_at": end,
@@ -308,6 +318,26 @@ def apply_operation(
             )
     row.version += 1
     db.flush()
+    recipients = list(
+        db.scalars(
+            select(StudentIdentity.user_id)
+            .join(StudentProfile, StudentProfile.identity_id == StudentIdentity.id)
+            .join(Enrollment, Enrollment.student_id == StudentProfile.id)
+            .where(Enrollment.class_id == row.class_id)
+        )
+    )
+    teacher_ids = set(teachers_of(db, row)) | {UUID(t["id"]) for t in before["teachers"]}
+    recipients.extend(
+        db.scalars(select(TeacherProfile.user_id).where(TeacherProfile.id.in_(teacher_ids)))
+    )
+    admissions_service.notify(
+        db,
+        row.organization_id,
+        recipients,
+        "session." + data.action,
+        row.id,
+        f"session:{row.id}:{row.version}",
+    )
     after = snapshot(db, row)
     db.add(
         SessionHistory(

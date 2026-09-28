@@ -4,15 +4,18 @@
 
 ## Khởi động Docker
 
-Cập nhật migration mới nhất: **20260926_0012** — [vận hành buổi/lịch tuần](./session-operations.md). Giữ dữ liệu buổi và phân công hiện có; không downgrade DB thật, đặc biệt khi có session_history. Các mốc 0011 trở về trước bên dưới là nền/hồ sơ triển khai cũ. Kết quả hiện tại đọc `docs/current-state.md` và myplan mục 29.
+Cập nhật migration đã triển khai ngày 2026-09-27: **20260927_0013 (head)** — [tuyển sinh, học phí, điểm danh và thông báo](./admissions-delivery.md), sau 0012 vận hành buổi/lịch tuần. Alembic check sạch; API/web chạy image khớp workspace, health API/web/module Admissions/Mailpit HTTP 200. OpenAPI có 24 path admissions/attendance/notifications, không có test helpers. Count/SHA256 10 bảng cũ khớp trước/sau; 11 bảng mới rỗng lúc bàn giao. DB/Mailpit giữ nguyên container/StartedAt, volume và cổng DB 5432 của người dùng. Chi tiết: [checkpoint](./next-session-handoff.md), myplan mục 30. Chờ nghiệm thu, 19 story Jira vẫn In Progress.
+
+Giữ dữ liệu buổi và phân công hiện có; không downgrade DB thật, đặc biệt khi có session_history hoặc dữ liệu tài chính. Các mốc 0012 trở về trước bên dưới là hồ sơ triển khai cũ.
 
 Từ thư mục gốc:
 
-Checkpoint 2026-09-27: Docker API/web đã đồng bộ, DB xác minh `20260926_0012 (head)` và Alembic check sạch; dữ liệu 83 buổi hiện có được bảo toàn. Bộ kiểm thử: 402 backend đạt/55 skip SQLite concurrency (kiểm tra trên PostgreSQL), 66 UI và 14 E2E đạt. Người dùng chỉ cần làm mới trình duyệt để nghiệm thu; các lệnh dưới dùng cho lần triển khai tiếp theo.
+Checkpoint cũ của đợt 0012 ngày 2026-09-27: Docker API/web đã đồng bộ, DB lúc đó ở `20260926_0012 (head)` và Alembic check sạch; 83 buổi được bảo toàn. Bộ kiểm thử lúc đó: 402 backend đạt/55 skip SQLite concurrency, 66 UI/14 E2E đạt. Không dùng mốc này để suy ra trạng thái triển khai 0013.
 
 ```powershell
 docker compose build api web
 docker compose up -d db mailpit
+docker compose stop api
 docker compose run --rm --no-deps api .venv/bin/alembic upgrade head
 docker compose up -d --no-deps api web
 ```

@@ -73,7 +73,7 @@ STU-03, migration `20260925_0008`: `student_proficiencies` unique theo profile/b
 
 ## Quy tắc tài chính
 
-- Tiền dùng kiểu `DECIMAL` và có mã tiền tệ.
+- Thiết kế đa tiền tệ dự kiến dùng DECIMAL hoặc minor units với mã tiền tệ. Bản 0013 hiện chỉ VND nguyên dùng BigInteger và snapshot currency=VND, không float; chưa đa tiền tệ.
 - Payment không bị xóa cứng; điều chỉnh bằng giao dịch đảo hoặc hoàn tiền.
 - Giáo vụ có thể tạo giao dịch hoàn tiền nhưng phải nhập lý do; actor và thay đổi được ghi audit log.
 - `enrollment_reservations` lưu buổi bắt đầu bảo lưu, lý do và các buổi bị ảnh hưởng.
@@ -96,6 +96,12 @@ Vận hành buổi, migration `20260926_0012`: ClassSession thêm status (schedu
 - Duyệt yêu cầu tạo hóa đơn ngay và khởi tạo `class_placements` để xếp lớp tự động hoặc thủ công.
 - `class_placements` lưu chế độ AUTO/MANUAL, trạng thái, lý do không xếp được và người quyết định.
 - Assessment dựa trên template của Course nhưng có thể được snapshot khi mở lớp để tránh thay đổi lịch sử.
+
+## Checkpoint triển khai 0013 (tuyển sinh/tài chính/điểm danh)
+
+Tên bảng thực tế: `admission_settings`, `fee_policies`, `discount_codes`, `admission_openings`, `admission_requests`, `enrollments`, `invoices`, `payments`, `attendance_sheets`, `business_operations`, `notifications`. Đây thay tên dự kiến course_registration_requests/class_placements ở mô tả cũ. Xếp lớp hiện là một Enrollment/request (unique), trạng thái yêu cầu submitted/rejected/waiting/placed, actor/lý do/snapshot trong BusinessOperation. Chưa trạng thái hủy/bảo lưu/chuyển lớp/hoàn thành.
+
+Invoice unique request, giữ gross/discount/total/policy snapshot/kỳ thu JSON. Payment không xóa; đảo lưu reversed_at/by/reason, audit và snapshot nghiệp vụ cùng transaction. AttendanceSheet unique session, roster JSON kiểm tra ID duy nhất/đúng enrollment tại giờ buổi; không tách bảng Attendance từng học viên trong bản này. Notification unique tenant/user/event_key. FK tổng hợp ở quan hệ scope, kiểm tra quyền/JSON qua API. Xem [đặc tả 0013](./admissions-delivery.md).
 
 ## Quy tắc AI
 

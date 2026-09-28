@@ -19,7 +19,7 @@ Lớp mới phải chọn khóa **đã công bố** và chi nhánh hoạt độn
 
 Khóa của lớp không đổi sau tạo. Lớp lưu bản chụp mã/tên/mô tả/mục tiêu/yêu cầu/ngôn ngữ/bộ/cấp đầu vào–đầu ra và thời điểm tạo. Các FK gốc bảo vệ danh mục kể cả khi khóa nguồn đổi cấu hình. Đổi nhãn/cấu hình khóa không viết lại bản chụp. Khóa nguồn ngừng công bố vẫn giữ lớp cũ và hiển thị cảnh báo; không tạo lớp mới từ khóa đó. Chi nhánh, phòng và múi giờ là thông tin hiện hành, không phải snapshot lịch học.
 
-Trạng thái lớp chỉ `draft`/`archived`, chưa mở tuyển sinh. Được sửa mã lớp nháp có lý do/version. Trước khi triển khai đăng ký/buổi học phải mở rộng guard sửa mã và thay đổi lớp theo tham chiếu mới.
+Trạng thái lớp vẫn `draft`/`archived`; từ 0013 có công tắc nhận học viên riêng tại admission_openings, chỉ bật khi có lịch và chưa bắt đầu. Không đổi enum cũ thành đang học/kết thúc. Được sửa mã lớp chưa sử dụng theo guard hiện có; lịch xác nhận khóa cấu trúc/mã. Xem [tuyển sinh và học phí](./admissions-delivery.md).
 
 Không xóa cứng. Lưu trữ giữ lịch sử/mã và chặn sửa. Chi nhánh không lưu trữ nếu còn phòng hoạt động hoặc lớp nháp; phòng không lưu trữ nếu còn lớp nháp dùng phòng. Giảm sức chứa phòng không được làm lớp nháp hiện tại vượt sức chứa. Lớp đã lưu trữ không chặn giảm sức chứa, nhưng khôi phục sẽ kiểm tra lại: cần khôi phục cơ sở vật chất/tăng sức chứa trước. Lớp đã lưu trữ chưa được sửa trực tiếp để tránh vượt quy trình khôi phục.
 

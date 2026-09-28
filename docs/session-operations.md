@@ -4,6 +4,8 @@ Phạm vi phiên 2026-09-26, bàn giao 2026-09-27: SCH-04 (SYNAPSELMS-78), SCH-0
 
 ## Cách dùng và quyền
 
+Cập nhật 0013: học viên đã xếp lớp có lịch cá nhân; điều chỉnh buổi kiểm tra thêm trùng lịch học viên. Thông báo trong ứng dụng được lưu cùng giao dịch cho học viên/giáo viên liên quan, chưa email/SMS. Quy tắc hủy không tự hoàn phí vẫn giữ nguyên. Xem [tuyển sinh và vận hành](./admissions-delivery.md).
+
 - Nhân sự (quản lý/giáo vụ) hoặc Root mở hỗ trợ → **Lịch tuần**, chọn ngày bắt đầu 7 ngày, chi nhánh/phòng/giáo viên/trạng thái → Xem lịch. Mặc định tuần hiện tại và ẩn buổi hủy. Mỗi trang tối đa 20 buổi, nhóm theo ngày của múi giờ chi nhánh, không theo timezone trình duyệt. Có tuần trước/sau và phân trang; không phải lưới calendar kéo-thả.
 - Mở **Chi tiết / điều chỉnh buổi** tại lịch tuần hoặc danh sách buổi trong **Lớp học → Giáo viên & lịch học**. Chọn thao tác, nhập lý do, xem trước rồi xác nhận. UI nêu thông tin hiện hành và kết quả dự kiến.
 - Chỉ buổi chưa bắt đầu được đổi/hủy/khôi phục. Giờ mới cũng phải tương lai, trong khoảng ngày lớp, cùng ngày, giữ chi nhánh/múi giờ/hình thức/sĩ số. Giờ nhập theo IANA chi nhánh; từ chối DST không tồn tại/nhập nhằng.
@@ -16,7 +18,7 @@ Phạm vi phiên 2026-09-26, bàn giao 2026-09-27: SCH-04 (SYNAPSELMS-78), SCH-0
 - Dạy thay thay toàn bộ tập giáo viên của một buổi (1–20), không đổi class_teachers hoặc các buổi khác. Giáo viên có thể ngoài tập mặc định nhưng phải active cùng tenant. Thiếu đúng ngôn ngữ/cấp đầu ra cần lý do ngoại lệ; lý do thay đổi và lý do ngoại lệ là hai trường riêng. Ngoại lệ giữ theo buổi cho các lần đổi giờ/khôi phục sau.
 - Mẫu tuần xác nhận giữ làm nguồn gốc, không được sinh lại. Cấu trúc lớp/mã lớp/timezone chi nhánh tiếp tục khóa dù hủy hết buổi. Guard lưu trữ/giảm sức chứa chỉ tính buổi scheduled tương lai **và** vẫn giữ guard lớp nháp cũ: phòng mặc định của lớp nháp có thể vẫn không lưu trữ được dù lịch đã hủy.
 - Lịch sử bất biến lưu snapshot trước/sau, actor ID, UTC, action, lý do và version; sắp xếp version giảm dần, phân trang. Snapshot chứa mã/tên/phòng/giáo viên tại lúc thay đổi. Không có endpoint sửa/xóa lịch sử. Phòng đã dùng rồi đổi đi vẫn không được đổi mã do lịch sử tham chiếu, nhưng có thể giải phóng sử dụng/lưu trữ theo điều kiện khác.
-- Không tự chặn khóa tài khoản/thu hồi quyền; lịch không tự hủy khi khóa người dạy. Phải đổi giáo viên hoặc hủy buổi thủ công. Không gửi email/push/in-app notification trong bản này; nhân sự phải liên lạc thủ công sau thay đổi.
+- Không tự chặn khóa tài khoản/thu hồi quyền; lịch không tự hủy khi khóa người dạy. Phải đổi giáo viên hoặc hủy buổi thủ công. Từ 0013 có thông báo trong ứng dụng; chưa gửi email/push/SMS, cần liên lạc bổ sung nếu cần.
 - Audit `session.reschedule/substitute/cancel/restore` cùng transaction. Lịch sử một buổi không thay thế màn hình log toàn hệ thống đang hoãn.
 
 ## API
@@ -57,4 +59,4 @@ Checkpoint 2026-09-27: 402 backend đạt, 55 ca concurrency skip trên SQLite v
 5. Khôi phục khi tài nguyên đã bị chiếm: bị chặn; khi lại trống và giáo viên/phòng hợp lệ: thành công.
 6. Dạy thay bằng người ngoài phân công mặc định: chỉ một buổi đổi; người thiếu năng lực cần lý do ngoại lệ. Giáo viên cũ/mới thấy lịch cá nhân đúng sau làm mới, không thấy lý do nội bộ.
 7. Buổi đã bắt đầu/quá khứ chỉ đọc. Hai tab sửa cùng buổi: tab cũ bị 409, không ghi đè. Khóa quyền/support thì không ghi được.
-8. Lỗi mạng khi xác nhận: làm mới để kiểm tra trước thao tác tiếp; không tạo buổi hoặc history trùng. Không tự gửi thông báo/hoàn phí.
+8. Lỗi mạng khi xác nhận: làm mới để kiểm tra trước thao tác tiếp; không tạo buổi/history/thông báo trùng. Không tự hoàn phí.

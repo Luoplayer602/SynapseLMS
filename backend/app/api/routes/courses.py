@@ -83,7 +83,11 @@ def authorize(db, tenant, request, response, mode="edit"):
             raise APIError(403, "TENANT_UNAVAILABLE")
         role = member.role
     allowed = (
-        {"student"}
+        {"organization_manager", "staff", "student", "teacher"}
+        if mode == "business_read"
+        else {"teacher"}
+        if mode == "attendance"
+        else {"student"}
         if mode == "catalog"
         else {"organization_manager"}
         if mode == "manage"
@@ -91,6 +95,7 @@ def authorize(db, tenant, request, response, mode="edit"):
     )
     if role not in allowed or (mode == "catalog" and user.is_root_admin):
         raise APIError(403, "FORBIDDEN")
+    return role
 
 
 def commit(db):
@@ -273,6 +278,11 @@ def require_unused(db, item):
             if db.scalar(select(model.id).where(condition).limit(1)):
                 raise APIError(409, "CATALOG_PROFICIENCY_IN_USE")
     if isinstance(item, Course):
+        from app.models import AdmissionRequest, DiscountCode, FeePolicy
+
+        for model in (AdmissionRequest, DiscountCode, FeePolicy):
+            if db.scalar(select(model.id).where(model.course_id == item.id).limit(1)):
+                raise APIError(409, "CATALOG_IN_USE")
         if item.status != "draft":
             raise APIError(409, "COURSE_DRAFT_REQUIRED")
         history = db.scalars(

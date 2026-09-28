@@ -5,6 +5,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 ## Tài liệu hiện có
 
 - [Checkpoint hiện tại](./current-state.md): đọc trước khi tiếp tục để không tải lại toàn bộ lịch sử; phạm vi, file chính, kiểm thử và giới hạn.
+- [Tuyển sinh, học phí, điểm danh và thông báo](./admissions-delivery.md): luồng xuyên suốt, API, giới hạn và checklist nghiệm thu migration 0013.
 - [Vận hành buổi và lịch tuần](./session-operations.md): đổi/hủy/khôi phục/dạy thay, lịch sử nội bộ, API và nghiệm thu.
 
 - [PRD](./prd.md): mục tiêu, phạm vi và tiêu chí thành công của sản phẩm.
@@ -42,7 +43,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 ## Quy ước làm việc
 
 - Một người phát triển chính, AI hỗ trợ phân tích, viết mã, kiểm thử và tài liệu.
-- Làm theo lát cắt dọc nhỏ: dữ liệu → API → UI → test → tài liệu.
+- Gộp các nghiệp vụ liên quan thành đợt xuyên suốt: dữ liệu → API → UI → test → tài liệu; giữ checkpoint ngắn để nối phiên, không giảm kiểm chứng tài chính/quyền/đồng thời.
 - Mỗi quyết định kiến trúc quan trọng được ghi thành ADR.
 - Không coi nội dung do AI sinh là hoàn tất nếu chưa có test hoặc kiểm tra thủ công phù hợp.
 - Sau hai iteration đầu tiên mới dùng vận tốc thực tế để dự báo ngày phát hành.

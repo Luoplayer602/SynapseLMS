@@ -3,6 +3,8 @@
 **Phiên bản:** 0.1  
 **Trạng thái:** Đã chốt luồng chính
 
+Triển khai đợt 0013: xem [hợp đồng và checklist](../admissions-delivery.md). Trạng thái lưu thực tế là submitted/rejected/waiting/placed; APPROVED/AUTO_PLACEMENT_PENDING trong sơ đồ dưới là bước logic trong transaction, không ghi trạng thái trung gian riêng. Chưa rút/hủy yêu cầu đã duyệt, chuyển lớp hay enrollment hoàn thành. Hóa đơn vẫn phát sinh khi chưa xếp được lớp; không có cổng thanh toán trong đợt này.
+
 ## Nguyên tắc
 
 - Học viên đăng ký **khóa học**, không đăng ký trực tiếp một lớp cụ thể.
@@ -61,4 +63,3 @@ DRAFT
 - Duyệt tạo đúng một hóa đơn dù request được gửi lại.
 - Xếp tự động không vượt sĩ số và không tạo trùng Enrollment.
 - Không tìm được lớp thì chuyển sang hàng chờ thủ công.
-

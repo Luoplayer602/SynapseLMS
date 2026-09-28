@@ -61,6 +61,17 @@ def main():
                 db.execute(delete(AuthRateBucket))
                 db.commit()
 
+        @app.post("/__test/attendance-clock", status_code=204)
+        def attendance_clock(value: str):
+            # Only the isolated test app may advance attendance time for a future fixture.
+            from datetime import datetime
+
+            from app.api.routes import attendance
+            from app.core.security import now
+
+            stamp = datetime.fromisoformat(value) if value != "reset" else None
+            attendance.now = (lambda: stamp) if stamp else now
+
         uvicorn.run(app, host="127.0.0.1", port=8011, log_level="warning", access_log=False)
 
 
