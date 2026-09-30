@@ -54,6 +54,7 @@ test('root configures levels and publishes a course; student sees only published
   await learner.getByLabel('Họ và tên').fill('Course learner')
   await learner.getByLabel('Email', { exact: true }).fill('catalog-learner@example.com')
   await learner.getByLabel('Mật khẩu', { exact: true }).fill('catalog-learner-password!')
+  await learner.getByLabel('Nhập lại mật khẩu', { exact: true }).fill('catalog-learner-password!')
   await learner.getByRole('combobox').selectOption({ label: 'Trung tâm Demo A' })
   await learner.getByRole('button', { name: 'Đăng ký', exact: true }).click()
   await expect(learner.getByRole('status')).toContainText('Đã tạo tài khoản')

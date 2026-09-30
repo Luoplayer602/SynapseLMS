@@ -6,6 +6,7 @@ test('student registers, signs in, refreshes after reload, changes password and 
   await page.getByLabel('Họ và tên').fill('E2E Student')
   await page.getByLabel('Email', { exact: true }).fill('e2e-student@example.com')
   await page.getByLabel('Mật khẩu', { exact: true }).fill('e2e-student-password!')
+  await page.getByLabel('Nhập lại mật khẩu', { exact: true }).fill('e2e-student-password!')
   await page.getByRole('combobox').selectOption({ label: 'Trung tâm Demo A' })
   await page.getByRole('button', { name: 'Đăng ký', exact: true }).click()
   await expect(page.getByRole('status')).toContainText('Đã tạo tài khoản')
@@ -68,4 +69,66 @@ test('root enters support session, creates a teacher, suspends membership and en
   await teacherContext.close()
   await page.getByRole('button', { name: 'Kết thúc hỗ trợ' }).click()
   await expect(page.getByRole('link', { name: 'Thành viên', exact: true })).toHaveCount(0)
+})
+
+test('Soft auth stays usable across viewport, language and color settings', async ({ page }, testInfo) => {
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Đăng nhập', exact: true })).toBeVisible()
+  for (const width of [320, 390, 768, 1280, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' })
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      await expect(page.getByRole('button', { name: 'Đăng nhập', exact: true })).toBeInViewport()
+      if ((width === 390 && colorScheme === 'dark') || (width === 1440 && colorScheme === 'light')) {
+        await page.screenshot({ path: testInfo.outputPath(`auth-login-${width}-${colorScheme}.png`), fullPage: true })
+      }
+    }
+  }
+  await page.getByLabel('Email', { exact: true }).fill('learner@example.com')
+  await page.getByRole('button', { name: 'English', exact: true }).click()
+  await expect(page.getByLabel('Email', { exact: true })).toHaveValue('learner@example.com')
+  await page.getByLabel('Password', { exact: true }).fill('sample-password-only')
+  await page.getByRole('button', { name: 'Show password: Password' }).click()
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text')
+  await page.getByRole('button', { name: 'Hide password: Password' }).click()
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.getByRole('button', { name: 'Register', exact: true }).click()
+  await expect(page.getByRole('combobox')).toBeEnabled()
+  await expect(page.getByLabel('Confirm password', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Register', exact: true }).scrollIntoViewIfNeeded()
+  await expect(page.getByRole('button', { name: 'Register', exact: true })).toBeInViewport()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.screenshot({ path: testInfo.outputPath('auth-register-mobile-dark.png'), fullPage: true })
+  // A 640 CSS-pixel viewport represents the layout space of a 1280px window at 200% zoom.
+  await page.setViewportSize({ width: 640, height: 450 })
+  await page.getByLabel('Email', { exact: true }).focus()
+  await page.keyboard.press('Tab')
+  await expect(page.getByLabel('Password', { exact: true })).toBeFocused()
+  expect(await page.getByLabel('Password', { exact: true }).evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid')
+  expect(await page.locator('.auth-orbit-core').evaluate(el => getComputedStyle(el).animationName)).toBe('none')
+})
+
+test('welcome follows the actual profile load and preserves the requested page', async ({ page, request }, testInfo) => {
+  await request.post('http://127.0.0.1:8011/__test/reset-rate')
+  let holdProfile = false
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/v1/auth/me', async route => { if (holdProfile) await gate; await route.continue() })
+  try {
+    await page.goto('/sessions')
+    await page.getByLabel('Email', { exact: true }).fill('root@example.com')
+    await page.getByLabel('Mật khẩu', { exact: true }).fill('e2e-root-password-2026!')
+    holdProfile = true
+    await page.getByLabel('Mật khẩu', { exact: true }).press('Enter')
+    await expect(page.getByRole('heading', { name: 'Đang chuẩn bị không gian học tập' })).toBeVisible()
+    await expect(page.getByRole('status')).toContainText('Đang tải thông tin tài khoản')
+    await expect(page.getByRole('navigation')).toHaveCount(0)
+    await expect(page.locator('.auth-welcome')).toHaveCSS('opacity', '1')
+    await page.screenshot({ path: testInfo.outputPath('auth-welcome-loading.png'), fullPage: true })
+    release()
+    await expect(page.getByRole('navigation').first()).toBeVisible()
+    await expect(page).toHaveURL(/\/sessions$/)
+    await expect(page.getByText('Đang hỗ trợ trung tâm:', { exact: false })).toHaveCount(0)
+  } finally { release() }
 })

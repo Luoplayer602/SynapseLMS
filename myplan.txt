@@ -866,3 +866,10 @@ Một backlog item chỉ hoàn thành khi:
 - Người dùng chọn Synapse Soft mặc định; Neo Pop/Clay Garden/Liquid Glass định hướng phần thưởng chuỗi ngày làm bài tập AI. Giữ màn chào nhanh khi tải thật, bổ sung mobile từ PC; login chung, role lấy từ backend. Chưa chốt ngưỡng streak/quyền mở theme, chưa triển khai AI/phần thưởng.
 - Đánh giá có giới hạn chưa thấy backend blocker cho UI auth; điểm số/bài kiểm tra và bài tập AI vẫn là phần nghiệp vụ quan trọng còn thiếu.0014 vẫn chờ người dùng nghiệm thu, không suy diễn đã hoàn tất nghiệm thu.
 - Kế hoạch duy nhất tại docs/plans/auth-soft-experience.md: đăng nhập/đăng ký/chào và vỏ các nhánh email, giữ React/Vite/API/quyền, mobile/light-dark/reduced-motion. Phiên này chỉ tài liệu; chưa duyệt code/deploy, không test hoặc đổi Jira.
+
+## 34. Triển khai Synapse Soft auth — 2026-09-28
+
+- Người dùng duyệt triển khai và báo test nhanh nghiệp vụ0014 chưa thấy vấn đề; chưa coi là nghiệm thu toàn checklist0014 hoặc UI mới.
+- Đã code/test/deploy riêng web lúc23:23+07: login/register/welcome tải thật, mobile, Việt–Anh, light/dark/reduced motion và vỏ email; quyền vẫn từ server. UI97/10 E2E liên quan đạt, lint/build đạt;37 file nguồn/package web trong image khớp. API/DB/Mailpit/schema0014/dữ liệu giữ nguyên; không đổi Jira, stage/commit, .env hoặc compose.
+- Chi tiết và checklist duy nhất tại docs/plans/auth-soft-experience.md mục7/9, checkpoint docs/current-state.md. Chờ nghiệm thu UI trên thiết bị thật; phần thưởng theme/streak/bài tập AI và dashboard vẫn ngoài phạm vi.
+- Xác minh lại2026-09-30 sau Docker Desktop restart phát hiện DB mất endpoint network dù health API200; đã nối lại container DB hiện hữu vào mạng compose với alias `db`. Endpoint dùng DB trở lại200, Alembic0014(head), giữ container ID/image/volume/dữ liệu và không sửa compose.

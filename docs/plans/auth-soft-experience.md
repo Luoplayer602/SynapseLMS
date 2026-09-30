@@ -1,6 +1,6 @@
 # Kế hoạch: đăng nhập, đăng ký và màn hình chào Synapse Soft
 
-Ngày2026-09-28. **Chỉ lập kế hoạch; chưa duyệt code/deploy đợt giao diện.** Người dùng chọn Synapse Soft mặc định, các theme khác là phần thưởng chuỗi ngày làm bài tập AI; giữ màn chào nhanh khi tải và bổ sung mobile từ bản PC.
+Ngày2026-09-28. **Đã được duyệt, code/test và deploy web lúc23:23+07:00; chờ người dùng nghiệm thu giao diện.** Người dùng chọn Synapse Soft mặc định, các theme khác là phần thưởng chuỗi ngày làm bài tập AI; giữ màn chào nhanh khi tải và bổ sung mobile từ bản PC.
 Đề cử model: GPT gpt-6-astra — high. Giữ lựa chọn đã thống nhất; đợt này cần phối hợp trạng thái xác thực bất đồng bộ, các đường dẫn email, accessibility và hồi quy nhiều vai trò.
 
 ## 1. Mục tiêu, phạm vi và đánh giá backend
@@ -155,19 +155,36 @@ Ma trận:
 
 Không có câu hỏi phạm vi bắt buộc để hoàn thiện kế hoạch này. Các ngưỡng ngày, mất/giữ streak, múi giờ, cách tính bài đạt, theme nào ở mốc nào và quyền giữ phần thưởng khi đổi trung tâm sẽ chốt trong đợt bài tập AI, không hỏi hoặc tự quyết trước trong đợt auth.
 
-Chờ duyệt kế hoạch trước code/deploy;0014 chưa có xác nhận nghiệm thu mới.
+Người dùng đã duyệt triển khai và báo test nhanh nghiệp vụ0014 chưa có vấn đề. Đây là xác nhận test nhanh, chưa thay cho nghiệm thu đầy đủ checklist0014.
 
 ## 9. Trạng thái thực thi
 
 - [x] Đọc current-state, git status, Docker/revision/health và nguồn auth/ref liên quan.
 - [x] Đánh giá backend có giới hạn, tách các nghiệp vụ thiếu khỏi blocker.
 - [x] Lưu kế hoạch đủ bản đồ/test/mobile/checklist.
-- [ ] Người dùng duyệt triển khai.
-- [ ] Code/test đợt auth.
-- [ ] Deploy web và bàn giao.
+- [x] Người dùng duyệt triển khai.
+- [x] Code/test đợt auth.
+- [x] Deploy web và bàn giao.
 - [ ] Người dùng nghiệm thu.
 
-Phiên lập kế hoạch chỉ sửa tài liệu, không code/test/deploy/Jira. Kết quả225 backend/76UI/2E2E của0014 là baseline lịch sử có source khớp ở thời điểm khảo sát, không chứng nhận bản giao diện chưa viết.
+### Kết quả triển khai2026-09-28
+
+- Trước code,22 SHA256 mục10 khớp. Bổ sung `frontend/src/AuthExperience.tsx`, `auth.css`, `AuthExperience.test.tsx`; sửa App/App.test/i18n và E2E auth. E2E courses thêm xác nhận mật khẩu vì dùng chung đăng ký. CSS giới hạn trong auth; không sửa styles.css, Account/Invitations/useEmailLink/api hoặc dependency. App chỉ bọc các nhánh email trong AuthLayout, giữ logic/token hiện hữu.
+- Synapse Soft có desktop hai cột/mobile một cột, Việt–Anh, light/dark theo hệ thống, focus và reduced motion. Đăng ký có xác nhận mật khẩu, tải/lỗi/rỗng trung tâm và thử lại; mã mời là nhánh riêng. Login chung, vai trò lấy từ hồ sơ backend.
+- Welcome bám tải phiên thật, trễ140ms chống nhấp nháy, báo chậm sau5s và cho thử lại đọc hồ sơ sau15s; không tự gửi lại login/register. Chặn submit trùng, bỏ response cũ khi logout/đọc lại, giữ trang yêu cầu và đường dẫn email. Tên/vai trò chỉ hiện sau khi có hồ sơ server.
+- Full UI **97 đạt,0 lỗi,0 pending**, báo cáo `backend/test-results/auth-soft-ui.json` lúc23:20:59+07. Lint và build đạt. Test mới bao gồm response đến muộn, StrictMode, logout khi đang login, retry GET, link reset/language, bảy trạng thái vai trò/tenant và timers/reduced motion.
+- **10 E2E riêng biệt đạt** (auth4/account2/invitations2/courses2),43.3s. Chạy lại auth4 đạt15.8s sau sửa assertion chờ welcome hết trễ trước chụp ảnh; không cộng thành14. Lệnh từ `frontend`: `npm.cmd run test:e2e -- e2e/auth.spec.ts e2e/account.spec.ts e2e/invitations.spec.ts e2e/courses.spec.ts`. E2E dùng API8011/web5180 và SQLite tách biệt.
+- Đã xem ảnh login desktop1440 light/mobile390 dark, register mobile dark và welcome tại `frontend/test-results/`. Test layout320/390/768/1280/1440, hai chế độ màu, bàn phím và reduced motion. Chưa kiểm tra bàn phím mềm trên điện thoại thật hoặc zoom trình duyệt200% thực; viewport640 chỉ mô phỏng không gian layout thu hẹp. Native select Chrome vẫn thuộc BUG-004 chưa chốt toàn hệ thống.
+- Không thay backend/config/dependency nên không chạy lại backend suite;225 đạt/26skip của0014 vẫn là kết quả lịch sử trong phạm vi đó. Không dùng test auth để chứng nhận lại tài chính/migration.
+
+### Deployment và bàn giao
+
+- `docker compose build web` và `docker compose up -d --no-deps web` đạt. Web mới lúc23:23:01+07, image `sha256:80139cd403644f6ec57a0e21db72572aaf56422bdc49d245037daeee15b40260`; image trước `sha256:0e0703090a8bb2204c6d3f0f8a9735624673b21fa4f232f58d63e2eb05c02bf5`.
+- Web5173, module AuthExperience/auth.css, API health8000 và Mailpit8025 đều HTTP200; Alembic vẫn `20260928_0014 (head)`. API/DB/Mailpit giữ nguyên container ID/StartedAt; không chạy migration hoặc sửa dữ liệu. Giữ compose/.env/volume.
+- SHA256 nguồn web trong image đối chiếu workspace qua `backend/test-results/auth-soft-deployed-web.json`; manifest nguồn UI/test hiện tại `backend/test-results/auth-soft-source-manifest.json`. Hash chuẩn hóa CRLF về LF. Báo cáo và ảnh bị gitignore, không chứa seed dữ liệu thật.
+- Kiểm tra lại ngày2026-09-30 sau Docker Desktop restart: DB container giữ nguyên ID/image/volume nhưng bị mất endpoint network compose, khiến health nông200 còn endpoint dùng DB500. Đã nối lại chính container vào `synapselms_default` với alias `db`, không recreate hoặc sửa compose. DNS, `organizations/public` HTTP200 và Alembic0014(head) đã xác minh lại; xem chi tiết vận hành tại `docs/current-state.md`.
+- Không stage/commit hoặc đổi Jira. Trong phiên người dùng đã commit phần trước: HEAD hiện tại `7d1df97b81c8b7e116528032d1afa37d65aab007`; các thay đổi auth vẫn ở working tree. Không can thiệp index của người dùng.
+- Tiếp theo: người dùng mở http://localhost:5173, đăng xuất hoặc dùng cửa sổ riêng để nghiệm thu mục7; ưu tiên thiết bị mobile thật, mạng chậm, nhánh email và từng vai trò. Chưa có xác nhận nghiệm thu UI. Theme thưởng/streak/AI và đổi dashboard vẫn ngoài phạm vi.
 
 ## 10. Baseline file trước triển khai
 
@@ -197,4 +214,3 @@ SHA256 raw bytes, ngày2026-09-28; kiểm tra lại trước code. File dự ki�
 | backend/tests/e2e_server.py | 0f86e9779b86067cef48bb4422e87b2a1fbaa44dae00a5785c64d810e25f61a5 |
 | ui-design/app/page.tsx | 641c320ec3057ade8951e88cc7569bb65dec9cb3e8600e9c02bb751560092d09 |
 | ui-design/app/globals.css | 36d66e7c08e96e7416de82eee758d39886d576e1390edb0524986ac456e25c5d |
-

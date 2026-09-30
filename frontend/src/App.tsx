@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router'
 import { AccountAction, EmailRequestForm, Sessions, VerificationStatus } from './Account'
 import { api, ApiError, clearSession, setSupportSession, signIn, signOut } from './api'
-import type { Organization, Profile } from './api'
+import type { Profile } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import { Centers, Members } from './Management'
@@ -17,6 +17,8 @@ import { WeeklyAgenda } from './SessionOperations'
 import { Admissions, AdmissionSettings, Attendance, Finances, MyLearning, NotificationBell, Notifications } from './Admissions'
 import { EnrollmentLifecycle } from './EnrollmentLifecycle'
 
+import { AuthForm, AuthLayout, AuthWelcome } from './AuthExperience'
+
 export default function App() {
   const location = useLocation()
   const [language, setLanguage] = useState<Language>('vi')
@@ -28,40 +30,58 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [registering, setRegistering] = useState(false)
   const [recovering, setRecovering] = useState(false)
-  const [useInvite, setUseInvite] = useState(false)
-  const [centers, setCenters] = useState<Organization[]>([])
+  const [welcome, setWelcome] = useState<'restoring' | 'profile' | 'ready' | 'failed' | null>('restoring')
+  const [readAttempt, setReadAttempt] = useState(0)
+  const generation = useRef(0), operation = useRef(0), submitting = useRef(false)
   const [support, setSupport] = useState<{ id: string; name: string } | null>(null)
   const showError = (e: unknown) => setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED')
-  useEffect(() => {
-    let cancelled = false
-    api<Profile>('/auth/me').then(p => { if (!cancelled) setProfile(p) })
-      .catch(e => { if (!cancelled && !(e instanceof ApiError && e.status === 401)) setError('REQUEST_FAILED') })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    const signedOut = () => { setProfile(null); setSupport(null) }
-    window.addEventListener('synapse-signed-out', signedOut)
-    return () => { cancelled = true; window.removeEventListener('synapse-signed-out', signedOut) }
+  const readProfile = useCallback(() => {
+    const current = ++generation.current
+    return api<Profile>('/auth/me').then(p => {
+      if (current === generation.current) { setProfile(p); setWelcome('ready') }
+    }).catch(e => {
+      if (current !== generation.current) return
+      setProfile(null)
+      if (e instanceof ApiError && e.status === 401) setWelcome(null)
+      else { setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED'); setWelcome('failed') }
+    }).finally(() => { if (current === generation.current) setLoading(false) })
   }, [])
-  useEffect(() => { document.documentElement.lang = language }, [language])
+  const beginProfileRead = () => {
+    setWelcome('profile'); setReadAttempt(n => n + 1); setLoading(true); setError('')
+    void readProfile()
+  }
+  const completeWelcome = useCallback(() => setWelcome(null), [])
+  const leaveWelcome = () => { generation.current += 1; setWelcome(null); setLoading(false); setProfile(null); setError('') }
   useEffect(() => {
-    if (!registering) return
-    let cancelled = false
-    api<Organization[]>('/organizations/public').then(data => { if (!cancelled) setCenters(data) })
-      .catch(() => { if (!cancelled) setError('REQUEST_FAILED') })
-    return () => { cancelled = true }
-  }, [registering])
+    const signedOut = () => {
+      generation.current += 1; operation.current += 1; submitting.current = false
+      setProfile(null); setSupport(null); setWelcome(null); setLoading(false); setBusy(false)
+    }
+    window.addEventListener('synapse-signed-out', signedOut)
+    void readProfile()
+    return () => { generation.current += 1; operation.current += 1; window.removeEventListener('synapse-signed-out', signedOut) }
+  }, [readProfile])
+  useEffect(() => { document.documentElement.lang = language }, [language])
 
   async function authenticate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (submitting.current) return
     const form = new FormData(event.currentTarget)
+    const current = ++generation.current, mutation = ++operation.current
+    submitting.current = true
     setBusy(true); setError(''); setNotice('')
     try {
       const email = String(form.get('email')), password = String(form.get('password'))
       if (registering) {
         await api('/auth/register', 'POST', { email, password, display_name: form.get('name'),
-          ...(useInvite ? { invite_code: form.get('invite') } : { organization_id: form.get('center') }) })
-        setRegistering(false); setNotice('registered')
-      } else { await signIn(email, password); setProfile(await api<Profile>('/auth/me')) }
-    } catch (e) { showError(e) } finally { setBusy(false) }
+          ...(form.get('useInvite') ? { invite_code: form.get('invite') } : { organization_id: form.get('center') }) })
+        if (current === generation.current) { setRegistering(false); setNotice('registered') }
+      } else {
+        await signIn(email, password)
+        if (current === generation.current) beginProfileRead()
+      }
+    } catch (e) { if (current === generation.current) showError(e) }
+    finally { if (mutation === operation.current) { submitting.current = false; setBusy(false) } }
   }
   async function logout() {
     setBusy(true); setError('')
@@ -78,30 +98,18 @@ export default function App() {
     } catch (e) { showError(e) } finally { setBusy(false) }
   }
   const languageButton = <button type="button" onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button>
+  const authLayout = (children: ReactNode, isWelcome = false) => <AuthLayout language={language} onLanguage={() => setLanguage(language === 'vi' ? 'en' : 'vi')} welcome={isWelcome}>{children}</AuthLayout>
   const messages = <>{error && <p role="alert" className="error">{errorMessage(language, error)}</p>}{notice && <p role="status">{t(notice)}</p>}</>
   if (location.pathname === '/account/accept-invitation') {
-    return <main className="auth-page"><header>{languageButton}</header><InvitationAcceptance language={language} profile={profile} restoring={loading} onProfile={setProfile} /></main>
+    return authLayout(<InvitationAcceptance language={language} profile={profile} restoring={loading} onProfile={setProfile} />)
   }
   if (location.pathname === '/account/verify-email' || location.pathname === '/account/reset-password') {
-    return <main className="auth-page"><header>{languageButton}</header><AccountAction key={location.pathname} language={language} reset={location.pathname.endsWith('reset-password')} /></main>
+    return authLayout(<AccountAction key={location.pathname} language={language} reset={location.pathname.endsWith('reset-password')} />)
   }
-  if (loading) return <main className="auth-page"><p role="status">{t('loading')}</p></main>
-  if (!profile && recovering) return <main className="auth-page"><header>{languageButton}</header><EmailRequestForm language={language} onBack={() => setRecovering(false)} /></main>
-  if (!profile) return <main className="auth-page"><header>{languageButton}</header>
-    <section className="card auth-card"><div className="brand-mark" aria-hidden="true">S</div><p className="eyebrow">SynapseLMS</p>
-      <h1>{t(registering ? 'register' : 'login')}</h1><p>{t('intro')}</p>{messages}
-      <form key={registering ? 'register' : 'login'} onSubmit={authenticate}>
-        {registering && <label>{t('name')}<input name="name" autoComplete="name" maxLength={200} required /></label>}
-        <label>{t('email')}<input name="email" type="email" autoComplete="username" required /></label>
-        <label>{t('password')}<input name="password" type="password" autoComplete={registering ? 'new-password' : 'current-password'} minLength={registering ? 12 : 1} maxLength={128} required /></label>
-        {registering && <><small>{t('passwordHint')}</small><label className="check"><input type="checkbox" checked={useInvite} onChange={e => setUseInvite(e.target.checked)} />{t('useInvite')}</label>
-          {useInvite ? <label>{t('invite')}<input name="invite" minLength={20} required /></label> : <label>{t('center')}
-            <select name="center" defaultValue="" required><option value="" disabled>{t('choose')}</option>{centers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            {!centers.length && <small>{t('noCenters')}</small>}</label>}</>}
-        <button className="primary" disabled={busy}>{t(busy ? 'loading' : registering ? 'register' : 'login')}</button>
-      </form><button type="button" onClick={() => { setRegistering(!registering); setError(''); setNotice('') }}>{t(registering ? 'login' : 'register')}</button>
-      {!registering && <button onClick={() => { setRecovering(true); setError(''); setNotice('') }}>{t('forgotPassword')}</button>}
-    </section></main>
+  if (welcome) return authLayout(<AuthWelcome key={readAttempt} language={language} phase={welcome} profile={profile} error={error} onRetry={beginProfileRead} onBack={leaveWelcome} onComplete={completeWelcome} />, true)
+  if (!profile && recovering) return authLayout(<EmailRequestForm language={language} onBack={() => setRecovering(false)} />)
+  if (!profile) return authLayout(<AuthForm key={registering ? 'register' : 'login'} language={language} registering={registering} busy={busy} error={error} notice={notice} onSubmit={authenticate}
+    onMode={() => { setRegistering(!registering); setError(''); setNotice('') }} onRecovery={() => { setRecovering(true); setError(''); setNotice('') }} />)
   const manager = profile.membership?.tenant_available && profile.membership.role === 'organization_manager'
   const studentAdmin = profile.membership?.tenant_available && ['organization_manager', 'staff'].includes(profile.membership.role) || !!support
   const learner = profile.membership?.tenant_available && profile.membership.role === 'student'
