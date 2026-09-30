@@ -30,30 +30,25 @@ function useManagement<T>(path: string, language: Language) {
 export function Centers({ language, onSupport }: { language: Language; onSupport: (id: string, name: string) => void }) {
   const t = (key: string) => translate(language, key)
   const { rows, busy, run, message } = useManagement<Organization>('/admin/organizations', language)
+  const active = rows.filter(org => org.is_active).length
+  const publicCenters = rows.filter(org => org.is_public).length
+  const registrationCenters = rows.filter(org => org.registration_enabled).length
   function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const form = event.currentTarget; const values = new FormData(form)
     void run(async () => { await api('/admin/organizations', 'POST', {
       name: values.get('name'), slug: values.get('slug'), is_public: values.has('public'), registration_enabled: values.has('registration'),
     }); form.reset() })
   }
-  return <><h1>{t('centers')}</h1><p>{t('rootSupportHint')}</p>{message}{busy && <p role="status">{t('loading')}</p>}
-    <form className="card compact-form" onSubmit={create}><h2>{t('newCenter')}</h2>
-      <label>{t('centerName')}<input name="name" required maxLength={200} /></label><label>{t('slug')}<input name="slug" required pattern="[a-z0-9][a-z0-9-]{1,79}" /></label>
-      <label className="check"><input type="checkbox" name="public" />{t('public')}</label><label className="check"><input type="checkbox" name="registration" />{t('registration')}</label><button disabled={busy}>{t('create')}</button>
-    </form>{!rows.length && !busy && <p>{t('empty')}</p>}
-    {rows.map(org => <article className="card management-card" key={org.id}><h2>{org.name}</h2><p>{org.slug}</p>
-      <form onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); void run(() => api(`/admin/organizations/${org.id}`, 'PATCH', {
-        is_active: f.has('active'), is_public: f.has('public'), registration_enabled: f.has('registration'), reason: f.get('reason'),
-      })) }}>
-        <label className="check"><input type="checkbox" name="active" defaultChecked={org.is_active} />{t('active')}</label><label className="check"><input type="checkbox" name="public" defaultChecked={org.is_public} />{t('public')}</label><label className="check"><input type="checkbox" name="registration" defaultChecked={org.registration_enabled} />{t('registration')}</label>
-        <label>{t('reason')}<input name="reason" minLength={3} maxLength={500} required /></label><button disabled={busy}>{t('save')}</button>
-      </form>
-      <form onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); void run(async () => {
-        const support = await api<{ id: string }>('/admin/support-sessions', 'POST', { organization_id: org.id, reason: f.get('reason') })
-        onSupport(support.id, org.name)
-      }) }}><label>{t('reason')}<input name="reason" aria-label={`${t('support')} ${org.name}`} minLength={3} maxLength={500} required /></label><button disabled={busy || !org.is_active}>{t('support')}</button></form>
-    </article>)}</>
+  return <div className="centers-page"><div className="page-heading centers-heading"><div><div className="eyebrow"><span className="live-dot" /> root workspace</div><h1>{t('centers')}</h1><p>{t('rootSupportHint')}</p></div><button className="primary-action" onClick={() => document.getElementById('new-center')?.scrollIntoView({ behavior: 'smooth' })}>+ {t('newCenter')}</button></div>
+    {message}{busy && <p role="status">{t('loading')}</p>}
+    <section className="center-stats" aria-label={t('centers')}><div className="center-stat mint"><span>◎</span><strong>{active}</strong><small>trung tâm đang hoạt động</small></div><div className="center-stat green"><span>◉</span><strong>{publicCenters}</strong><small>trung tâm công khai</small></div><div className="center-stat blue"><span>◇</span><strong>{registrationCenters}</strong><small>cho phép đăng ký</small></div></section>
+    <div className="section-heading"><h2>Danh sách trung tâm</h2><span>{rows.length} trung tâm đang hiển thị</span></div>
+    {!rows.length && !busy && <p>{t('empty')}</p>}
+    <section className="center-list">{rows.map((org, index) => <article className={`center-card center-tone-${index % 2 ? 'blue' : 'mint'}`} key={org.id}><div className="center-summary"><div className="center-card-top"><span className="center-symbol">S</span><div className="badge-row"><span className={`badge ${org.is_active ? 'success' : 'private'}`}>{org.is_active ? 'hoạt động' : 'đã lưu trữ'}</span><span className={`badge ${org.is_public ? 'public' : 'private'}`}>{org.is_public ? 'công khai' : 'riêng tư'}</span></div></div><h3>{org.name}</h3><p>{org.slug}</p><div className="summary-footer"><span>{org.registration_enabled ? 'đang mở đăng ký' : 'đã khóa đăng ký'}</span><span className="role-badge">{index === 0 ? 'trung tâm chính' : 'trung tâm phụ'}</span></div></div><div className="center-details"><div className="detail-heading"><strong>{org.name}</strong><form onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); void run(async () => { const support = await api<{ id: string }>('/admin/support-sessions', 'POST', { organization_id: org.id, reason: f.get('reason') }); onSupport(support.id, org.name) }) }}><input type="hidden" name="reason" value={`Quản trị trung tâm ${org.name}`} /><button className="switch-button" disabled={busy || !org.is_active}>Chuyển sang</button></form></div><div className="detail-grid"><div><small>Trạng thái</small><strong>{org.is_active ? 'hoạt động' : 'đã lưu trữ'}</strong></div><div><small>Hiển thị</small><strong>{org.is_public ? 'công khai' : 'riêng tư'}</strong></div><div><small>Đăng ký</small><strong>{org.registration_enabled ? 'cho phép' : 'đã khóa'}</strong></div></div><details className="center-settings"><summary>Cài đặt trung tâm</summary><form onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); void run(() => api(`/admin/organizations/${org.id}`, 'PATCH', { is_active: f.has('active'), is_public: f.has('public'), registration_enabled: f.has('registration'), reason: f.get('reason') })) }}><label className="check"><input type="checkbox" name="active" defaultChecked={org.is_active} />{t('active')}</label><label className="check"><input type="checkbox" name="public" defaultChecked={org.is_public} />{t('public')}</label><label className="check"><input type="checkbox" name="registration" defaultChecked={org.registration_enabled} />{t('registration')}</label><label>{t('reason')}<input name="reason" minLength={3} maxLength={500} required /></label><button disabled={busy}>{t('save')}</button></form></details></div></article>)}</section>
+    <form id="new-center" className="card compact-form new-center-form" onSubmit={create}><div><div className="eyebrow">workspace setup</div><h2>{t('newCenter')}</h2></div><label>{t('centerName')}<input name="name" required maxLength={200} /></label><label>{t('slug')}<input name="slug" required pattern="[a-z0-9][a-z0-9-]{1,79}" /></label><div className="form-checks"><label className="check"><input type="checkbox" name="public" />{t('public')}</label><label className="check"><input type="checkbox" name="registration" />{t('registration')}</label></div><button className="primary-action" disabled={busy}>{t('create')}</button></form>
+  </div>
 }
+
 
 export function Members({ language, root, actorId }: { language: Language; root: boolean; actorId: string }) {
   const t = (key: string) => translate(language, key)

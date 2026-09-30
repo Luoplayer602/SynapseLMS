@@ -1,4 +1,4 @@
-const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
+const base = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/, '')
 let accessToken: string | null = null
 let supportSession: string | null = null
 let refreshing: Promise<void> | null = null
