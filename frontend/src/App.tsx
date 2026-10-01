@@ -19,6 +19,10 @@ import { EnrollmentLifecycle } from './EnrollmentLifecycle'
 import { GradingSchemes } from './GradingSchemes'
 import { MyResults, Results } from './Results'
 import { Materials, MyMaterials } from './Materials'
+import { AISettings } from './AISettings'
+import { AIPrompts } from './AIPrompts'
+import { AIPractice, PracticeReview } from './AIPractice'
+import { AIInsights } from './AIInsights'
 
 import { AuthForm, AuthLayout, AuthWelcome } from './AuthExperience'
 
@@ -65,6 +69,17 @@ export default function App() {
     return () => { generation.current += 1; operation.current += 1; window.removeEventListener('synapse-signed-out', signedOut) }
   }, [readProfile])
   useEffect(() => { document.documentElement.lang = language }, [language])
+  useEffect(() => {
+    if (profile?.membership?.role !== 'student' || !profile.membership.tenant_available) {
+      document.documentElement.dataset.theme = 'synapse-soft'
+      return
+    }
+    let active = true
+    api<{selected: string}>('/practice/rewards/mine').then(value => {
+      if (active) document.documentElement.dataset.theme = value.selected || 'synapse-soft'
+    }).catch(() => { if (active) document.documentElement.dataset.theme = 'synapse-soft' })
+    return () => { active = false }
+  }, [profile?.membership?.id, profile?.membership?.role, profile?.membership?.tenant_available])
 
   async function authenticate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -117,9 +132,17 @@ export default function App() {
   const studentAdmin = profile.membership?.tenant_available && ['organization_manager', 'staff'].includes(profile.membership.role) || !!support
   const learner = profile.membership?.tenant_available && profile.membership.role === 'student'
   const teacher = profile.membership?.tenant_available && profile.membership.role === 'teacher'
+  const rootAI = profile.is_root_admin && !support
   return <div className="app-shell"><aside className="sidebar"><div className="brand-mark">S</div><strong>SynapseLMS</strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
     <nav aria-label="Navigation"><NavLink to="/" end>{t('profile')}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}{studentAdmin && <><NavLink to="/students">{t('students')}</NavLink><NavLink to="/teachers">{t('teachers')}</NavLink><NavLink to="/courses">{t('courses')}</NavLink><NavLink to="/facilities">{t('facilities')}</NavLink><NavLink to="/classes">{t('classes')}</NavLink><NavLink to="/class-calendar">{t('weeklyAgenda')}</NavLink></>}{teacher && <><NavLink to="/teacher-profile">{t('myTeacherProfile')}</NavLink><NavLink to="/teaching-sessions">{t('myTeachingSessions')}</NavLink></>}{learner && <><NavLink to="/student-profile">{t('myStudentProfile')}</NavLink><NavLink to="/course-catalog">{t('courseCatalog')}</NavLink></>}</nav>
-      <nav className="business-navigation" aria-label={language === 'vi' ? 'Nghiệp vụ học viên' : 'Student operations'}>{(studentAdmin || learner) && <><NavLink to="/admissions">{language === 'vi' ? 'Tuyển sinh' : 'Admissions'}</NavLink><NavLink to="/enrollments">{language === 'vi' ? 'Bảo lưu & hoàn phí' : 'Enrollment & refunds'}</NavLink><NavLink to="/finances">{language === 'vi' ? 'Học phí & thu tiền' : 'Fees & collections'}</NavLink></>}{studentAdmin && <><NavLink to="/admission-settings">{language === 'vi' ? 'Thiết lập tuyển sinh' : 'Admission settings'}</NavLink><NavLink to="/grading-settings">{t('gradingSettings')}</NavLink></>}{(studentAdmin || teacher) && <NavLink to="/gradebook">{t('gradebook')}</NavLink>}{(studentAdmin || teacher) && <NavLink to="/materials">{language === 'vi' ? 'H?c li?u' : 'Materials'}</NavLink>}{learner && <NavLink to="/my-materials">{language === 'vi' ? 'T?i li?u c?a t?i' : 'My materials'}</NavLink>}{teacher && <NavLink to="/attendance">{language === 'vi' ? 'Điểm danh' : 'Attendance'}</NavLink>}{learner && <><NavLink to="/my-learning">{language === 'vi' ? 'Học tập của tôi' : 'My learning'}</NavLink><NavLink to="/my-results">{t('myResults')}</NavLink></>}</nav></aside>
+      <nav className="business-navigation" aria-label={language === 'vi' ? 'Nghiệp vụ học viên' : 'Student operations'}>{(studentAdmin || learner) && <><NavLink to="/admissions">{language === 'vi' ? 'Tuyển sinh' : 'Admissions'}</NavLink><NavLink to="/enrollments">{language === 'vi' ? 'Bảo lưu & hoàn phí' : 'Enrollment & refunds'}</NavLink><NavLink to="/finances">{language === 'vi' ? 'Học phí & thu tiền' : 'Fees & collections'}</NavLink></>}{studentAdmin && <><NavLink to="/admission-settings">{language === 'vi' ? 'Thiết lập tuyển sinh' : 'Admission settings'}</NavLink><NavLink to="/grading-settings">{t('gradingSettings')}</NavLink></>}{(studentAdmin || teacher) && <NavLink to="/gradebook">{t('gradebook')}</NavLink>}{(studentAdmin || teacher) && <NavLink to="/materials">{language === 'vi' ? 'H?c li?u' : 'Materials'}</NavLink>}{learner && <NavLink to="/my-materials">{language === 'vi' ? 'T?i li?u c?a t?i' : 'My materials'}</NavLink>}{teacher && <NavLink to="/attendance">{language === 'vi' ? 'Điểm danh' : 'Attendance'}</NavLink>}{learner && <><NavLink to="/my-learning">{language === 'vi' ? 'Học tập của tôi' : 'My learning'}</NavLink><NavLink to="/my-results">{t('myResults')}</NavLink></>}</nav>
+      <nav aria-label={language === 'vi' ? 'AI và bài luyện' : 'AI and practice'}>
+        {(rootAI || manager || !!support) && <NavLink to="/ai-settings">{language === 'vi' ? 'Thiết lập AI' : 'AI settings'}</NavLink>}
+        {rootAI && <NavLink to="/ai-prompts">Prompt Studio</NavLink>}
+        {(manager || !!support || teacher) && <NavLink to="/practice-review">{language === 'vi' ? 'Duyệt bài luyện' : 'Review practice'}</NavLink>}
+        {learner && <NavLink to="/practice">{language === 'vi' ? 'Bài luyện' : 'Practice'}</NavLink>}
+        {(learner || teacher) && <NavLink to="/ai-progress">{language === 'vi' ? 'Tiến độ AI' : 'AI progress'}</NavLink>}
+      </nav></aside>
     <main><header className="topbar"><span>{profile.display_name || profile.email}</span><div className="topbar-actions">{(studentAdmin || learner || teacher) && <NotificationBell key={support?.id || profile.membership?.id} language={language} />}{languageButton}<button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
       <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
         try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
@@ -129,6 +152,11 @@ export default function App() {
         <VerificationStatus language={language} email={profile.email} verified={!!profile.email_verified_at} />
         {!profile.is_root_admin && !profile.membership?.tenant_available && <p role="status">{t('unavailable')}</p>}</article>
         <form className="card compact-form" onSubmit={passwordChange}><h2>{t('passwordChange')}</h2><label>{t('currentPassword')}<input name="currentPassword" type="password" autoComplete="current-password" required /></label><label>{t('newPassword')}<input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></label><button className="primary" disabled={busy}>{t('save')}</button></form></>} />
+        <Route path="ai-settings" element={rootAI || manager || support ? <AISettings key={support?.id || profile.id} language={language} root={!!rootAI} /> : <Navigate to="/" replace />} />
+        <Route path="ai-prompts" element={rootAI ? <AIPrompts language={language} /> : <Navigate to="/" replace />} />
+        <Route path="practice-review" element={manager || support || teacher ? <PracticeReview key={support?.id || profile.membership?.id} language={language} manager={!!manager || !!support} /> : <Navigate to="/" replace />} />
+        <Route path="practice" element={learner ? <AIPractice key={profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
+        <Route path="ai-progress" element={learner || teacher ? <AIInsights key={profile.membership?.id} language={language} teacher={!!teacher} /> : <Navigate to="/" replace />} />
         <Route path="centers" element={profile.is_root_admin ? <Centers language={language} onSupport={(id, name) => { setSupportSession(id); setSupport({ id, name }) }} /> : <Navigate to="/" replace />} />
         <Route path="sessions" element={<Sessions language={language} />} />
         <Route path="courses" element={studentAdmin ? <Courses key={support?.id || profile.membership?.id} language={language} manager={!!manager || !!support} /> : <Navigate to="/" replace />} />

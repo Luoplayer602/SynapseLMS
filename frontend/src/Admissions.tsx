@@ -77,9 +77,12 @@ function NewRequest({ language, options, done }: { language: Language; options: 
 
 function Placement({ language, row, done }: { language: Language; row: RequestRow; done: () => void }) {
   const { data, error } = useResource<{ items: (Option & { code: string; seats_left: number; warnings: string[] })[] }>(`/admissions/requests/${row.id}/candidates`)
+  const [ranking, setRanking] = useState<{ items: (Option & { code: string; seats_left: number; warnings: string[] })[]; mode: string } | null>(null)
+  const [rankError, setRankError] = useState('')
   const t = (key: string) => tr(language, key)
   if (!data) return <Load language={language} error={error} />
-  return <><p>{!data.items.length && t('empty')}</p>{data.items.map(c => <p key={c.id}>{c.name}: {t('seats')} {c.seats_left}. {c.warnings.map(t).join('; ')}</p>)}<BusinessForm language={language} title={t('place')} path={`/admissions/requests/${row.id}/placement`} body={f => ({ version: row.version, class_id: f.get('class'), reason: f.get('reason') })} onDone={done} disabled={!data.items.length}><Select name="class" label={t('candidates')} options={data.items} /><Field name="reason" label={t('reason')} /></BusinessForm></>
+  const choices = ranking?.items || data.items
+  return <><p>{!data.items.length && t('empty')}</p><button onClick={async () => { try { setRankError(''); setRanking(await api(`/ai/recommendations/requests/${row.id}?locale=${language}`)) } catch (e) { setRankError(fail(language, e)) } }}>{language === 'vi' ? 'Gợi ý thứ tự lớp' : 'Suggest class order'}</button>{ranking && <p role="status">{ranking.mode === 'ai' ? (language === 'vi' ? 'AI hỗ trợ sắp xếp' : 'AI-assisted order') : (language === 'vi' ? 'Sắp xếp theo quy tắc' : 'Rule-based order')}</p>}{rankError && <p role="alert">{rankError}</p>}{choices.map(c => <p key={c.id}>{c.name}: {t('seats')} {c.seats_left}. {c.warnings.map(t).join('; ')}</p>)}<BusinessForm language={language} title={t('place')} path={`/admissions/requests/${row.id}/placement`} body={f => ({ version: row.version, class_id: f.get('class'), reason: f.get('reason') })} onDone={done} disabled={!data.items.length}><Select name="class" label={t('candidates')} options={choices} /><Field name="reason" label={t('reason')} /></BusinessForm></>
 }
 
 export function Admissions({ language, staff }: { language: Language; staff: boolean }) {

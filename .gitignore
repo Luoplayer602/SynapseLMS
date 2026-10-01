@@ -30,3 +30,12 @@ frontend/admissions-ui-results.json
 frontend/reservation-ui-results.json
 .local-backups/
 ui-design/
+.fastapicloud/
+
+# Backend test and local tool artifacts
+backend/.test-tmp/
+backend/.ai-e2e-tmp/
+backend/.ai-pg-test-*/
+backend/.ai-pytest-*/
+backend/.ai-test-tmp*/
+backend/.uv-cache/

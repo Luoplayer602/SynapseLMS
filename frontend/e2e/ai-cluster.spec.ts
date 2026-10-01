@@ -1,0 +1,22 @@
+import { expect, test } from '@playwright/test'
+
+test('Root versions and publishes AI instructions without a paid provider', async ({ page, request }) => {
+  await request.post('http://127.0.0.1:8011/__test/reset-rate')
+  await page.goto('/')
+  await page.getByLabel('Email', { exact: true }).fill('root@example.com')
+  await page.getByLabel('Mật khẩu', { exact: true }).fill('e2e-root-password-2026!')
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Chào mừng đến SynapseLMS' })).toBeVisible()
+  await page.getByRole('link', { name: 'Prompt Studio' }).click()
+  await expect(page.getByRole('heading', { name: 'Prompt Studio' })).toBeVisible()
+  await page.locator('.ai-form textarea').fill('Chỉ sắp xếp các lớp hợp lệ theo {task}. Trả lời bằng {locale}.')
+  await page.getByRole('button', { name: 'Tạo phiên bản' }).click()
+  await expect(page.getByText('v1 · draft')).toBeVisible()
+  await page.getByRole('button', { name: 'Thử cấu trúc' }).click()
+  await expect(page.getByText('v1 · tested')).toBeVisible()
+  await page.getByLabel('Lý do publish/rollback').fill('Đã xem dữ liệu thử')
+  await page.getByRole('button', { name: 'Publish' }).click()
+  await expect(page.getByText('v1 · published ●')).toBeVisible()
+  await page.getByRole('link', { name: 'Thiết lập AI' }).click()
+  await expect(page.getByRole('heading', { name: 'Thiết lập AI' })).toBeVisible()
+})

@@ -38,6 +38,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [Kiến trúc hệ thống](./architecture.md): module, ranh giới tenant và luồng request.
 - [Quy ước API](./api-conventions.md): URL, lỗi, phân trang, idempotency và versioning.
 - [Tích hợp AI](./ai-integration.md): provider adapter, cấu hình, bảo mật và fallback.
+- [Cụm AI](./plans/ai-cluster.md): kế hoạch, triển khai và checklist nghiệm thu cấu hình cloud/local, tư vấn lớp, bài luyện, tóm tắt tiến độ và theme thưởng.
 - [Triển khai](./deployment.md): Docker self-host, cloud và lưu trữ file.
 - [ADR-001](./decisions/ADR-001-foundation.md): các quyết định nền tảng đã chốt.
 

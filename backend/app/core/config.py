@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     material_storage_path: str = "./.local-materials"
     clamav_host: str = "localhost"
     clamav_port: int = Field(default=3310, ge=1, le=65535)
+    # Mount a Compose secret at this path. No AI credential is usable without it.
+    ai_key_file: str = "/run/secrets/synapse_ai_master_key"
+    ai_custom_hosts: list[str] = Field(default_factory=list)
+    ai_local_hosts: list[str] = Field(default_factory=list)
     cors_origins: list[AnyHttpUrl] = Field(
         default_factory=lambda: [AnyHttpUrl("http://localhost:5173")]
     )

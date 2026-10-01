@@ -31,11 +31,17 @@ services:
       SYNAPSE_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-synapse}:${POSTGRES_PASSWORD:-synapse-dev}@db:5432/${POSTGRES_DB:-synapse}
       SYNAPSE_MATERIAL_STORAGE_PATH: /srv/materials
       SYNAPSE_CLAMAV_HOST: clamav
+      SYNAPSE_AI_KEY_FILE: /run/secrets/synapse_ai_master_key
+      SYNAPSE_AI_CUSTOM_HOSTS: ${SYNAPSE_AI_CUSTOM_HOSTS:-[]}
+      SYNAPSE_AI_LOCAL_HOSTS: ${SYNAPSE_AI_LOCAL_HOSTS:-[]}
       SYNAPSE_CORS_ORIGINS: '["http://localhost:5173"]'
     ports:
       - "8000:8000"
     volumes:
       - material_data:/srv/materials
+    secrets:
+      - source: ai_master_key
+        target: synapse_ai_master_key
     depends_on:
       db:
         condition: service_healthy
@@ -80,3 +86,7 @@ services:
 volumes:
   postgres_data:
   material_data:
+
+secrets:
+  ai_master_key:
+    file: ${SYNAPSE_AI_MASTER_KEY_FILE:-C:/Users/ADMIN/SynapseLMS-secrets/ai-master-key}

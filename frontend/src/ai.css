@@ -1,0 +1,28 @@
+.ai-page { display: grid; gap: 18px; }
+.ai-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; }
+.ai-form { max-width: 740px; }
+.ai-toolbar, .ai-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.ai-prompt-body { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 300px; overflow-y: auto; }
+.ai-reason { max-width: 540px; }
+.ai-streak { display: flex; align-items: center; gap: 16px; }
+.ai-streak strong { margin: 0; font-size: 34px; }
+.ai-theme { min-height: 150px; }
+.ai-theme-neo-pop { background: linear-gradient(130deg, #fff0f7, #e7d8ff); }
+.ai-theme-clay-garden { background: linear-gradient(130deg, #e9f4e2, #f9e5d5); }
+.ai-theme-liquid-glass { background: linear-gradient(130deg, #e2f5ff, #f4e7ff); }
+html[data-theme='neo-pop'] { --button-bg: #fce4f3; --button-hover: #ffd0e9; --focus: #bc43a7; }
+html[data-theme='clay-garden'] { --button-bg: #e4eed9; --button-hover: #d2e5c0; --focus: #4f8360; }
+html[data-theme='liquid-glass'] { --button-bg: #dcefff; --button-hover: #c4dfff; --focus: #397cc0; }
+html[data-theme='neo-pop'] { background: #fff5fd; }
+html[data-theme='neo-pop'] .sidebar { background: #fff0faed; }
+html[data-theme='neo-pop'] .card { background: #fffafd; border-color: #eac5ea; }
+html[data-theme='neo-pop'] .primary, html[data-theme='neo-pop'] .brand-mark { background: #9a2d85; color: #fff; }
+html[data-theme='clay-garden'] { background: #f5f4e9; }
+html[data-theme='clay-garden'] .sidebar { background: #e8eedbe8; }
+html[data-theme='clay-garden'] .card { background: #fffcf2; border-color: #c4d6b1; }
+html[data-theme='clay-garden'] .primary, html[data-theme='clay-garden'] .brand-mark { background: #426a4c; color: #fff; }
+html[data-theme='liquid-glass'] { background: linear-gradient(140deg, #e7f5ff, #f6eefa); }
+html[data-theme='liquid-glass'] .sidebar { background: #eff7ffce; backdrop-filter: blur(22px); }
+html[data-theme='liquid-glass'] .card { background: #ffffffd9; border-color: #b7d8ed; backdrop-filter: blur(18px); }
+html[data-theme='liquid-glass'] .primary, html[data-theme='liquid-glass'] .brand-mark { background: #285e99; color: #fff; }
+@media (prefers-reduced-motion: reduce) { .ai-page *, .ai-page *::before, .ai-page *::after { animation: none !important; transition: none !important; } }

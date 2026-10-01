@@ -12,6 +12,15 @@ from app.models.admissions import (
     Notification,
     Payment,
 )
+from app.models.ai import (
+    AIActivePrompt,
+    AIProgressCache,
+    AIPrompt,
+    AIProvider,
+    AIRoute,
+    AIRun,
+    AITenantSetting,
+)
 from app.models.auth import AccountToken, AuthSession, RefreshToken
 from app.models.classroom import Branch, LearningClass, Room
 from app.models.course import Course, CourseLanguage, CourseLevel, LevelFramework
@@ -40,6 +49,13 @@ from app.models.materials import (
 )
 from app.models.membership_invitation import MembershipInvitation
 from app.models.organization import Organization
+from app.models.practice import (
+    PracticeAttempt,
+    PracticeDay,
+    PracticeQuestion,
+    ThemeGrant,
+    ThemeSelection,
+)
 from app.models.proficiency import ProficiencyHistory, StudentProficiency
 from app.models.results import (
     ClassGradebook,
@@ -66,6 +82,18 @@ from app.models.teacher import (
 )
 
 __all__ = [
+    "AIActivePrompt",
+    "AIPrompt",
+    "AIProgressCache",
+    "AIProvider",
+    "AIRoute",
+    "AIRun",
+    "AITenantSetting",
+    "PracticeAttempt",
+    "PracticeDay",
+    "PracticeQuestion",
+    "ThemeGrant",
+    "ThemeSelection",
     "ClassCurriculum",
     "CourseCurriculum",
     "Curriculum",

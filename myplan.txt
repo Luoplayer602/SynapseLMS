@@ -887,3 +887,16 @@ Một backlog item chỉ hoàn thành khi:
 ## 37. Triển khai học liệu 0016 — 2026-10-01
 
 - Người dùng duyệt kế hoạch MAT-01–07 tại `docs/plans/learning-materials.md`; chọn scanner ClamAV nội bộ fail closed. Đã code/test/deploy migration0016, private volume, thư viện/duyệt/giáo trình/phân phối/grant/thu hồi và UI. DB thật giữ hash56 bảng cũ,12 bảng mới rỗng, backup `.local-backups/pre0016-final.dump`; DB/Mailpit và volume cũ nguyên. Backend học liệu13 đạt/1 skip hai hệ DB (quota đồng thời đạt PostgreSQL), UI104/104, E2E1/1, lint/build/Alembic check đạt. Chờ người dùng nghiệm thu checklist theo vai trò; không stage/commit, sửa `.env`, seed thật hoặc chuyển Jira Done.
+
+## 38. Kế hoạch cụm AI — 2026-10-01
+
+- Người dùng xác nhận học liệu0016 nghiệm thu tạm đạt do giới hạn thời gian; không đồng nghĩa mọi kiểm tra sâu đã hoàn tất. Chọn lập kế hoạch **toàn cụm AI** thay vì chỉ một bài luyện: Root cấu hình nhiều nguồn API/local và route theo tác vụ → tư vấn lớp → bài luyện → tóm tắt tiến độ → streak/theme. Bảng trường cấu hình và quyết định còn mở nằm tại `docs/plans/ai-cluster.md`. File `conf.yaml` của Open-LLM-VTuber chỉ dùng tham khảo cấu trúc LLM, không dùng secret/ASR/TTS làm yêu cầu SynapseLMS. Phiên này chỉ lập kế hoạch, chưa code/deploy/Jira.
+- Người dùng chốt ASR/TTS/VAD sang đợt tiếng nói riêng, ưu tiên thấp. Đề xuất còn chờ chốt: khóa mã hóa credential cấp bằng Docker secret độc lập; streak tính một bài hợp lệ/ngày, không ngưỡng điểm, mốc3/7/14 và theme đã mở được giữ. Chỉ cập nhật kế hoạch, chưa triển khai.
+
+## 39. Triển khai cụm AI 0017 — 2026-10-01
+
+- Người dùng duyệt triển khai toàn cụm AI, giữ ASR/TTS/VAD cho đợt riêng. Đã code/test/deploy migration0017 cùng provider cloud/local, Prompt Studio, gợi ý lớp, bài luyện, tóm tắt tiến độ, streak/theme; AI tenant tắt mặc định, không seed/key provider thật. Backup và baseline dữ liệu cũ đạt; DB/Mailpit/volume giữ nguyên. Chi tiết, giới hạn và checklist nghiệm thu tại `docs/plans/ai-cluster.md`; người dùng chưa nghiệm thu AI. Không commit/stage, sửa `.env` hoặc đổi Jira.
+
+## 40. Quyết định đổi bài luyện sang bộ đề tự động — 2026-10-01
+
+- Người dùng muốn bỏ duyệt từng câu AI: sinh bộ 10–20 câu, Root làm thử/duyệt một mẫu cho cấu hình, sau đó tự phát hành bộ hợp lệ theo lịch cố định; một bộ mỗi ngày, hoàn thành trọn bộ mới tính ngày streak. [Kế hoạch](docs/plans/practice-sets-automation.md) đã lưu, chưa triển khai.
