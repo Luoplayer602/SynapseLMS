@@ -900,3 +900,7 @@ Một backlog item chỉ hoàn thành khi:
 ## 40. Quyết định đổi bài luyện sang bộ đề tự động — 2026-10-01
 
 - Người dùng muốn bỏ duyệt từng câu AI: sinh bộ 10–20 câu, Root làm thử/duyệt một mẫu cho cấu hình, sau đó tự phát hành bộ hợp lệ theo lịch cố định; một bộ mỗi ngày, hoàn thành trọn bộ mới tính ngày streak. [Kế hoạch](docs/plans/practice-sets-automation.md) đã lưu, chưa triển khai.
+
+## 41. Đổi ưu tiên sang frontend — 2026-10-01
+
+- Tạm hoãn bộ đề AI, ưu tiên làm lại toàn bộ UI/UX theo `ui-design`, giữ API và nghiệp vụ backend; [kế hoạch](docs/plans/frontend-uiux-rebuild.md) đã lưu, chưa sửa màn hình/deploy. `.gitignore` bổ sung rule cho file test/cache backend mới; 48 file `.test-tmp` đã tracked cần xử lý riêng, không stage hoặc xóa trong phiên này.

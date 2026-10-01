@@ -6,7 +6,7 @@ async function signIn(page: Page, email: string) {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Mật khẩu', { exact: true }).fill('class-module-password!')
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Chào mừng đến SynapseLMS' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Chào mừng trở lại/ })).toBeVisible()
   await page.getByRole('button', { name: 'English', exact: true }).click()
 }
 

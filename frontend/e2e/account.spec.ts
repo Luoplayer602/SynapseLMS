@@ -9,7 +9,7 @@ async function login(page: Page, email: string, password: string) {
   await page.getByLabel('Email', { exact: true }).fill(email)
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password)
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Chào mừng đến SynapseLMS' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Chào mừng trở lại/ })).toBeVisible()
 }
 
 test('verification and recovery links complete the account lifecycle', async ({ page, browser, request }) => {

@@ -6,7 +6,7 @@ test('Root versions and publishes AI instructions without a paid provider', asyn
   await page.getByLabel('Email', { exact: true }).fill('root@example.com')
   await page.getByLabel('Mật khẩu', { exact: true }).fill('e2e-root-password-2026!')
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Chào mừng đến SynapseLMS' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Chào mừng trở lại/ })).toBeVisible()
   await page.getByRole('link', { name: 'Prompt Studio' }).click()
   await expect(page.getByRole('heading', { name: 'Prompt Studio' })).toBeVisible()
   await page.locator('.ai-form textarea').fill('Chỉ sắp xếp các lớp hợp lệ theo {task}. Trả lời bằng {locale}.')

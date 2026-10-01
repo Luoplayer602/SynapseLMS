@@ -88,7 +88,7 @@ test('existing account signs in with its password before confirming membership',
   await recipient.getByRole('button', { name: 'Tiếp nhận lời mời' }).click()
   await expect(recipient.getByRole('status')).toContainText('Đã tiếp nhận lời mời')
   await recipient.getByRole('link', { name: 'Về trang đăng nhập' }).click()
-  await expect(recipient.getByRole('heading', { name: 'Chào mừng đến SynapseLMS' })).toBeVisible()
+  await expect(recipient.getByRole('heading', { name: /Chào mừng trở lại/ })).toBeVisible()
   await expect(recipient.locator('.profile-card')).toContainText('Existing invite user')
   await expect(recipient.locator('.profile-card')).toContainText('Giáo viên')
   await recipientContext.close()
