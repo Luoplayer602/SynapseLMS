@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import func, select
 
 from app.api.dependencies import DB, Tenant, auth_guard
+from app.api.routes import materials as material_routes
 from app.api.routes.admissions import page, view
 from app.api.routes.courses import Limit, Offset, authorize
 from app.core.errors import APIError
@@ -51,7 +52,14 @@ def inbox(
     limit: Limit = 20,
     offset: Offset = 0,
 ):
-    authorize(db, tenant, request, response, "business_read")
+    current = authorize(db, tenant, request, response, "business_read")
+    if current == "student":
+        try:
+            list(material_routes.learner_rows(db, tenant))
+            db.commit()
+        except APIError as error:
+            if error.code != "ADMISSION_PROFILE_REQUIRED":
+                raise
     query = select(Notification).where(
         Notification.organization_id == tenant.organization.id,
         Notification.user_id == tenant.actor.user.id,

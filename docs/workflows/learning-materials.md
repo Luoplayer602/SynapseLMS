@@ -1,6 +1,6 @@
 # Quản lý giáo trình và tài liệu tham khảo
 
-Trạng thái: luồng bổ sung, chỉ triển khai khi phù hợp; không là điều kiện hoàn thành giai đoạn xác thực/phân quyền hoặc mốc beta hiện tại. Quyền chi tiết, hạn mức và chính sách sau khóa học dưới đây là mặc định đề xuất, chưa phải quyết định khảo sát đã xác nhận. Chưa triển khai code hoặc migration.
+Trạng thái: phạm vi PDF/PNG/JPEG/MP3/HTTPS link đã triển khai trong migration 0016; xem [kế hoạch và kiểm thử](../plans/learning-materials.md) cùng [vận hành](../materials-operations.md). Phần mô tả mở rộng bên dưới là bối cảnh sản phẩm; các mục ngoài phạm vi 0016 vẫn chỉ là đề xuất.
 
 ## Phạm vi
 

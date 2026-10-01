@@ -29,14 +29,37 @@ services:
       SYNAPSE_SMTP_PORT: "1025"
       SYNAPSE_SMTP_SECURITY: none
       SYNAPSE_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-synapse}:${POSTGRES_PASSWORD:-synapse-dev}@db:5432/${POSTGRES_DB:-synapse}
+      SYNAPSE_MATERIAL_STORAGE_PATH: /srv/materials
+      SYNAPSE_CLAMAV_HOST: clamav
       SYNAPSE_CORS_ORIGINS: '["http://localhost:5173"]'
     ports:
       - "8000:8000"
+    volumes:
+      - material_data:/srv/materials
     depends_on:
       db:
         condition: service_healthy
       mailpit:
         condition: service_started
+      clamav:
+        condition: service_started
+
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+
+  material-gc:
+    image: synapselms-api
+    command: ["sh", "-c", "while true; do .venv/bin/python -m app.material_gc --apply; sleep 86400; done"]
+    environment:
+      SYNAPSE_ENV: development
+      SYNAPSE_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-synapse}:${POSTGRES_PASSWORD:-synapse-dev}@db:5432/${POSTGRES_DB:-synapse}
+      SYNAPSE_MATERIAL_STORAGE_PATH: /srv/materials
+    volumes:
+      - material_data:/srv/materials
+    depends_on:
+      db:
+        condition: service_healthy
 
   mailpit:
     image: axllent/mailpit:v1.29
@@ -56,3 +79,4 @@ services:
 
 volumes:
   postgres_data:
+  material_data:

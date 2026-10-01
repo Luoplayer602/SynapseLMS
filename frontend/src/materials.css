@@ -1,0 +1,14 @@
+.materials-page { display: grid; gap: 1rem; }
+.materials-page > p { margin: 0; }
+.materials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
+.material-form { display: grid; gap: .75rem; }
+.material-form label, .materials-page section > label { display: grid; gap: .3rem; }
+.material-form input, .material-form select, .materials-page section > label select, .materials-page section > label input { width: 100%; }
+.material-inline { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem; margin: .75rem 0; }
+.material-inline input, .material-inline select { min-width: 9rem; flex: 1; }
+.material-list { display: grid; gap: .5rem; }
+.material-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid var(--border, #d8dce4); padding: .75rem 0; }
+.material-row p { margin: .25rem 0; }
+.material-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.curriculum-editor { display: grid; gap: .5rem; margin-top: 1rem; }
+@media (max-width: 700px) { .material-row { align-items: stretch; flex-direction: column; } .material-actions > button { flex: 1; } }

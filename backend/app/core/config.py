@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     verification_minutes: int = Field(default=1440, ge=5, le=1440)
     reset_minutes: int = Field(default=30, ge=5, le=60)
     database_url: str = "sqlite+aiosqlite:///./synapse.db"
+    material_storage_path: str = "./.local-materials"
+    clamav_host: str = "localhost"
+    clamav_port: int = Field(default=3310, ge=1, le=65535)
     cors_origins: list[AnyHttpUrl] = Field(
         default_factory=lambda: [AnyHttpUrl("http://localhost:5173")]
     )

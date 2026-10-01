@@ -24,9 +24,30 @@ from app.models.enrollment_lifecycle import (
     RefundPolicy,
 )
 from app.models.identity import User, UserMembership
+from app.models.materials import (
+    ClassCurriculum,
+    CourseCurriculum,
+    Curriculum,
+    CurriculumMaterial,
+    CurriculumUnit,
+    CurriculumVersion,
+    Material,
+    MaterialAssignment,
+    MaterialQuota,
+    MaterialReview,
+    MaterialVersion,
+    StudentMaterialGrant,
+)
 from app.models.membership_invitation import MembershipInvitation
 from app.models.organization import Organization
 from app.models.proficiency import ProficiencyHistory, StudentProficiency
+from app.models.results import (
+    ClassGradebook,
+    ClassGradeItem,
+    CourseGradingComponent,
+    CourseGradingScheme,
+    StudentScore,
+)
 from app.models.schedule import (
     ClassSession,
     ClassTeacher,
@@ -45,6 +66,23 @@ from app.models.teacher import (
 )
 
 __all__ = [
+    "ClassCurriculum",
+    "CourseCurriculum",
+    "Curriculum",
+    "CurriculumMaterial",
+    "CurriculumUnit",
+    "CurriculumVersion",
+    "Material",
+    "MaterialAssignment",
+    "MaterialQuota",
+    "MaterialReview",
+    "MaterialVersion",
+    "StudentMaterialGrant",
+    "ClassGradebook",
+    "ClassGradeItem",
+    "CourseGradingComponent",
+    "CourseGradingScheme",
+    "StudentScore",
     "EnrollmentOperation",
     "EnrollmentPeriod",
     "InvoiceAdjustment",

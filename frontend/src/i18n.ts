@@ -1,5 +1,8 @@
 export type Language = 'vi' | 'en'
 const labels: Record<string, [string, string]> = {
+  gradebook: ['Sổ điểm', 'Gradebook'],
+  gradingSettings: ['Thiết lập điểm', 'Grading settings'],
+  myResults: ['Kết quả của tôi', 'My results'],
   authTagline: ['Mỗi ngày, một bước tiến.', 'A little progress, every day.'],
   authKickerLogin: ['CHÀO MỪNG TRỞ LẠI', 'WELCOME BACK'], authKickerRegister: ['BẮT ĐẦU HÀNH TRÌNH', 'START YOUR JOURNEY'],
   authVisualCopy: ['Không gian để học hỏi, kết nối và lớn lên cùng nhau.', 'A space to learn, connect and grow together.'],
@@ -224,6 +227,15 @@ export function translate(language: Language, key: string): string {
   return labels[key]?.[language === 'vi' ? 0 : 1] || key
 }
 const errors: Record<string, [string, string]> = {
+  RESULT_SCHEME_WEIGHT: ['Tổng trọng số mẫu phải bằng 10.000.', 'Scheme weights must total 10,000.'],
+  RESULT_SCHEME_ACTIVE: ['Khóa học đã có mẫu đang công bố; hãy ngừng dùng mẫu cũ trước.', 'This course already has a published scheme; retire it first.'],
+  RESULT_SCHEME_REQUIRED: ['Khóa học chưa có mẫu điểm đang công bố.', 'This course has no published grading scheme.'],
+  RESULT_GRADEBOOK_EXISTS: ['Lớp đã có sổ điểm; hãy làm mới.', 'This class already has a gradebook. Refresh.'],
+  RESULT_ROSTER_CHANGED: ['Danh sách học viên tại thời điểm đánh giá đã thay đổi; hãy làm mới.', 'The assessment roster changed. Refresh.'],
+  RESULT_SCORE_RANGE: ['Điểm vượt mức tối đa của đầu điểm.', 'The score exceeds the item maximum.'],
+  RESULT_LOCKED: ['Sổ điểm đã khóa hoặc không thể đổi thời điểm đánh giá.', 'The gradebook is locked or its assessment time cannot be changed.'],
+  RESULT_PUBLICATION_FINAL: ['Kết quả đã công bố; không thể lùi giờ công bố.', 'Results are published; the time cannot be moved back.'],
+  BUSINESS_REASON_REQUIRED: ['Cần ghi lý do ít nhất 3 ký tự cho thay đổi sau công bố.', 'A reason of at least 3 characters is required after publication.'],
   LIFECYCLE_STATE: ['Trạng thái đăng ký không cho phép thao tác này.', 'This action is unavailable in the current enrollment state.'],
   LIFECYCLE_SESSION: ['Chọn buổi tương lai hợp lệ, không trước mốc quyền học gần nhất.', 'Choose an eligible future session, not before the latest learning boundary.'],
   LIFECYCLE_CLASS_UNAVAILABLE: ['Lớp, phòng hoặc giáo viên không còn sẵn sàng.', 'The class, room or teacher is unavailable.'],

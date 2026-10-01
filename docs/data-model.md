@@ -97,11 +97,15 @@ Vận hành buổi, migration `20260926_0012`: ClassSession thêm status (schedu
 - `class_placements` lưu chế độ AUTO/MANUAL, trạng thái, lý do không xếp được và người quyết định.
 - Assessment dựa trên template của Course nhưng có thể được snapshot khi mở lớp để tránh thay đổi lịch sử.
 
+## Kết quả học tập, migration 0015
+
+Năm bảng `course_grading_schemes`, `course_grading_components`, `class_gradebooks`, `class_grade_items`, `student_scores` thêm mẫu có phiên bản, snapshot sổ lớp, đầu điểm theo lớp và điểm Decimal hai chữ số. FK tổng hợp bảo vệ course/class/tenant và enrollment/class/tenant; `EnrollmentPeriod` tại thời điểm đánh giá xác định roster. `BusinessOperation` giữ lịch sử trước/sau/idempotency; không backfill điểm. Xem [kết quả học tập](./results.md).
+
 ## Checkpoint triển khai 0013 (tuyển sinh/tài chính/điểm danh)
 
 Phần vòng đời/hoàn phí được bổ sung bởi0014: `enrollment_periods`, `enrollment_operations`, `refund_policies`, `refund_cases`, `invoice_adjustments`, `refund_disbursements`; thay các tên dự kiến enrollment_reservations/refund_offsets/refunds ở trên. Enrollment thêm state/version, AdmissionRequest thêm cancelled_at; không đổi total/kỳ/thu cũ. Hợp đồng và trạng thái thực tế: [bảo lưu và hoàn phí](./workflows/reservation-refund.md).
 
-Tên bảng thực tế: `admission_settings`, `fee_policies`, `discount_codes`, `admission_openings`, `admission_requests`, `enrollments`, `invoices`, `payments`, `attendance_sheets`, `business_operations`, `notifications`. Đây thay tên dự kiến course_registration_requests/class_placements ở mô tả cũ. Xếp lớp hiện là một Enrollment/request (unique), trạng thái yêu cầu submitted/rejected/waiting/placed, actor/lý do/snapshot trong BusinessOperation. Chưa trạng thái hủy/bảo lưu/chuyển lớp/hoàn thành.
+Tên bảng thực tế ở mốc0013: `admission_settings`, `fee_policies`, `discount_codes`, `admission_openings`, `admission_requests`, `enrollments`, `invoices`, `payments`, `attendance_sheets`, `business_operations`, `notifications`. Đây thay tên dự kiến course_registration_requests/class_placements ở mô tả cũ. Một yêu cầu được xếp vào tối đa một Enrollment, với trạng thái submitted/rejected/waiting/placed và actor/lý do/snapshot trong BusinessOperation. Mốc0014 bổ sung hủy/bảo lưu nhưng vẫn chưa có chuyển lớp hoặc tự hoàn thành enrollment.
 
 Invoice unique request, giữ gross/discount/total/policy snapshot/kỳ thu JSON. Payment không xóa; đảo lưu reversed_at/by/reason, audit và snapshot nghiệp vụ cùng transaction. AttendanceSheet unique session, roster JSON kiểm tra ID duy nhất/đúng enrollment tại giờ buổi; không tách bảng Attendance từng học viên trong bản này. Notification unique tenant/user/event_key. FK tổng hợp ở quan hệ scope, kiểm tra quyền/JSON qua API. Xem [đặc tả 0013](./admissions-delivery.md).
 

@@ -80,6 +80,7 @@ Mỗi tài khoản nghiệp vụ chỉ có một vai trò và thuộc một trun
 - Điều kiện hoàn thành có thể kết hợp điểm, chuyên cần và xác nhận.
 - Giáo viên cấu hình thời điểm công bố kết quả theo lớp.
 - Chỉ giáo viên phụ trách được nhập hoặc sửa điểm; giáo vụ chỉ được xem kết quả.
+- Đợt 0015 triển khai mẫu điểm có phiên bản, sổ lớp chụp mẫu, điểm Decimal/roster theo thời điểm học, công bố có hẹn giờ và khóa sổ; chưa tự xét đạt/rớt hoặc hoàn thành enrollment. Xem [hợp đồng kết quả](./results.md).
 
 ### 4.6 AI
 

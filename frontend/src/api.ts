@@ -20,11 +20,11 @@ async function authLock<T>(action: () => Promise<T>): Promise<T> {
 }
 async function send(path: string, method = 'GET', body?: unknown): Promise<Response> {
   const headers: Record<string, string> = { 'X-Synapse-Client': 'web' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  if (body !== undefined && !(body instanceof FormData)) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
   if (supportSession) headers['X-Support-Session'] = supportSession
   return fetch(base + path, { method, headers, credentials: 'include',
-    body: body === undefined ? undefined : JSON.stringify(body) })
+    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body) })
 }
 async function result<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -52,6 +52,13 @@ export async function api<T>(path: string, method = 'GET', body?: unknown): Prom
     }
   }
   return result<T>(response)
+}
+export async function apiContent(path: string): Promise<{ blob?: Blob; url?: string }> {
+  let response = await send(path)
+  if (response.status === 401) { await refreshSession(); response = await send(path) }
+  if (!response.ok) { await result(response); throw new ApiError('REQUEST_FAILED', response.status) }
+  if (response.headers.get('content-type')?.includes('application/json')) return response.json()
+  return { blob: await response.blob() }
 }
 export async function signIn(email: string, password: string) {
   await authLock(async () => {

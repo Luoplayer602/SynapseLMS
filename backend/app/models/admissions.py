@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     String,
     UniqueConstraint,
     Uuid,
@@ -112,6 +113,7 @@ class Enrollment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UniqueConstraint("request_id"),
         UniqueConstraint("student_id", "class_id"),
         UniqueConstraint("id", "organization_id"),
+        Index("uq_enrollment_id_class_org", "id", "class_id", "organization_id", unique=True),
     )
     organization_id: Mapped[UUID] = mapped_column(Uuid, ForeignKey("organizations.id"), index=True)
     request_id: Mapped[UUID] = mapped_column(Uuid)

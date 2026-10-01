@@ -873,3 +873,17 @@ Một backlog item chỉ hoàn thành khi:
 - Đã code/test/deploy riêng web lúc23:23+07: login/register/welcome tải thật, mobile, Việt–Anh, light/dark/reduced motion và vỏ email; quyền vẫn từ server. UI97/10 E2E liên quan đạt, lint/build đạt;37 file nguồn/package web trong image khớp. API/DB/Mailpit/schema0014/dữ liệu giữ nguyên; không đổi Jira, stage/commit, .env hoặc compose.
 - Chi tiết và checklist duy nhất tại docs/plans/auth-soft-experience.md mục7/9, checkpoint docs/current-state.md. Chờ nghiệm thu UI trên thiết bị thật; phần thưởng theme/streak/bài tập AI và dashboard vẫn ngoài phạm vi.
 - Xác minh lại2026-09-30 sau Docker Desktop restart phát hiện DB mất endpoint network dù health API200; đã nối lại container DB hiện hữu vào mạng compose với alias `db`. Endpoint dùng DB trở lại200, Alembic0014(head), giữ container ID/image/volume/dữ liệu và không sửa compose.
+
+## 35. Kế hoạch kết quả học tập — 2026-09-30
+
+- Người dùng đã test khả năng tích hợp UI Soft; ghi nhận kiểm tra tích hợp, chưa suy diễn nghiệm thu toàn bộ thiết bị/email. Phiên chỉ lập kế hoạch, không code/test/deploy/Jira.
+- Chọn đợt RES-01–05 + khóa sổ RES-07: manager/Root hỗ trợ cấu hình mẫu đầu điểm và khóa nhưng không sửa nội dung; staff xem; ClassTeacher nhập điểm/nhận xét và hẹn công bố; student chỉ xem bản thân sau giờ. Roster dùng EnrollmentPeriod tại assessed_at, tổng Decimal chuẩn hóa100 kèm coverage/kỹ năng; chưa tự xét đạt/rớt.
+- Kế hoạch duy nhất tại docs/plans/learning-results.md. Dự kiến migration0015/năm bảng, không backfill; baseline lập kế hoạch0014(head),1 course/2 lớp/1 enrollment/2 class_teachers/83 sessions/0 attendance sheets. Export, chứng chỉ/hoàn thành enrollment, bài thi online, AI/streak/theme và notification hẹn giờ ngoài phạm vi.
+
+## 36. Triển khai kết quả học tập — 2026-09-30
+
+- Người dùng duyệt thực hiện kế hoạch RES-01–05 và khóa sổ RES-07. Đã code/test/deploy migration0015, không backfill mẫu/điểm. PostgreSQL restore/roundtrip và DB thật giữ hash51 bảng cũ,5 bảng mới rỗng; backup `.local-backups/pre0015.dump`. API/web image mới, DB/Mailpit/volume/compose giữ nguyên. UI101 đạt, E2E kết quả+tuyển sinh2 đạt; backend/module/hồi quy và assertion migration cũ đã kiểm lại như mục9 [kế hoạch](docs/plans/learning-results.md). Chờ người dùng nghiệm thu thủ công; không stage/commit, sửa `.env`/seed hay chuyển Jira Done.
+
+## 37. Triển khai học liệu 0016 — 2026-10-01
+
+- Người dùng duyệt kế hoạch MAT-01–07 tại `docs/plans/learning-materials.md`; chọn scanner ClamAV nội bộ fail closed. Đã code/test/deploy migration0016, private volume, thư viện/duyệt/giáo trình/phân phối/grant/thu hồi và UI. DB thật giữ hash56 bảng cũ,12 bảng mới rỗng, backup `.local-backups/pre0016-final.dump`; DB/Mailpit và volume cũ nguyên. Backend học liệu13 đạt/1 skip hai hệ DB (quota đồng thời đạt PostgreSQL), UI104/104, E2E1/1, lint/build/Alembic check đạt. Chờ người dùng nghiệm thu checklist theo vai trò; không stage/commit, sửa `.env`, seed thật hoặc chuyển Jira Done.

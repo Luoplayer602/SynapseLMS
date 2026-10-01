@@ -1,0 +1,20 @@
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 20260919_0001, Create organizations and identity foundation.
+INFO  [alembic.runtime.migration] Running upgrade 20260919_0001 -> 20260920_0002, Add authentication identity fields and refresh-session storage.
+C:\Users\ADMIN\AppData\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\contextlib.py:144: SAWarning: Skipped unsupported reflection of expression-based index uq_users_email_normalized
+  next(self.gen)
+INFO  [alembic.runtime.migration] Running upgrade 20260920_0002 -> 20260920_0003, Add registration controls, invitations, support sessions, audit and rate limits.
+INFO  [alembic.runtime.migration] Running upgrade 20260920_0003 -> 20260922_0004, Email action digests, verification status and login device labels.
+INFO  [alembic.runtime.migration] Running upgrade 20260922_0004 -> 20260922_0005, Email invitations: pending invitations do not create users or memberships.
+INFO  [alembic.runtime.migration] Running upgrade 20260922_0005 -> 20260923_0006, Student identity, tenant profiles and guardian contacts; no automatic backfill.
+INFO  [alembic.runtime.migration] Running upgrade 20260923_0006 -> 20260924_0007, Tenant course catalogs and immutable level codes/ranks. No demo data.
+INFO  [alembic.runtime.migration] Running upgrade 20260924_0007 -> 20260925_0008, Student proficiency and immutable history; no student data is backfilled.
+INFO  [alembic.runtime.migration] Running upgrade 20260925_0008 -> 20260926_0009, Teacher profiles, explicit teaching capabilities, credentials and history. No backfill.
+INFO  [alembic.runtime.migration] Running upgrade 20260926_0009 -> 20260926_0010, Branches, rooms and draft classes with course snapshots. No backfill.
+INFO  [alembic.runtime.migration] Running upgrade 20260926_0010 -> 20260926_0011, Teacher assignments, weekly drafts and atomic confirmed sessions; no backfill.
+INFO  [alembic.runtime.migration] Running upgrade 20260926_0011 -> 20260926_0012, Mutable individual sessions and append-only operation history; preserve reservations.
+INFO  [alembic.runtime.migration] Running upgrade 20260926_0012 -> 20260927_0013, Admissions, integer-VND accounting, attendance and in-app inbox. No backfill.
+INFO  [alembic.runtime.migration] Running upgrade 20260927_0013 -> 20260928_0014, Enrollment periods and refund ledger. Preserve old enrollment timestamps and invoices.
+INFO  [alembic.runtime.migration] Running upgrade 20260928_0014 -> 20260930_0015, learning results
+INFO  [alembic.runtime.migration] Running upgrade 20260930_0015 -> 20261001_0016, learning materials

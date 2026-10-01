@@ -1,5 +1,5 @@
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.encoders import jsonable_encoder
@@ -22,7 +22,16 @@ from app.api.dependencies import DB, Tenant, audit, auth_guard
 from app.api.routes.courses import Limit, Offset, Search, authorize, course_view
 from app.core.errors import APIError
 from app.core.security import now
-from app.models import Branch, ClassSession, Course, LearningClass, Room, SessionHistory
+from app.models import (
+    Branch,
+    ClassCurriculum,
+    ClassSession,
+    Course,
+    CourseCurriculum,
+    LearningClass,
+    Room,
+    SessionHistory,
+)
 
 router = APIRouter(dependencies=[Depends(auth_guard)])
 Facility = Literal["branches", "rooms"]
@@ -405,6 +414,7 @@ def create_class(data: ClassCreate, db: DB, tenant: Tenant, request: Request, re
     snapshot = jsonable_encoder(course_view(db, course, catalog=True))
     snapshot["captured_at"] = now().isoformat()
     item = LearningClass(
+        id=uuid4(),
         organization_id=tenant.organization.id,
         **data.model_dump(),
         course_snapshot=snapshot,
@@ -413,7 +423,25 @@ def create_class(data: ClassCreate, db: DB, tenant: Tenant, request: Request, re
             for key in ("language_id", "framework_id", "entry_level_id", "exit_level_id")
         },
     )
+    bindings = list(
+        db.scalars(
+            select(CourseCurriculum).where(
+                CourseCurriculum.course_id == course.id,
+                CourseCurriculum.organization_id == tenant.organization.id,
+            )
+        )
+    )
     db.add(item)
+    for binding in bindings:
+        db.add(
+            ClassCurriculum(
+                organization_id=tenant.organization.id,
+                class_id=item.id,
+                curriculum_version_id=binding.curriculum_version_id,
+                primary=binding.primary,
+                reason="course_snapshot",
+            )
+        )
     save(db, tenant, item, "class.create")
     return class_view(db, item)
 

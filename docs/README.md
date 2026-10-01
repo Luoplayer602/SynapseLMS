@@ -6,6 +6,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 
 - [Checkpoint hiện tại](./current-state.md): đọc trước khi tiếp tục để không tải lại toàn bộ lịch sử; phạm vi, file chính, kiểm thử và giới hạn.
 - [Tuyển sinh, học phí, điểm danh và thông báo](./admissions-delivery.md): luồng xuyên suốt, API, giới hạn và checklist nghiệm thu migration 0013.
+- [Kết quả học tập](./results.md): mẫu đầu điểm, sổ lớp, công bố/khóa và kết quả cá nhân (migration 0015).
 - [Vận hành buổi và lịch tuần](./session-operations.md): đổi/hủy/khôi phục/dạy thay, lịch sử nội bộ, API và nghiệm thu.
 
 - [PRD](./prd.md): mục tiêu, phạm vi và tiêu chí thành công của sản phẩm.
@@ -28,7 +29,7 @@ Thư mục này là nguồn tài liệu chính thức của dự án. Jira dùng
 - [Danh mục khóa học](./course-catalog.md): ngôn ngữ/bộ/cấp độ, nháp/công bố/lưu trữ, quyền và checklist nghiệm thu.
 - [Kế hoạch catalog và các bước sau](./course-catalog-next-step.md): phạm vi CRS-01/CRS-02 và thứ tự phụ thuộc các lát cắt tiếp theo.
 - [Phản hồi nghiệm thu](./test-feedback.md): lỗi nhãn/theme và trạng thái xử lý.
-- [Luồng giáo trình và tài liệu tham khảo](./workflows/learning-materials.md): thư viện, phiên bản, quyền truy cập và backlog MAT đề xuất.
+- [Luồng giáo trình và tài liệu tham khảo](./workflows/learning-materials.md): thư viện, phiên bản, quyền truy cập; [vận hành học liệu 0016](./materials-operations.md).
 - [Luồng đăng ký và xếp lớp](./workflows/enrollment.md): duyệt khóa học, tạo hóa đơn và xếp lớp.
 - [Luồng bảo lưu và hoàn phí](./workflows/reservation-refund.md): bảo lưu từ buổi học, đề xuất và thực hiện hoàn phí.
 - [Luồng chuyển trung tâm](./workflows/student-transfer.md): phê duyệt hai phía và chuyển lịch sử học viên.
