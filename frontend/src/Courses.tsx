@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { api, ApiError } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { BusinessList, BusinessPage } from './ui/BusinessPage'
 
 export interface Metadata { id: string; code: string; name: string; version?: number; language_id?: string; framework_id?: string; rank?: number }
 interface Settings { languages: Metadata[]; frameworks: Metadata[]; levels: Metadata[] }
@@ -58,23 +59,23 @@ export function Courses({ language, catalog = false, manager = false }: { langua
   function reload() { setError(''); setLoading(true); setRevision(n => n + 1) }
   function back() { setCreating(false); setConfiguration(false); setSelected(''); setDetail(null); setNotice(''); reload() }
   function saved(item: CourseRecord) { setDetail(item); setCreating(false); setSelected(item.id); setNotice('updated') }
-  return <><h1>{t(catalog ? 'courseCatalog' : 'courses')}</h1><p>{t(catalog ? 'catalogHint' : 'coursesHint')}</p>
+  return <BusinessPage title={t(catalog ? 'courseCatalog' : 'courses')} description={t(catalog ? 'catalogHint' : 'coursesHint')}>
     {error && <p role="alert" className="error">{t(notice === 'catalogDeleted' ? 'deletedReloadFailed' : notice ? 'savedReloadFailed' : 'catalogLoadFailed')} {errorMessage(language, error)}</p>}
     {notice && <p role="status">{t(notice)}</p>}
     {loading && <p role="status">{t('loading')}</p>}
     <div className="session-actions">{(selected || creating || configuration) && <button onClick={back}>{t('backToCourses')}</button>}<button disabled={loading} onClick={reload}>{t('refreshList')}</button></div>
     {!selected && !creating && !configuration && <>
-      <form className="compact-form" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setOffset(0); setFilter({ q: String(values.get('q')), status: String(values.get('status') || 'all'), language_id: String(values.get('language_id')), exit_level_id: String(values.get('exit_level_id')) }); reload() }}>
+      <form className="compact-form business-filter" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setOffset(0); setFilter({ q: String(values.get('q')), status: String(values.get('status') || 'all'), language_id: String(values.get('language_id')), exit_level_id: String(values.get('exit_level_id')) }); reload() }}>
         <label>{t('courseSearch')}<input name="q" defaultValue={filter.q} maxLength={100} /></label>
         {!catalog && <label>{t('courseStatus')}<select name="status" defaultValue={filter.status}>{['all', 'draft', 'published', 'archived'].map(value => <option key={value} value={value}>{t(`course_${value}`)}</option>)}</select></label>}
         <label>{t('courseLanguage')}<select name="language_id" defaultValue={filter.language_id}><option value="">{t('allChoices')}</option>{settings.languages.map(item => <option value={item.id} key={item.id}>{item.name} ({item.code})</option>)}</select></label>
         <label>{t('exitLevel')}<select name="exit_level_id" defaultValue={filter.exit_level_id}><option value="">{t('allChoices')}</option>{settings.levels.map(item => <option value={item.id} key={item.id}>{item.name} ({item.code})</option>)}</select></label>
         <button disabled={loading}>{t('search')}</button>
       </form>
-      {!catalog && <div className="session-actions"><button disabled={loading || !!error} onClick={() => { setCreating(true); setDetail(null); setNotice('') }}>{t('newCourse')}</button><button disabled={loading || !!error} onClick={() => setConfiguration(true)}>{t('courseSettings')}</button></div>}
+      {!catalog && <div className="session-actions"><button className="primary" disabled={loading || !!error} onClick={() => { setCreating(true); setDetail(null); setNotice('') }}>{t('newCourse')}</button><button disabled={loading || !!error} onClick={() => setConfiguration(true)}>{t('courseSettings')}</button></div>}
       {!loading && !error && !page?.items.length && <p>{t('empty')}</p>}
-      {!error && page?.items.map(item => <article key={item.id} className="card management-card"><h2>{item.name}</h2><p>{item.code}{item.status && ` · ${t(`course_${item.status}`)}`}</p><p>{item.language?.name} {item.exit_level && ` · ${item.exit_level.name}`}</p>
-        <button disabled={loading} onClick={() => { setSelected(item.id); setDetail(null); setNotice(''); setLoading(true) }}>{t('viewCourse')}</button></article>)}
+      {!error && <BusinessList label={t(catalog ? 'courseCatalog' : 'courses')}>{page?.items.map(item => <article key={item.id} role="listitem" className="card management-card"><h2>{item.name}</h2><p>{item.code}{item.status && ` · ${t(`course_${item.status}`)}`}</p><p>{item.language?.name} {item.exit_level && ` · ${item.exit_level.name}`}</p>
+        <button disabled={loading} onClick={() => { setSelected(item.id); setDetail(null); setNotice(''); setLoading(true) }}>{t('viewCourse')}</button></article>)}</BusinessList>}
       {page && <div className="session-actions"><button disabled={loading || offset === 0} onClick={() => { setOffset(Math.max(0, offset - 20)); setLoading(true) }}>{t('previousPage')}</button><span>{page.items.length ? offset + 1 : 0}–{page.items.length ? offset + page.items.length : 0} / {page.total}</span><button disabled={loading || offset + 20 >= page.total} onClick={() => { setOffset(offset + 20); setLoading(true) }}>{t('nextPage')}</button></div>}
     </>}
     {!loading && !error && configuration && <CourseSettings language={language} manager={manager} settings={settings} initialKind={settingKind} onKind={setSettingKind} onSaved={(deleted = false) => { setNotice(deleted ? 'catalogDeleted' : 'updated'); reload() }} />}
@@ -82,7 +83,7 @@ export function Courses({ language, catalog = false, manager = false }: { langua
       <h3>{t('courseDescription')}</h3><p>{detail.description || '—'}</p><h3>{t('entryLevel')}</h3><p>{detail.entry_level?.name || t('noEntryRequirement')}</p><p>{detail.entry_requirements || '—'}</p>
       <h3>{t('exitLevel')}</h3><p>{detail.exit_level?.name}</p><h3>{t('objectives')}</h3><p>{detail.objectives}</p><h3>{t('completionRequirements')}</h3><p>{detail.completion_requirements || '—'}</p></article> :
       <CourseEditor key={`${detail?.id || 'new'}:${detail?.version || 0}:${revision}`} language={language} manager={manager} detail={detail} settings={settings} onSaved={saved} onDeleted={() => { back(); setNotice('catalogDeleted') }} />)}
-  </>
+  </BusinessPage>
 }
 
 export function CourseEditor({ language, manager, detail, settings, onSaved, onDeleted }: { language: Language; manager: boolean; detail: CourseRecord | null; settings: Settings; onSaved: (item: CourseRecord) => void; onDeleted?: () => void }) {

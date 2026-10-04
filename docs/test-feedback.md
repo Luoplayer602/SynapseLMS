@@ -1,5 +1,14 @@
 # Ghi nhận trong quá trình nghiệm thu
 
+## BUG-005 — Đăng nhập tài khoản bị khóa báo sai thông báo
+
+- Ngày ghi nhận: 2026-10-02. Người dùng báo khi đăng nhập tài khoản bị khóa, ứng dụng hiện “Email hoặc mật khẩu không đúng.”
+- Trạng thái: ĐÃ GHI NHẬN, CHƯA SỬA; xử lý sau đợt đăng nhập/dashboard theo yêu cầu người dùng.
+- Mong đợi: “Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.” Có bản dịch tiếng Anh tương ứng.
+- Bằng chứng code: `backend/app/api/routes/auth.py`, luồng đăng nhập gộp `not user`, mật khẩu không hợp lệ và `not user.is_active` vào `INVALID_CREDENTIALS`; `frontend/src/i18n.ts` dịch mã này thành lỗi email/mật khẩu.
+- Hướng sửa đề xuất: sau khi xác minh mật khẩu đúng, trả mã lỗi riêng cho tài khoản bị khóa (dự kiến `ACCOUNT_LOCKED`) và thêm bản dịch UI. Email không tồn tại hoặc mật khẩu sai vẫn dùng thông báo hiện tại. Không cấp access token/refresh cookie cho tài khoản khóa và giữ kiểm soát rate limit. Kiểm tra riêng khóa tài khoản và khóa membership/trung tâm để không báo sai nguyên nhân.
+- Kiểm thử/nghiệm thu sau sửa: tài khoản hoạt động đăng nhập được; tài khoản khóa + mật khẩu đúng hiện thông báo mới; tài khoản khóa + mật khẩu sai và email không tồn tại vẫn hiện lỗi thông tin đăng nhập; không tạo phiên cho tài khoản khóa; khóa sau đăng nhập vẫn thu hồi/chặn quyền theo cơ chế hiện có. Kiểm tra VI/EN và mobile.
+
 ## Đề xuất — Màn hình xem log dễ sử dụng (để sau)
 
 - Ngày ghi nhận: 2026-09-26. Người dùng làm rõ “không xem được” là không biết backend đã giữ phòng hay chưa, không phải lỗi trang web hoặc tài liệu. Phòng dùng theo buổi/giờ, không độc quyền theo lớp cả tuần.

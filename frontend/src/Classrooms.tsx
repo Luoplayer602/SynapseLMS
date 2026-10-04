@@ -4,6 +4,7 @@ import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import type { CourseRecord } from './Courses'
 import { ClassPlanner } from './Scheduling'
+import { BusinessList, BusinessPage } from './ui/BusinessPage'
 
 type Kind = 'branches' | 'rooms' | 'classes'
 interface Page<T> { items: T[]; total: number }
@@ -32,10 +33,10 @@ export function Classrooms({ language, facilities = false, manager = false }: { 
   const t = (key: string) => translate(language, key)
   const [facilityKind, setKind] = useState<'branches' | 'rooms'>('branches')
   const kind: Kind = facilities ? facilityKind : 'classes'
-  return <><h1>{t(facilities ? 'facilities' : 'classes')}</h1><p>{t(facilities ? 'facilitiesHint' : 'draftClassHint')}</p>
+  return <BusinessPage title={t(facilities ? 'facilities' : 'classes')} description={t(facilities ? 'facilitiesHint' : 'draftClassHint')}>
     {facilities && <div className="session-actions">{(['branches', 'rooms'] as const).map(value => <button key={value} aria-pressed={kind === value} onClick={() => setKind(value)}>{t(value)}</button>)}</div>}
     <FoundationList key={kind} kind={kind} language={language} writable={!facilities || manager} />
-  </>
+  </BusinessPage>
 }
 
 function FoundationList({ kind, language, writable }: { kind: Kind; language: Language; writable: boolean }) {
@@ -78,15 +79,15 @@ function FoundationList({ kind, language, writable }: { kind: Kind; language: La
       {kind === 'classes' && editing !== 'new' && <button onClick={() => setPlanning(editing.id)}>{t('classPlanning')}</button>}
       <FoundationEditor key={editing === 'new' ? 'new' : `${editing.id}:${editing.version}`} kind={kind} language={language} writable={writable} item={editing === 'new' ? null : editing} options={options} onSaved={() => { reload(); setSaved(true) }} />
     </> : <>
-      <form className="compact-form" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setQuery(String(values.get('q'))); setStatus(String(values.get('status'))); setBranch(String(values.get('branch') || '')); setCourse(String(values.get('course') || '')); setOffset(0); setSaved(false); reload() }}>
+      <form className="compact-form business-filter" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setQuery(String(values.get('q'))); setStatus(String(values.get('status'))); setBranch(String(values.get('branch') || '')); setCourse(String(values.get('course') || '')); setOffset(0); setSaved(false); reload() }}>
         <label>{t('foundationSearch')}<input name="q" maxLength={100} defaultValue={query} /></label>
         <label>{t('foundationStatus')}<select name="status" defaultValue={status}><option value={kind === 'classes' ? 'draft' : 'active'}>{t(kind === 'classes' ? 'course_draft' : 'foundationActive')}</option><option value="archived">{t('profileArchived')}</option><option value="all">{t('allStatuses')}</option></select></label>
         {kind !== 'branches' && <label>{t('branch')}<select name="branch" defaultValue={branch}><option value="">{t('foundationAll')}</option>{options?.branches.map(x => <option key={x.id} value={x.id}>{x.name} ({x.code})</option>)}</select></label>}
         {kind === 'classes' && <label>{t('courseSource')}<select name="course" defaultValue={course}><option value="">{t('foundationAll')}</option>{options?.courses.map(x => <option key={x.id} value={x.id}>{x.name} ({x.code})</option>)}</select></label>}<button>{t('search')}</button>
       </form>
-      {writable && <button disabled={!options || !!error} onClick={() => { setEditing('new'); setSaved(false) }}>{t(`new_${kind}`)}</button>}
-      {!error && data && <>{!data.items.length && <p>{t('empty')}</p>}{data.items.map(item => <article className="card" key={item.id}><h2>{item.name}</h2><p>{item.code} · {t(archived(item) ? 'profileArchived' : kind === 'classes' ? 'course_draft' : 'foundationActive')}</p>{item.branch_name && <p>{item.branch_name}</p>}{item.course_snapshot && <p>{item.course_snapshot.name} ({item.course_snapshot.code})</p>}
-        <button disabled={!options} onClick={() => { setEditing(item); setSaved(false) }}>{t('foundationDetail')}</button>{kind === 'classes' && <button onClick={() => setPlanning(item.id)}>{t('classPlanning')}</button>}</article>)}
+      {writable && <button className="primary" disabled={!options || !!error} onClick={() => { setEditing('new'); setSaved(false) }}>{t(`new_${kind}`)}</button>}
+      {!error && data && <>{!data.items.length && <p>{t('empty')}</p>}<BusinessList label={t(kind)}>{data.items.map(item => <article className="card" role="listitem" key={item.id}><h2>{item.name}</h2><p>{item.code} · {t(archived(item) ? 'profileArchived' : kind === 'classes' ? 'course_draft' : 'foundationActive')}</p>{item.branch_name && <p>{item.branch_name}</p>}{item.course_snapshot && <p>{item.course_snapshot.name} ({item.course_snapshot.code})</p>}
+        <div className="business-row-actions"><button disabled={!options} onClick={() => { setEditing(item); setSaved(false) }}>{t('foundationDetail')}</button>{kind === 'classes' && <button onClick={() => setPlanning(item.id)}>{t('classPlanning')}</button>}</div></article>)}</BusinessList>
         <div className="session-actions"><button disabled={!offset} onClick={() => { setOffset(Math.max(0, offset - 20)); reload() }}>{t('previousPage')}</button><span>{data.total ? offset + 1 : 0}–{Math.min(offset + 20, data.total)} / {data.total}</span><button disabled={offset + 20 >= data.total} onClick={() => { setOffset(offset + 20); reload() }}>{t('nextPage')}</button></div></>}
     </>}
   </section>

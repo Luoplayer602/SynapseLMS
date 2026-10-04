@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiError } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { BusinessList, BusinessPage } from './ui/BusinessPage'
 import type { Metadata } from './Courses'
 
 interface Page<T> { items: T[]; total: number }
@@ -27,13 +28,14 @@ export function Teachers({ language, personal = false }: { language: Language; p
   const [selected, setSelected] = useState('')
   const [creating, setCreating] = useState(false)
   const [candidate, setCandidate] = useState<Candidate | null>(null)
-  return <><h1>{t(personal ? 'myTeacherProfile' : 'teachers')}</h1>
-    {!personal && (selected || creating) && <button onClick={() => { setSelected(''); setCreating(false); setCandidate(null) }}>{t('backToTeachers')}</button>}
+  return <BusinessPage title={t(personal ? 'myTeacherProfile' : 'teachers')} actions={
+    !personal && (selected || creating) && <button onClick={() => { setSelected(''); setCreating(false); setCandidate(null) }}>{t('backToTeachers')}</button>
+  }>
     {personal || selected ? <TeacherDetail key={personal ? 'me' : selected} language={language} personal={personal} profileRef={personal ? 'me' : selected} /> : <>
-      {!creating && <button onClick={() => setCreating(true)}>{t('newTeacherProfile')}</button>}
+      {!creating && <button className="primary" onClick={() => setCreating(true)}>{t('newTeacherProfile')}</button>}
       {candidate ? <TeacherProfileEditor language={language} personal={false} detail={null} candidate={candidate} onSaved={item => { setSelected(item.id); setCreating(false); setCandidate(null) }} /> : <TeacherList key={String(creating)} language={language} candidates={creating} onSelect={row => creating ? setCandidate(row as Candidate) : setSelected(row.id)} />}
     </>}
-  </>
+  </BusinessPage>
 }
 
 function TeacherList({ language, candidates, onSelect }: { language: Language; candidates: boolean; onSelect: (row: Candidate | TeacherProfile) => void }) {
@@ -51,11 +53,11 @@ function TeacherList({ language, candidates, onSelect }: { language: Language; c
   }, [candidates, query, status, offset, revision])
   function reload() { setError(''); setData(null); setRevision(n => n + 1) }
   return <section><h2>{t(candidates ? 'chooseTeacherAccount' : 'teacherList')}</h2>{candidates && <p>{t('teacherCandidateHint')}</p>}
-    <form className="compact-form" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setQuery(String(values.get('query'))); if (!candidates) setStatus(String(values.get('status'))); setOffset(0); reload() }}>
+    <form className="compact-form business-filter" onSubmit={e => { e.preventDefault(); const values = new FormData(e.currentTarget); setQuery(String(values.get('query'))); if (!candidates) setStatus(String(values.get('status'))); setOffset(0); reload() }}>
       <label>{t('teacherSearch')}<input name="query" maxLength={100} /></label>{!candidates && <label>{t('profileStatus')}<select name="status" defaultValue="active"><option value="active">{t('profileActive')}</option><option value="archived">{t('profileArchived')}</option><option value="all">{t('allStatuses')}</option></select></label>}<button>{t('search')}</button></form>
     <button onClick={reload}>{t('refreshList')}</button><Failure code={error} language={language} />
     {!data && !error && <p role="status">{t('loading')}</p>}
-    {!error && data && <>{!data.items.length && <p>{t('empty')}</p>}{data.items.map(row => <article className="card" key={row.id}><h3>{'full_name' in row ? row.full_name : row.display_name || row.email}</h3><p>{row.email}</p>{'archived' in row && <p>{t(row.archived ? 'profileArchived' : 'profileActive')}</p>}<button onClick={() => onSelect(row)}>{t(candidates ? 'chooseAccount' : 'viewProfile')}</button></article>)}<Pager language={language} total={data.total} offset={offset} onPage={n => { setOffset(n); setData(null) }} /></>}
+    {!error && data && <>{!data.items.length && <p>{t('empty')}</p>}<BusinessList label={t(candidates ? 'chooseTeacherAccount' : 'teacherList')}>{data.items.map(row => <article className="card" role="listitem" key={row.id}><h3>{'full_name' in row ? row.full_name : row.display_name || row.email}</h3><p>{row.email}</p>{'archived' in row && <p>{t(row.archived ? 'profileArchived' : 'profileActive')}</p>}<button onClick={() => onSelect(row)}>{t(candidates ? 'chooseAccount' : 'viewProfile')}</button></article>)}</BusinessList><Pager language={language} total={data.total} offset={offset} onPage={n => { setOffset(n); setData(null) }} /></>}
   </section>
 }
 

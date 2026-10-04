@@ -5,7 +5,9 @@ const labels: Record<string, [string, string]> = {
   myResults: ['Kết quả của tôi', 'My results'],
   authTagline: ['Mỗi ngày, một bước tiến.', 'A little progress, every day.'],
   authKickerLogin: ['CHÀO MỪNG TRỞ LẠI', 'WELCOME BACK'], authKickerRegister: ['BẮT ĐẦU HÀNH TRÌNH', 'START YOUR JOURNEY'],
-  authVisualCopy: ['Không gian để học hỏi, kết nối và lớn lên cùng nhau.', 'A space to learn, connect and grow together.'],
+  authVisualHeading: ['Học vui hơn.', 'Enjoy learning.'],
+  authVisualHeadingAccent: ['Quản lý nhẹ hơn.', 'Manage with ease.'],
+  authVisualCopy: ['Một không gian thân thiện cho cả trung tâm, giáo viên và học viên.', 'A welcoming space for centers, teachers and students.'],
   authLoginHint: ['Tiếp tục hành trình học tập của bạn.', 'Continue your learning journey.'],
   authRegisterHint: ['Tạo tài khoản học viên và kết nối với trung tâm của bạn.', 'Create a student account and connect with your center.'],
   authNewHere: ['Bạn chưa có tài khoản?', 'New here?'], authHaveAccount: ['Bạn đã có tài khoản?', 'Already have an account?'],
@@ -227,6 +229,7 @@ export function translate(language: Language, key: string): string {
   return labels[key]?.[language === 'vi' ? 0 : 1] || key
 }
 const errors: Record<string, [string, string]> = {
+  REQUEST_KEY_UNAVAILABLE: ['Trình duyệt không thể tạo mã yêu cầu an toàn. Hãy dùng trình duyệt hiện đại hoặc kết nối HTTPS rồi thử lại; chưa có thao tác nào được gửi.', 'This browser cannot create a secure request key. Use a modern browser or HTTPS and try again; no action was sent.'],
   RESULT_SCHEME_WEIGHT: ['Tổng trọng số mẫu phải bằng 10.000.', 'Scheme weights must total 10,000.'],
   RESULT_SCHEME_ACTIVE: ['Khóa học đã có mẫu đang công bố; hãy ngừng dùng mẫu cũ trước.', 'This course already has a published scheme; retire it first.'],
   RESULT_SCHEME_REQUIRED: ['Khóa học chưa có mẫu điểm đang công bố.', 'This course has no published grading scheme.'],

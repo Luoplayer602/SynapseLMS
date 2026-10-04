@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, ApiError } from './api'
+import { createRequestKey, requestErrorCode } from './requestKey'
 import type { Language } from './i18n'
 import { errorMessage } from './i18n'
 import './results.css'
@@ -45,13 +46,13 @@ function Scores({ language, book, item, done }: { language: Language; book: Book
     setBusy(true); setError('')
     try {
       await api(`/results/classes/${book.class_id}/items/${item.id}`, 'PUT', {
-        request_key: crypto.randomUUID(), version: book.version, reason,
+        request_key: createRequestKey(), version: book.version, reason,
         scores: students.map(s => ({ enrollment_id: s.enrollment_id,
           score: entries[s.enrollment_id].score === '' ? null : entries[s.enrollment_id].score,
           comment: entries[s.enrollment_id].comment })),
       })
       done()
-    } catch (e) { setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED') }
+    } catch (e) { setError(requestErrorCode(e)) }
     finally { setBusy(false) }
   }
   return <form className="result-scores" onSubmit={save}><h3>{item.name} / {item.max_score}</h3>
@@ -79,8 +80,8 @@ function Gradebook({ language, classId, teacher, manager, revision, refresh }: {
   async function mutate(path: string, body: object) {
     if (busy) return
     setBusy(true); setError('')
-    try { await api(path, 'POST', { request_key: crypto.randomUUID(), version: book?.version || 0, ...body }); refresh() }
-    catch (e) { setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED') }
+    try { await api(path, 'POST', { request_key: createRequestKey(), version: book?.version || 0, ...body }); refresh() }
+    catch (e) { setError(requestErrorCode(e)) }
     finally { setBusy(false) }
   }
   if (loading) return <p role="status">{word(language, 'loading')}</p>

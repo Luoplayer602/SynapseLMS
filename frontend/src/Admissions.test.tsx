@@ -8,7 +8,7 @@ import { api, ApiError } from './api'
 
 vi.mock('./api', () => ({ api: vi.fn(), ApiError: class extends Error { constructor(public code: string, public status: number) { super(code) } } }))
 beforeEach(() => vi.resetAllMocks())
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const session = { id: 'session', class_name: 'Class', class_code: 'A', starts_at: '2026-10-05T11:00:00Z', ends_at: '2026-10-05T12:00:00Z', timezone: 'Asia/Ho_Chi_Minh', branch_name: 'Branch', teachers: [], status: 'scheduled' }
 
 it('requires explicit confirmation and sends one unique key, locking after ambiguous network failure', async () => {
@@ -33,6 +33,27 @@ it('allows correcting validation errors but locks stale state', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Save' }))
   await waitFor(() => expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled())
+})
+
+it('submits with getRandomValues when randomUUID is unavailable on HTTP', async () => {
+  vi.stubGlobal('crypto', { getRandomValues: (bytes: Uint8Array) => { bytes.fill(7); return bytes } })
+  vi.mocked(api).mockResolvedValue({})
+  const done = vi.fn()
+  render(<BusinessForm language="en" title="Collect" path="/collect" body={() => ({ amount: 100 })} onDone={done} />)
+  fireEvent.click(screen.getByRole('checkbox'))
+  fireEvent.click(screen.getByRole('button', { name: 'Collect' }))
+  await waitFor(() => expect(api).toHaveBeenCalledWith('/collect', 'POST', { amount: 100, request_key: '07070707-0707-4707-8707-070707070707' }))
+  expect(done).toHaveBeenCalledOnce()
+})
+
+it('shows a local error and remains retryable when secure random is unavailable', async () => {
+  vi.stubGlobal('crypto', {})
+  render(<BusinessForm language="en" title="Collect" path="/collect" body={() => ({ amount: 100 })} onDone={vi.fn()} />)
+  fireEvent.click(screen.getByRole('checkbox'))
+  fireEvent.click(screen.getByRole('button', { name: 'Collect' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('no action was sent')
+  expect(api).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: 'Collect' })).toBeEnabled()
 })
 
 it('learner can submit a course request with availability but cannot see approval controls', async () => {

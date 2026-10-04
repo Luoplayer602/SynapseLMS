@@ -28,6 +28,7 @@ it('shows only counts returned by center APIs and links recent requests to their
   expect(screen.getByText('7')).toBeInTheDocument()
   expect(screen.getByText('12')).toBeInTheDocument()
   expect(screen.getByText(/Chờ xếp lớp/).closest('a')).toHaveAttribute('href', '/admissions')
+  expect(screen.getByRole('link', { name: 'Xem lịch học' })).toHaveAttribute('href', '/class-calendar')
   expect(api).toHaveBeenCalledTimes(5)
 })
 
@@ -43,4 +44,15 @@ it('marks unavailable figures as missing instead of showing invented zeros', asy
   render(<MemoryRouter><Dashboard profile={profile} language="vi" support={false}><p>Account</p></Dashboard></MemoryRouter>)
   expect(await screen.findByText(/Một số số liệu chưa tải được/)).toBeInTheDocument()
   expect(screen.getAllByText('—')).toHaveLength(4)
+})
+
+it.each([
+  ['student', 'Hôm nay mình cùng học gì?', '/practice'],
+  ['teacher', 'Sẵn sàng cho buổi dạy tiếp theo?', '/teaching-sessions'],
+] as const)('offers existing actions for %s without requesting center administration data', async (role, heading, path) => {
+  render(<MemoryRouter><Dashboard profile={{ ...profile, membership: { ...profile.membership!, role } }} language="vi" support={false}><p>Account</p></Dashboard></MemoryRouter>)
+  expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument()
+  expect(screen.getAllByRole('link').some(link => link.getAttribute('href') === path)).toBe(true)
+  if (role === 'student') expect(screen.getByRole('link', { name: 'Nhận xét & bước tiếp theo' })).toHaveAttribute('href', '/ai-progress')
+  await waitFor(() => expect(api).not.toHaveBeenCalled())
 })

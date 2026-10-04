@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import type { ComponentProps, FormEvent, ReactNode } from 'react'
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router'
 import { AccountAction, EmailRequestForm, Sessions, VerificationStatus } from './Account'
 import { api, ApiError, clearSession, setSupportSession, signIn, signOut } from './api'
@@ -23,9 +23,17 @@ import { AISettings } from './AISettings'
 import { AIPrompts } from './AIPrompts'
 import { AIPractice, PracticeReview } from './AIPractice'
 import { AIInsights } from './AIInsights'
+import { AIHub } from './AIHub'
 import { Dashboard } from './Dashboard'
+import { Icon } from './ui/Icon'
+import { routeIcon } from './ui/routeIcon'
 
 import { AuthForm, AuthLayout, AuthWelcome } from './AuthExperience'
+
+function WorkspaceLink({ children, ...props }: Omit<ComponentProps<typeof NavLink>, 'children'> & { children: ReactNode }) {
+  const path = typeof props.to === 'string' ? props.to : props.to.pathname || '/'
+  return <NavLink {...props}><Icon name={routeIcon(path)} /><span>{children}</span></NavLink>
+}
 
 export default function App() {
   const location = useLocation()
@@ -43,6 +51,12 @@ export default function App() {
   const generation = useRef(0), operation = useRef(0), submitting = useRef(false)
   const [support, setSupport] = useState<{ id: string; name: string } | null>(null)
   const [navigationOpen, setNavigationOpen] = useState(false)
+  useEffect(() => {
+    if (!navigationOpen) return
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setNavigationOpen(false) }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [navigationOpen])
   const showError = (e: unknown) => setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED')
   const readProfile = useCallback(() => {
     const current = ++generation.current
@@ -135,17 +149,18 @@ export default function App() {
   const learner = profile.membership?.tenant_available && profile.membership.role === 'student'
   const teacher = profile.membership?.tenant_available && profile.membership.role === 'teacher'
   const rootAI = profile.is_root_admin && !support
-  return <div className={`app-shell ${location.pathname === '/' ? 'dashboard-shell' : ''}`}><button type="button" className={`navigation-backdrop ${navigationOpen ? 'is-open' : ''}`} aria-label={language === 'vi' ? 'Đóng menu' : 'Close menu'} onClick={() => setNavigationOpen(false)} /><aside id="main-navigation" className={`sidebar ${navigationOpen ? 'is-open' : ''}`} onClick={() => setNavigationOpen(false)}><div className="brand-mark">✦</div><strong>synapse</strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
-    <nav aria-label="Navigation"><NavLink to="/" end>{language === 'vi' ? 'Tổng quan' : 'Overview'}</NavLink><NavLink to="/sessions">{t('sessions')}</NavLink>{profile.is_root_admin && <NavLink to="/centers">{t('centers')}</NavLink>}{(manager || support) && <><NavLink to="/members">{t('members')}</NavLink><NavLink to="/invitations">{t('invitations')}</NavLink></>}{studentAdmin && <><NavLink to="/students">{t('students')}</NavLink><NavLink to="/teachers">{t('teachers')}</NavLink><NavLink to="/courses">{t('courses')}</NavLink><NavLink to="/facilities">{t('facilities')}</NavLink><NavLink to="/classes">{t('classes')}</NavLink><NavLink to="/class-calendar">{t('weeklyAgenda')}</NavLink></>}{teacher && <><NavLink to="/teacher-profile">{t('myTeacherProfile')}</NavLink><NavLink to="/teaching-sessions">{t('myTeachingSessions')}</NavLink></>}{learner && <><NavLink to="/student-profile">{t('myStudentProfile')}</NavLink><NavLink to="/course-catalog">{t('courseCatalog')}</NavLink></>}</nav>
-      <nav className="business-navigation" aria-label={language === 'vi' ? 'Nghiệp vụ học viên' : 'Student operations'}>{(studentAdmin || learner) && <><NavLink to="/admissions">{language === 'vi' ? 'Tuyển sinh' : 'Admissions'}</NavLink><NavLink to="/enrollments">{language === 'vi' ? 'Bảo lưu & hoàn phí' : 'Enrollment & refunds'}</NavLink><NavLink to="/finances">{language === 'vi' ? 'Học phí & thu tiền' : 'Fees & collections'}</NavLink></>}{studentAdmin && <><NavLink to="/admission-settings">{language === 'vi' ? 'Thiết lập tuyển sinh' : 'Admission settings'}</NavLink><NavLink to="/grading-settings">{t('gradingSettings')}</NavLink></>}{(studentAdmin || teacher) && <NavLink to="/gradebook">{t('gradebook')}</NavLink>}{(studentAdmin || teacher) && <NavLink to="/materials">{language === 'vi' ? 'H?c li?u' : 'Materials'}</NavLink>}{learner && <NavLink to="/my-materials">{language === 'vi' ? 'T?i li?u c?a t?i' : 'My materials'}</NavLink>}{teacher && <NavLink to="/attendance">{language === 'vi' ? 'Điểm danh' : 'Attendance'}</NavLink>}{learner && <><NavLink to="/my-learning">{language === 'vi' ? 'Học tập của tôi' : 'My learning'}</NavLink><NavLink to="/my-results">{t('myResults')}</NavLink></>}</nav>
+  return <div className="app-shell dashboard-shell"><button type="button" className={`navigation-backdrop ${navigationOpen ? 'is-open' : ''}`} aria-label={language === 'vi' ? 'Đóng menu' : 'Close menu'} onClick={() => setNavigationOpen(false)} /><aside id="main-navigation" className={`sidebar ${navigationOpen ? 'is-open' : ''}`} onClick={() => setNavigationOpen(false)}><div className="brand-mark">S</div><strong>Synapse<span className="brand-subtitle">LMS</span></strong><p>{support?.name || profile.membership?.organization_name || t('root')}</p>
+    <nav aria-label="Navigation"><WorkspaceLink to="/" end>{language === 'vi' ? 'Tổng quan' : 'Overview'}</WorkspaceLink><WorkspaceLink to="/sessions">{t('sessions')}</WorkspaceLink>{profile.is_root_admin && <WorkspaceLink to="/centers">{t('centers')}</WorkspaceLink>}{(manager || support) && <><WorkspaceLink to="/members">{t('members')}</WorkspaceLink><WorkspaceLink to="/invitations">{t('invitations')}</WorkspaceLink></>}{studentAdmin && <><WorkspaceLink to="/students">{t('students')}</WorkspaceLink><WorkspaceLink to="/teachers">{t('teachers')}</WorkspaceLink><WorkspaceLink to="/courses">{t('courses')}</WorkspaceLink><WorkspaceLink to="/facilities">{t('facilities')}</WorkspaceLink><WorkspaceLink to="/classes">{t('classes')}</WorkspaceLink><WorkspaceLink to="/class-calendar">{t('weeklyAgenda')}</WorkspaceLink></>}{teacher && <><WorkspaceLink to="/teacher-profile">{t('myTeacherProfile')}</WorkspaceLink><WorkspaceLink to="/teaching-sessions">{t('myTeachingSessions')}</WorkspaceLink></>}{learner && <><WorkspaceLink to="/student-profile">{t('myStudentProfile')}</WorkspaceLink><WorkspaceLink to="/course-catalog">{t('courseCatalog')}</WorkspaceLink></>}</nav>
+      <nav className="business-navigation" aria-label={language === 'vi' ? 'Nghiệp vụ học viên' : 'Student operations'}>{(studentAdmin || learner) && <><WorkspaceLink to="/admissions">{language === 'vi' ? 'Tuyển sinh' : 'Admissions'}</WorkspaceLink><WorkspaceLink to="/enrollments">{language === 'vi' ? 'Bảo lưu & hoàn phí' : 'Enrollment & refunds'}</WorkspaceLink><WorkspaceLink to="/finances">{language === 'vi' ? 'Học phí & thu tiền' : 'Fees & collections'}</WorkspaceLink></>}{studentAdmin && <><WorkspaceLink to="/admission-settings">{language === 'vi' ? 'Thiết lập tuyển sinh' : 'Admission settings'}</WorkspaceLink><WorkspaceLink to="/grading-settings">{t('gradingSettings')}</WorkspaceLink></>}{(studentAdmin || teacher) && <WorkspaceLink to="/gradebook">{t('gradebook')}</WorkspaceLink>}{(studentAdmin || teacher) && <WorkspaceLink to="/materials">{language === 'vi' ? 'Học liệu' : 'Materials'}</WorkspaceLink>}{learner && <WorkspaceLink to="/my-materials">{language === 'vi' ? 'Tài liệu của tôi' : 'My materials'}</WorkspaceLink>}{teacher && <WorkspaceLink to="/attendance">{language === 'vi' ? 'Điểm danh' : 'Attendance'}</WorkspaceLink>}{learner && <><WorkspaceLink to="/my-learning">{language === 'vi' ? 'Học tập của tôi' : 'My learning'}</WorkspaceLink><WorkspaceLink to="/my-results">{t('myResults')}</WorkspaceLink></>}</nav>
       <nav aria-label={language === 'vi' ? 'AI và bài luyện' : 'AI and practice'}>
-        {(rootAI || manager || !!support) && <NavLink to="/ai-settings">{language === 'vi' ? 'Thiết lập AI' : 'AI settings'}</NavLink>}
-        {rootAI && <NavLink to="/ai-prompts">Prompt Studio</NavLink>}
-        {(manager || !!support || teacher) && <NavLink to="/practice-review">{language === 'vi' ? 'Duyệt bài luyện' : 'Review practice'}</NavLink>}
-        {learner && <NavLink to="/practice">{language === 'vi' ? 'Bài luyện' : 'Practice'}</NavLink>}
-        {(learner || teacher) && <NavLink to="/ai-progress">{language === 'vi' ? 'Tiến độ AI' : 'AI progress'}</NavLink>}
+        {(rootAI || manager || !!support) && <WorkspaceLink to="/ai-settings">{language === 'vi' ? 'Thiết lập AI' : 'AI settings'}</WorkspaceLink>}
+        {rootAI && <WorkspaceLink to="/ai-prompts">Prompt Studio</WorkspaceLink>}
+        {(manager || !!support || teacher) && <WorkspaceLink to="/practice-review">{language === 'vi' ? 'Duyệt bài luyện' : 'Review practice'}</WorkspaceLink>}
+        {learner && <WorkspaceLink to="/ai-hub">{language === 'vi' ? 'Trung tâm AI' : 'AI hub'}</WorkspaceLink>}
+        {learner && <WorkspaceLink to="/practice">{language === 'vi' ? 'Bài luyện' : 'Practice'}</WorkspaceLink>}
+        {(learner || teacher) && <WorkspaceLink to="/ai-progress">{language === 'vi' ? 'Tiến độ AI' : 'AI progress'}</WorkspaceLink>}
       </nav></aside>
-    <main><header className="topbar"><div className="topbar-identity"><button type="button" className="navigation-toggle" aria-controls="main-navigation" aria-expanded={navigationOpen} onClick={() => setNavigationOpen(value => !value)} aria-label={language === 'vi' ? 'Mở menu' : 'Open menu'}>☰</button><span>{profile.display_name || profile.email}</span></div><div className="topbar-actions">{(studentAdmin || learner || teacher) && <NotificationBell key={support?.id || profile.membership?.id} language={language} />}{languageButton}<button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
+    <main><header className="topbar"><div className="topbar-identity"><button type="button" className="navigation-toggle" aria-controls="main-navigation" aria-expanded={navigationOpen} onClick={() => setNavigationOpen(value => !value)} aria-label={language === 'vi' ? 'Mở menu' : 'Open menu'}><Icon name="menu" /></button><span className="topbar-location">{location.pathname === '/' ? (language === 'vi' ? 'Tổng quan / Bảng điều khiển' : 'Overview / Dashboard') : (support?.name || profile.membership?.organization_name || t('root'))}</span></div><div className="topbar-actions">{(studentAdmin || learner || teacher) && <NotificationBell key={support?.id || profile.membership?.id} language={language} />}{languageButton}<span className="workspace-avatar" title={profile.display_name || profile.email}>{(profile.display_name || profile.email).slice(0, 2).toUpperCase()}</span><button disabled={busy} onClick={() => void logout()}>{t('logout')}</button></div></header>
       <section className="content">{messages}{support && <div className="card support-banner"><span>{t('supporting')}: {support.name}</span><button onClick={async () => {
         try { await api(`/admin/support-sessions/${support.id}`, 'DELETE'); setSupportSession(null); setSupport(null) }
         catch (e) { showError(e) }
@@ -158,6 +173,7 @@ export default function App() {
         <Route path="ai-prompts" element={rootAI ? <AIPrompts language={language} /> : <Navigate to="/" replace />} />
         <Route path="practice-review" element={manager || support || teacher ? <PracticeReview key={support?.id || profile.membership?.id} language={language} manager={!!manager || !!support} /> : <Navigate to="/" replace />} />
         <Route path="practice" element={learner ? <AIPractice key={profile.membership?.id} language={language} /> : <Navigate to="/" replace />} />
+        <Route path="ai-hub" element={learner ? <AIHub language={language} /> : <Navigate to="/" replace />} />
         <Route path="ai-progress" element={learner || teacher ? <AIInsights key={profile.membership?.id} language={language} teacher={!!teacher} /> : <Navigate to="/" replace />} />
         <Route path="centers" element={profile.is_root_admin ? <Centers language={language} onSupport={(id, name) => { setSupportSession(id); setSupport({ id, name }) }} /> : <Navigate to="/" replace />} />
         <Route path="sessions" element={<Sessions language={language} />} />

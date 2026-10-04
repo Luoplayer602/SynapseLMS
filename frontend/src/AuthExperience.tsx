@@ -21,7 +21,7 @@ export function AuthLayout({ language, onLanguage, children, welcome = false }: 
   return <main className={`auth-experience ${welcome ? 'auth-welcome-layout' : ''}`}>
     <header className="auth-header"><a className="auth-brand" href="/" aria-label="SynapseLMS"><span aria-hidden="true">S</span><strong>SynapseLMS</strong></a>
       <button type="button" className="auth-language" onClick={onLanguage}>{language === 'vi' ? 'English' : 'Tiếng Việt'}</button></header>
-    {welcome ? children : <div className="auth-columns"><aside className="auth-art"><Orbit /><div className="auth-art-copy"><h2>{t('authTagline')}</h2><p>{t('authVisualCopy')}</p></div></aside>
+    {welcome ? children : <div className="auth-columns"><aside className="auth-art"><span className="auth-art-chip">SYNAPSE SOFT</span><div className="auth-art-copy"><h2>{t('authVisualHeading')}<br /><span>{t('authVisualHeadingAccent')}</span></h2><p>{t('authVisualCopy')}</p></div><Orbit /><p className="auth-art-footnote">{t('authTagline')} <span aria-hidden="true">✦</span></p></aside>
       <div className="auth-form-region"><div className="auth-mobile-mark" aria-hidden="true">✦</div>{children}</div></div>}
     <footer className="auth-footer">SynapseLMS <span aria-hidden="true">·</span> {t('authFooter')}</footer>
   </main>
@@ -67,7 +67,7 @@ export function AuthForm({ language, registering, busy, error, notice, onSubmit,
     {notice && <p role="status" className="auth-feedback auth-success">{t(notice)}</p>}
     <form onSubmit={submit}><fieldset disabled={busy} className="auth-fields">
       {registering && <label>{t('name')}<input name="name" autoComplete="name" maxLength={200} required /></label>}
-      <label>{t('email')}<input name="email" type="email" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} required /></label>
+      <label>{t('email')}<input name="email" type="email" placeholder="tenban@example.com" autoComplete="username" inputMode="email" autoCapitalize="none" spellCheck={false} required /></label>
       <Password language={language} name="password" label={t('password')} registering={registering} />
       {registering ? <><small className="auth-muted">{t('authPasswordHint')}</small><Password language={language} name="confirmPassword" label={t('authConfirmPassword')} registering />
         <label className="auth-check"><input type="checkbox" name="useInvite" checked={useInvite} onChange={e => setUseInvite(e.target.checked)} />{t('useInvite')}</label>
@@ -80,7 +80,7 @@ export function AuthForm({ language, registering, busy, error, notice, onSubmit,
       <button className="auth-submit" disabled={busy || (registering && !useInvite && (centerState !== 'ready' || !centers.length))}>{t(busy ? 'loading' : registering ? 'register' : 'login')}<span aria-hidden="true">→</span></button>
     </fieldset></form>
     <div className="auth-switch"><span>{t(registering ? 'authHaveAccount' : 'authNewHere')}</span><button type="button" disabled={busy} onClick={onMode}>{t(registering ? 'login' : 'register')}</button></div>
-    {registering && <p className="auth-registration-note">{t('authStudentOnly')}</p>}
+    <p className="auth-registration-note">{t('authStudentOnly')}</p>
   </section>
 }
 

@@ -56,6 +56,7 @@ test('new teacher joins only after accepting email; revocation disables another 
   await recipient.getByLabel('Email', { exact: true }).fill('new-invite@example.com')
   await recipient.getByLabel('Mật khẩu', { exact: true }).fill('new-invite-password!')
   await recipient.getByRole('button', { name: 'Đăng nhập', exact: true }).click()
+  await recipient.locator('.dashboard-account summary').click()
   await expect(recipient.getByText('Email đã xác minh.', { exact: true })).toBeVisible()
   await expect(recipient.getByRole('link', { name: 'Lời mời thành viên' })).toHaveCount(0)
 

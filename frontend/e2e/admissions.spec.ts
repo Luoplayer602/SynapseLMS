@@ -14,6 +14,7 @@ async function signIn(page: Page, email: string) {
 }
 
 test('course request through approval, placement, installment receipt and teacher attendance', async ({ page, browser, request }, testInfo) => {
+  await page.addInitScript(() => { Object.defineProperty(window.crypto, 'randomUUID', { configurable: true, value: undefined }) })
   await request.post('http://127.0.0.1:8011/__test/reset-rate')
   const common = { 'X-Synapse-Client': 'web', Origin: 'http://127.0.0.1:5180' }
   const login = await request.post(base + '/auth/login', { headers: common, data: { email: 'root@example.com', password: 'e2e-root-password-2026!' } })
@@ -53,7 +54,8 @@ test('course request through approval, placement, installment receipt and teache
   await send(`/admissions/openings/${cls.id}`, { request_key: randomUUID(), version: 0, enabled: true }, 'PUT')
 
   await signIn(page, 'enr-student@example.com')
-  await page.getByRole('link', { name: 'Admissions', exact: true }).click()
+  expect(await page.evaluate(() => [typeof crypto.randomUUID, typeof crypto.getRandomValues])).toEqual(['undefined', 'function'])
+  await page.getByRole('navigation', { name: 'Student operations' }).getByRole('link', { name: 'Admissions', exact: true }).click()
   await page.getByRole('combobox', { name: 'Student', exact: true }).selectOption({ label: 'Admission Student' })
   await page.getByRole('combobox', { name: 'Course', exact: true }).selectOption(course.id)
   await page.getByRole('combobox', { name: 'Format', exact: true }).selectOption('offline')
@@ -68,7 +70,7 @@ test('course request through approval, placement, installment receipt and teache
   const staffContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5180' })
   const staff = await staffContext.newPage()
   await signIn(staff, 'enr-staff@example.com')
-  await staff.getByRole('link', { name: 'Admissions', exact: true }).click()
+  await staff.getByRole('navigation', { name: 'Student operations' }).getByRole('link', { name: 'Admissions', exact: true }).click()
   const approval = staff.locator('form').filter({ has: staff.getByRole('heading', { name: 'Approve & issue invoice', exact: true }) })
   await approval.getByRole('checkbox').check()
   await approval.getByRole('button', { name: 'Approve & issue invoice', exact: true }).click()
@@ -96,7 +98,7 @@ test('course request through approval, placement, installment receipt and teache
   const teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5180' })
   const teacherPage = await teacherContext.newPage()
   await signIn(teacherPage, 'enr-teacher@example.com')
-  await teacherPage.getByRole('link', { name: 'Attendance', exact: true }).click()
+  await teacherPage.getByRole('navigation', { name: 'Student operations' }).getByRole('link', { name: 'Attendance', exact: true }).click()
   await teacherPage.getByRole('button', { name: 'Attendance roster', exact: true }).last().click()
   await expect(teacherPage.getByRole('button', { name: 'Save draft', exact: true })).toBeDisabled()
   const stamp = new Date(new Date(confirmed.sessions[0].starts_at).getTime() + 60000).toISOString()
@@ -112,7 +114,8 @@ test('course request through approval, placement, installment receipt and teache
     await expect(page.getByText('Attendance rate: 100%')).toBeVisible()
     await page.getByRole('link', { name: 'Notifications', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Payment recorded', exact: true })).toBeVisible()
-    await staff.getByRole('link', { name: 'Enrollment & refunds', exact: true }).click()
+    await staff.getByRole('button', { name: 'Open menu', exact: true }).click()
+    await staff.getByRole('navigation', { name: 'Student operations' }).getByRole('link', { name: 'Enrollment & refunds', exact: true }).click()
     await staff.getByRole('button', { name: 'Details', exact: true }).click()
     await staff.getByLabel('Effective session').selectOption(confirmed.sessions[1].id)
     await staff.getByLabel('Internal reason').fill('Learner takes a break')

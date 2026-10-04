@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { api, ApiError } from './api'
+import { api } from './api'
+import { createRequestKey, requestErrorCode } from './requestKey'
 import { BusinessForm } from './Admissions'
 import type { Language } from './i18n'
+import { BusinessPage } from './ui/BusinessPage'
 import { errorMessage } from './i18n'
 
 type Props = { language: Language; staff: boolean; manager?: boolean }
@@ -29,7 +31,7 @@ function useData<T>(path: string) {
   useEffect(() => { let active = true; api<T>(path).then(x => { if (active) setData(x) }).catch(e => { if (active) setError(e) }); return () => { active = false } }, [path])
   return { data, error }
 }
-function Failure({ language, error }: { language: Language; error: unknown }) { return <p role="alert">{errorMessage(language, error instanceof ApiError ? error.code : 'NETWORK_ERROR')}</p> }
+function Failure({ language, error }: { language: Language; error: unknown }) { return <p role="alert">{errorMessage(language, requestErrorCode(error, 'NETWORK_ERROR'))}</p> }
 function CalculationView({ language, data }: { language: Language; data: Calculation }) {
   return <dl>{(['total', 'paid', 'remaining', 'unused', 'fee'] as const).map(k => <div key={k}><dt>{word(language, k === 'remaining' ? 'remainingSnapshot' : k)}</dt><dd>{money(data[k])}</dd></div>)}<dt>{word(language, 'affected')}</dt><dd>{data.unused_sessions} / {data.total_sessions}</dd></dl>
 }
@@ -38,7 +40,7 @@ function Operation({ language, data, done }: { language: Language; data: Detail;
   const [session, setSession] = useState(''), [reason, setReason] = useState(''), [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState<{ source_digest: string; total_sessions: number; unused_sessions: number; effective_at?: string; sessions?: { id: string; starts_at: string; status: string }[] }>(), [error, setError] = useState<unknown>()
   const body = { action, session_id: session || null, version: data.version, reason }
-  async function inspect(e: FormEvent) { e.preventDefault(); if (busy) return; setBusy(true); setError(undefined); setPreview(undefined); try { setPreview(await api(`/enrollments/${data.id}/preview`, 'POST', { ...body, request_key: crypto.randomUUID() })) } catch (e) { setError(e) } finally { setBusy(false) } }
+  async function inspect(e: FormEvent) { e.preventDefault(); if (busy) return; setBusy(true); setError(undefined); setPreview(undefined); try { setPreview(await api(`/enrollments/${data.id}/preview`, 'POST', { ...body, request_key: createRequestKey() })) } catch (e) { setError(e) } finally { setBusy(false) } }
   return <><p>{word(language, 'hint')}</p><form className="card compact-form" onSubmit={inspect}><fieldset disabled={busy}>
     <label>{word(language, 'action')}<select value={action} onChange={e => { setAction(e.target.value); setPreview(undefined) }}>{(data.state === 'waiting' ? ['cancel'] : data.state === 'suspended' ? ['resume', 'cancel'] : ['suspend', 'cancel']).map(k => <option key={k} value={k}>{word(language, k)}</option>)}</select></label>
     {data.enrollment_id && <label>{word(language, 'session')}<select required value={session} onChange={e => { setSession(e.target.value); setPreview(undefined) }}><option value="">—</option>{data.sessions.map(s => <option key={s.id} value={s.id}>{instant(s.starts_at, language)} — {s.timezone}</option>)}</select></label>}
@@ -47,7 +49,7 @@ function Operation({ language, data, done }: { language: Language; data: Detail;
 }
 function RefundProposal({ language, id, done }: { language: Language; id: string; done: () => void }) {
   const [quote, setQuote] = useState<Quote>(), [error, setError] = useState<unknown>(), [busy, setBusy] = useState(false)
-  async function inspect() { if (busy) return; setBusy(true); setError(undefined); setQuote(undefined); try { setQuote(await api('/refunds/preview', 'POST', { request_id: id, request_key: crypto.randomUUID() })) } catch (e) { setError(e) } finally { setBusy(false) } }
+  async function inspect() { if (busy) return; setBusy(true); setError(undefined); setQuote(undefined); try { setQuote(await api('/refunds/preview', 'POST', { request_id: id, request_key: createRequestKey() })) } catch (e) { setError(e) } finally { setBusy(false) } }
   return <><button disabled={busy} onClick={inspect}>{word(language, 'quote')}</button>{error && <Failure language={language} error={error} />}{quote && <BusinessForm key={quote.source_digest} language={language} title={word(language, 'create')} path="/refunds" body={() => ({ request_id: id, source_digest: quote.source_digest })} onDone={done}><CalculationView language={language} data={quote} /><p>{word(language, 'proposed')}: {money(quote.proposed)} · {word(language, 'offset')}: {money(quote.offset_amount)} · {word(language, 'cash')}: {money(quote.cash_amount)}</p></BusinessForm>}</>
 }
 function RefundCard({ language, staff, row, done }: Props & { row: Refund; done: () => void }) {
@@ -87,5 +89,5 @@ function ListPage({ language, staff, offset, setOffset, selected, setSelected, d
 export function EnrollmentLifecycle(props: Props) {
   const [revision, setRevision] = useState(0)
   const refresh = () => setRevision(n => n + 1)
-  return <><h1>{word(props.language, 'title')}</h1><button onClick={refresh}>{word(props.language, 'refresh')}</button><Listing key={revision} {...props} refresh={refresh} /></>
+  return <BusinessPage title={<>{word(props.language, 'title')}</>} className="workflow-page" actions={<button onClick={refresh}>{word(props.language, 'refresh')}</button>}><Listing key={revision} {...props} refresh={refresh} /></BusinessPage>
 }

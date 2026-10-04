@@ -904,3 +904,19 @@ Một backlog item chỉ hoàn thành khi:
 ## 41. Đổi ưu tiên sang frontend — 2026-10-01
 
 - Tạm hoãn bộ đề AI, ưu tiên làm lại toàn bộ UI/UX theo `ui-design`, giữ API và nghiệp vụ backend; [kế hoạch](docs/plans/frontend-uiux-rebuild.md) đã lưu, chưa sửa màn hình/deploy. `.gitignore` bổ sung rule cho file test/cache backend mới; 48 file `.test-tmp` đã tracked cần xử lý riêng, không stage hoặc xóa trong phiên này.
+
+## 42. Triển khai đăng nhập/dashboard theo Penpot — 2026-10-02
+
+- Người dùng yêu cầu bắt đầu frontend với đăng nhập/dashboard theo Penpot, giữ API/nghiệp vụ. Đã cập nhật code và kiểm tra local; chưa deploy/nghiệm thu bản mới. Chi tiết, test và bước tiếp theo ở `docs/plans/frontend-uiux-rebuild.md`. Bong bóng chat là hub tác vụ AI hiện có. Giữ compose hotspot của người dùng. Bug tài khoản khóa báo sai thông báo được ghi nhận `BUG-005` trong `docs/test-feedback.md`, xử lý sau.
+
+## 43. Sửa request key qua HTTP hotspot — 2026-10-02
+
+- Đã triển khai fallback UUID v4 bằng Web Crypto, test chọn lọc và cập nhật riêng web; login/dashboard trước đó cũng đi cùng image mới. Chưa được người dùng nghiệm thu; E2E tuyển sinh chưa đạt trọn ca do runner Windows và locator dashboard. Giữ nguyên compose hotspot, API, DB, Mailpit, volume; [bằng chứng và checklist](docs/plans/lan-http-request-key.md).
+
+## 44. Sửa URL API/CORS cho đăng nhập trên máy Docker — 2026-10-03
+
+- Khi hotspot tắt, IP cũ không tồn tại; dù hotspot bật, origin `127.0.0.1:5173` bị CORS chặn. Web nay dùng hostname đang mở trang khi không đặt URL API riêng; Compose cho phép chính xác loopback, IP Wi-Fi hiện tại và hotspot. Đã test, deploy lại chỉ API/web, DB và Mailpit giữ nguyên. Chưa xác nhận bằng tài khoản thật; chi tiết tại `docs/current-state.md`.
+
+## 45. Rollout Synapse Soft cho các route frontend — 2026-10-03
+
+- Đã áp khung nghiệp vụ responsive, hoàn thiện hub AI học viên dẫn đến tác vụ hiện có, kiểm thử UI/E2E trên SQLite tạm và deploy lại riêng web. Giữ API/nghiệp vụ, DB/Mailpit/volume và `compose.yaml`; chưa nghiệm thu thị giác chi tiết trên Penpot hoặc thao tác thực tế theo vai. Bằng chứng và checklist tại `docs/plans/frontend-penpot-remaining.md`.

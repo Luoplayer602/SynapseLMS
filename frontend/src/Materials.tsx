@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { api, apiContent, ApiError } from './api'
+import { api, apiContent } from './api'
+import { createRequestKey, requestErrorCode } from './requestKey'
 import type { Language } from './i18n'
 import { errorMessage } from './i18n'
 import './materials.css'
@@ -12,7 +13,7 @@ type Curriculum = { id: string; title: string; status: string }
 type CurriculumDetail = { id: string; versions: { id: string; revision: number; status: string; units: { id: string; title: string; position: number; materials: { material_version_id: string }[] }[] }[] }
 type Named = { id: string; name: string }
 const l = (language: Language, vi: string, en: string) => language === 'vi' ? vi : en
-const message = (language: Language, error: unknown) => errorMessage(language, error instanceof ApiError ? error.code : 'REQUEST_FAILED')
+const message = (language: Language, error: unknown) => errorMessage(language, requestErrorCode(error))
 
 async function openContent(version: Version) {
   const content = await apiContent(`/materials/versions/${version.id}/content`)
@@ -77,10 +78,10 @@ export function Materials({ language, role }: { language: Language; role: 'manag
       .catch(e => { if (active) setError(message(language, e)) })
     return () => { active = false }
   }, [creationClass, language])
-  async function mutate(path: string, method = 'POST', body?: object | FormData) {
+  async function mutate(path: string, method = 'POST', body?: object | FormData | (() => object | FormData)) {
     if (busy) return null
     setBusy(true); setError(''); setNotice('')
-    try { const value = await api<unknown>(path, method, body); setNotice(l(language, 'Đã lưu.', 'Saved.')); refresh(); return value }
+    try { const value = await api<unknown>(path, method, typeof body === 'function' ? body() : body); setNotice(l(language, 'Đã lưu.', 'Saved.')); refresh(); return value }
     catch (e) { setError(message(language, e)); return null }
     finally { setBusy(false) }
   }
@@ -100,20 +101,19 @@ export function Materials({ language, role }: { language: Language; role: 'manag
     if (!target) return
     const data = new FormData(event.currentTarget)
     if (file) {
-      const body = new FormData(); body.append('upload', file); body.append('request_key', crypto.randomUUID())
-      await mutate(`/materials/${target}/versions/file`, 'POST', body)
-      setFile(null)
-    } else if (data.get('url')) await mutate(`/materials/${target}/versions/link`, 'POST', { url: data.get('url'), request_key: crypto.randomUUID() })
+      const saved = await mutate(`/materials/${target}/versions/file`, 'POST', () => { const body = new FormData(); body.append('upload', file); body.append('request_key', createRequestKey()); return body })
+      if (saved) setFile(null)
+    } else if (data.get('url')) await mutate(`/materials/${target}/versions/link`, 'POST', () => ({ url: data.get('url'), request_key: createRequestKey() }))
   }
   async function assign(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    await mutate('/materials/assignments', 'POST', {
+    await mutate('/materials/assignments', 'POST', () => ({
       class_id: data.get('class_id'), material_version_id: data.get('version_id'),
       ...(data.get('session_id') ? { session_id: data.get('session_id') } : {}),
       publish_at: data.get('publish_at') ? new Date(String(data.get('publish_at'))).toISOString() : null,
-      request_key: crypto.randomUUID(),
-    })
+      request_key: createRequestKey(),
+    }))
   }
   async function createCurriculum(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget)

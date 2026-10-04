@@ -1,0 +1,89 @@
+# Kế hoạch hoàn thiện giao diện SynapseLMS theo Penpot
+
+Trạng thái 2026-10-03: **đã code, test và deploy web; chờ đối chiếu trực quan và nghiệm thu theo vai**. Đây là kế hoạch thực thi phần còn lại của [đợt UI/UX frontend](./frontend-uiux-rebuild.md), không thay thế lịch sử quyết định ở đó. Penpot MCP đã kết nối và đọc được file `24d9d841-759d-81bc-8008-b8f5aaf2c1fa` (tên hiện tại `New File 1`), trang `Synapse Soft · Màn hình & tương tác`, ID `24d9d841-759d-81bc-8008-b8f5aaf2c1fb`. Có **63 board**: 31 desktop, 25 mobile và 7 board khác; đã xuất và kiểm tra trực quan `Tuyển sinh · Desktop` và `AI · Trung tâm học tập · Học viên · Mobile`. Các thẻ dữ liệu trong board là mẫu minh họa, không phải dữ liệu/API thật.
+
+Đã kiểm tra `docs/current-state.md`, `git status`, route trong `frontend/src/App.tsx`, component/test hiện hữu và Docker thực tế trước khi viết. `AuthExperience`/dashboard đã code và deploy nhưng **chưa được người dùng nghiệm thu toàn diện**; sửa URL API/CORS ngày 2026-10-03 đã test kết nối, chưa xác nhận đăng nhập bằng tài khoản thật. Docker lúc khảo sát: API `56ca7e53fc92`, web `4499afefcd39`, DB `18c0b2202fed`, Mailpit `e1376460d909` đang chạy. Giữ toàn bộ thay đổi chưa commit của người dùng, đặc biệt `compose.yaml`; không xử lý các file `.test-tmp` backend đã tracked.
+
+### Mốc đầu triển khai 2026-10-03
+
+Đã dựng `frontend/src/ui/BusinessPage.tsx` và `business.css`, đưa Synapse Soft vào shell của mọi route, áp pattern heading/filter/danh sách responsive cho `Students`, `Teachers`, `Courses`, `Classrooms`, và heading cho `Management`. Giữ nguyên API, payload, quyền và xác nhận nghiệp vụ. Bộ lọc chỉ áp vào form tìm kiếm để không đổi layout form chi tiết. Chưa làm nhóm tuyển sinh/tiền/kết quả/học liệu/AI trong đợt code này; chưa deploy web.
+
+Kiểm thử: `Students.test.tsx`, `Classrooms.test.tsx`, `App.test.tsx` **31/31**; `Teachers.test.tsx`, `Courses.test.tsx`, `App.test.tsx` **34/34**; lint và build đạt. Năm ca E2E chọn lọc đi đến ca cuối và tạo ảnh mobile/light/dark, nhưng runner Windows treo lúc teardown, đã ngắt với exit 1: **không ghi E2E đạt trọn lần chạy**. Ảnh mobile chụp ngay sau đổi viewport có sidebar đang chuyển động; cần chụp lại khi transition ổn định để nghiệm thu trực quan.
+
+### Tiến độ tiếp 2026-10-03
+
+Đã áp khung `BusinessPage` cho tuyển sinh, thiết lập, học phí, bảo lưu/hoàn phí, điểm danh, học tập, thông báo, lời mời, lịch tuần và buổi dạy. Kết quả/học liệu/AI có token, thẻ và responsive đồng bộ. Thêm hub bong bóng chat `AIHub.tsx` chỉ điều hướng tới bài luyện, nhận xét có nguồn và danh mục khóa học hiện có; dashboard/menu học viên dẫn vào hub, đường bài luyện cũ vẫn hoạt động. Không đổi endpoint, payload, quyền, tiền, `request_key` hoặc backend. Thêm `playwright.external.config.ts` để chạy E2E với API SQLite tạm và Vite độc lập, tránh runner Windows treo khi tự dừng server; các locator E2E được cập nhật theo dashboard/menu mới.
+
+Kiểm thử: toàn bộ UI `npm test -- --maxWorkers=1` **118/118**; sau chỉnh riêng lời mời/lịch, 43/43 ca liên quan đạt. Lint và build cuối đạt. Smoke mock dashboard năm vai + hub học viên **6/6** tại desktop/mobile, hub kiểm 390/320 px và reduced motion. E2E trên SQLite tạm: nhóm tuyển sinh–hoàn phí, AI, học liệu, kết quả, lịch **5/5** exit 0; nhóm hồ sơ/danh mục/quyền/theme **11 ca đều đạt qua lượt chạy chọn lọc và chạy lại ca lỗi**, không có một lần chạy gộp cả 16 ca. Lỗi ban đầu do locator trùng shortcut và menu mobile đóng; đã sửa và kiểm chứng lại. Không dùng DB thật hoặc provider AI tính phí.
+
+Đã `docker compose build web` và recreate **riêng web**; web `c293b6f24b31` thay `4499afefcd39`. API `56ca7e53fc92`, DB `18c0b2202fed`, Mailpit `e1376460d909`, ClamAV `18530b2f8bda`, GC `66be556845aa` giữ nguyên ID; DB/Mailpit/ClamAV healthy. Web `/ai-hub`, module `AIHub.tsx`, API health và Mailpit HTTP 200. Không sửa `compose.yaml`, `.env`, seed thật, stage/commit hay volume. **Chưa được người dùng nghiệm thu**; còn soát thị giác từng board Penpot và thao tác thật theo checklist mục 7, đặc biệt 768/320 px, theme thưởng, khóa quyền và tiền trên thiết bị thực. Không coi mock screenshot thay cho nghiệm thu.
+
+## 1. Mục tiêu, phạm vi và điểm kết thúc
+
+Hoàn thiện **tất cả route frontend còn lại** theo Synapse Soft: quản trị và danh mục, học viên/giáo viên/lớp/lịch, tuyển sinh/học phí/bảo lưu/điểm danh/thông báo, kết quả/học liệu và cụm AI hiện hành. Mỗi nhóm phải có desktop/mobile, VI/EN, loading/empty/error, focus/keyboard/touch, hover/press, reduced motion và đúng quyền. Dùng board Penpot làm chuẩn bố cục/màu/thứ bậc, còn dữ liệu, trạng thái và hành động lấy từ code/API thực tế. Đăng nhập/dashboard là baseline để đồng bộ, chỉ sửa hồi quy phát hiện khi nối các màn và đưa vào checklist nghiệm thu cuối.
+
+Điểm kết thúc: mọi route trong `App.tsx` có thể hoàn thành tác vụ hiện có ở 1440/768/390/320 px; không mất điều khiển ít dùng, không tràn ngang làm ẩn thao tác, không tạo KPI giả; test theo rủi ro và E2E chọn lọc đạt, sau đó chỉ deploy web và bàn giao nghiệm thu theo vai.
+
+Không làm: thay backend/API/DTO, migration, quyền, tính tiền, bộ đề AI tự động, chat AI tự do, ASR/TTS/VAD, seed thật, import nguyên `ui-design/` hoặc sửa thiết kế Penpot trong đợt code này. [BUG-005 tài khoản bị khóa báo sai](../test-feedback.md) vẫn là bug nghiệp vụ xác thực riêng, không gộp ngầm vào redesign.
+
+## 2. Quy tắc trải nghiệm, quyền và dữ liệu
+
+- Penpot đã có cặp desktop/mobile cho danh sách tuyển sinh, học viên, lớp, học phí, bảo lưu, điểm danh, thông báo và AI học viên. Bảy board **chỉ có desktop** là chi tiết học viên, chi tiết lớp và năm màn AI quản trị/giáo viên (nguồn & định tuyến, Prompt Studio, cấu hình trung tâm, duyệt câu hỏi, tiến độ học viên); `AI · Kết quả bài luyện · Học viên` chỉ có mobile. Bổ sung kích thước còn thiếu theo pattern cùng file, thử thêm 320 px. Những route không có board riêng (Root/trung tâm/thành viên/lời mời, khóa học, kết quả, học liệu, thiết lập điểm...) dùng cùng hệ page/list/detail và chức năng hiện tại; không bỏ route vì thiếu board.
+- Dữ liệu minh họa “Học viên mẫu”, “— mục”, ngày chuỗi và câu hỏi mẫu trong Penpot chỉ hướng dẫn hierarchy. Không render số liệu hay trạng thái giả. Giữ API hiện có qua `frontend/src/api.ts`, error/loading/empty có thông điệp và thao tác phù hợp.
+- Giữ `App.tsx` làm nguồn route/quyền hiển thị; backend là nguồn quyết định quyền và tenant. Root phải thấy rõ trung tâm/phiên hỗ trợ. Học viên chỉ thấy theme đã mở khóa; Synapse Soft mặc định. Không làm màu hoặc animation thay thế tín hiệu chữ/trạng thái; nút có hover/focus/active và phản hồi click, tương tác chạm không phụ thuộc hover; tôn trọng `prefers-reduced-motion`.
+- Các luồng tiền, duyệt tuyển sinh, xếp lớp, bảo lưu/hoàn phí, công bố điểm, thu hồi học liệu và chỉnh lịch giữ xác nhận, phiên bản dữ liệu, `request_key`, cảnh báo lỗi mạng chưa rõ kết quả, và điều kiện nút hiện có. Không gom bước để giống mockup. Board “Duyệt câu hỏi” phản ánh **luồng câu đơn hiện có**; không tự triển khai quyết định sinh bộ đề tự động đang tạm hoãn.
+- Bong bóng chat AI là **hub tác vụ** dẫn đến bài luyện, nhận xét tiến độ và bước kế tiếp từ các chức năng hiện có; không có hội thoại tự do hay endpoint mới. Nếu thêm route frontend cho hub, phải bảo đảm lối đi cũ vẫn hoạt động và role khác không thấy nội dung học viên.
+
+## 3. Bản đồ thay đổi đã đối chiếu file
+
+Các file ghi “Sửa/Tái sử dụng” đã xác minh tồn tại ngày 2026-10-03. File mới ghi **dự kiến tạo**; tên component trong file mới chỉ là trách nhiệm dự kiến, không coi là symbol đang tồn tại.
+
+| Nhiệm vụ | Đường dẫn chính xác | Tạo/Sửa/Tái sử dụng | Symbol hoặc trách nhiệm thay đổi | Test tương ứng |
+|---|---|---|---|---|
+| Pattern trang nghiệp vụ, shell/role/nav, token/interaction | `frontend/src/App.tsx`; `frontend/src/styles.css`; `frontend/src/i18n.ts`; `frontend/src/ui/Icon.tsx`; `frontend/src/ui/routeIcon.ts`; `frontend/src/ui/BusinessPage.tsx` (**dự kiến tạo**); `frontend/src/ui/business.css` (**dự kiến tạo**) | Sửa/tái sử dụng/tạo | Tái dùng icon và shell đã triển khai; tạo pattern heading/filter/list/detail/feedback/confirm khi các màn thật có cùng nhu cầu, không chuyển logic nghiệp vụ vào primitive. Chỉ thêm route AI hub nếu không phá route cũ. | `frontend/src/App.test.tsx`; `frontend/src/ui/BusinessPage.test.tsx` (**dự kiến tạo**, kiểm hành vi truy cập/bàn phím khi primitive được tạo); `frontend/e2e/dashboard.spec.ts` |
+| Root, tài khoản và trung tâm | `frontend/src/Management.tsx`; `frontend/src/Invitations.tsx`; `frontend/src/Account.tsx`; `frontend/src/App.tsx`; `frontend/src/styles.css` | Sửa | `Centers`, `Members`, `Invitations`, `Sessions` và các trạng thái email/phiên; role/support context không lẫn tenant. Penpot không có board riêng, dùng pattern đã xác minh. | `frontend/src/App.test.tsx`; `frontend/src/Invitations.test.tsx`; `frontend/src/Account.test.tsx`; `frontend/e2e/invitations.spec.ts`; `frontend/e2e/account.spec.ts` |
+| Danh mục, hồ sơ, lớp và lịch | `frontend/src/Courses.tsx`; `frontend/src/Students.tsx`; `frontend/src/Proficiencies.tsx`; `frontend/src/Teachers.tsx`; `frontend/src/Classrooms.tsx`; `frontend/src/Scheduling.tsx`; `frontend/src/SessionOperations.tsx`; `frontend/src/styles.css` | Sửa | `Courses`, `Students`, `Teachers`, `Classrooms`, `ClassPlanner`, `PlanningEditor`, `WeeklyAgenda`, `TeachingSessions` và editor chi tiết: responsive list/detail, lọc, quyền sửa, lịch theo timezone, xung đột/preview. Board `Học viên`, `Lớp học` và chi tiết làm ref; bổ sung mobile chi tiết. | Test `.test.tsx` cùng tên hiện có; `frontend/e2e/courses.spec.ts`, `students.spec.ts`, `teachers.spec.ts`, `proficiencies.spec.ts`, `classrooms.spec.ts`, `scheduling.spec.ts` |
+| Tuyển sinh, học phí, quyền học, điểm danh, thông báo | `frontend/src/Admissions.tsx`; `frontend/src/admissions.css`; `frontend/src/EnrollmentLifecycle.tsx`; `frontend/src/App.tsx`; `frontend/src/i18n.ts` | Sửa | `Admissions`, `AdmissionSettings`, `Finances`, `Attendance`, `MyLearning`, `Notifications`, `EnrollmentLifecycle`, `BusinessForm`: list/detail/confirm theo board; học viên/giáo vụ/giáo viên thấy đúng hành động. Giữ tiền VND, trạng thái, idempotency và đọc lại sau lỗi chưa rõ kết quả. | `frontend/src/Admissions.test.tsx`; `frontend/src/EnrollmentLifecycle.test.tsx`; `frontend/e2e/admissions.spec.ts` (locator dashboard đã thay), cùng ca UI theo role nếu cần |
+| Điểm/kết quả và học liệu | `frontend/src/GradingSchemes.tsx`; `frontend/src/Results.tsx`; `frontend/src/results.css`; `frontend/src/Materials.tsx`; `frontend/src/materials.css`; `frontend/src/i18n.ts` | Sửa | `GradingSchemes`, `Results`, `MyResults`, `Materials`, `MyMaterials`: responsive gradebook, điểm đã công bố, phiên bản file/quyền đọc, thông báo khi thu hồi; dùng pattern Penpot vì chưa có board riêng. | Test `.test.tsx` cùng tên hiện có; `frontend/e2e/results.spec.ts`; `frontend/e2e/materials.spec.ts` |
+| AI học viên: hub, bài luyện, nhận xét/theme | `frontend/src/AIHub.tsx` (**dự kiến tạo**); `frontend/src/AIHub.test.tsx` (**dự kiến tạo**); `frontend/src/AIPractice.tsx`; `frontend/src/AIInsights.tsx`; `frontend/src/ai.css`; `frontend/src/App.tsx`; `frontend/src/i18n.ts` | Tạo/sửa | Hub bong bóng chat điều hướng tác vụ thật; `AIPractice`, `AIInsights` và theme thưởng theo board desktop/mobile. Chỉ hiển thị nhận xét có nguồn/trạng thái thật; không dựng chat tự do hoặc thay luồng câu đơn. | `frontend/src/AIHub.test.tsx` (**dự kiến tạo**); `frontend/src/AIPractice.test.tsx`; `frontend/e2e/ai-cluster.spec.ts`; `frontend/e2e/theme.spec.ts` |
+| AI Root/quản lý/giáo viên | `frontend/src/AISettings.tsx`; `frontend/src/AIPrompts.tsx`; `frontend/src/AIPractice.tsx`; `frontend/src/AIInsights.tsx`; `frontend/src/ai.css` | Sửa | Provider/route, Prompt Studio, tenant tasks, duyệt câu hỏi hiện hành, tiến độ lớp. Board desktop là ref, mobile tự bố trí theo pattern; khóa API đã lưu không được lộ. | `frontend/src/AISettings.test.tsx`; `frontend/src/AIPrompts.test.tsx`; `frontend/src/AIPractice.test.tsx`; `frontend/e2e/ai-cluster.spec.ts` |
+| Kiểm tra, ảnh ref và bàn giao | `frontend/e2e/` (các spec nêu trên); `frontend/playwright.ui.config.ts`; `docs/plans/frontend-uiux-rebuild.md`; `docs/current-state.md`; `docs/ui-ux.md` | Sửa/tái sử dụng | So board Penpot với 1440/390 và tự kiểm 768/320; giữ tài liệu UI một nguồn, ghi rõ kết quả code/test/deploy/nghiệm thu. `ui-design/` chỉ đọc. | E2E chọn theo rủi ro từng nhóm; lint/build; smoke web/API sau rollout |
+
+## 4. Thứ tự triển khai và phụ thuộc
+
+1. **Khóa baseline:** chụp route/role matrix từ `App.tsx`, ghi rõ auth/dashboard đã deploy nhưng chưa nghiệm thu; đối chiếu component với board và xác minh file liên quan có đổi sau kế hoạch. Không khảo sát lại toàn repo. Chuẩn hóa pattern page/list/detail và tương tác trong shell trước để các nhóm không tự tạo kiểu riêng.
+2. **Nền quản trị và lớp:** Root/center/member/invite/account, danh mục, hồ sơ, lớp, lịch. Làm desktop và mobile cùng lúc, hoàn tất trạng thái và test của nhóm trước khi chuyển. Các board chi tiết thiếu mobile được suy ra từ board danh sách mobile và pattern shell.
+3. **Hành trình học viên:** tuyển sinh → học phí → bảo lưu/hoàn phí → điểm danh/thông báo. Kiểm chứng hành động tiền/quyền, `request_key`, xác nhận và lỗi mạng riêng trước khi ghép E2E xuyên vai.
+4. **Nội dung học:** gradebook/kết quả → học liệu. Chỉ thay trình bày và thao tác UI; kiểm soát thời điểm công bố/thu hồi và quyền học viên ở mỗi trạng thái.
+5. **Cụm AI hiện tại:** hub học viên, bài luyện/nhận xét/theme; sau đó màn Root/quản lý/giáo viên. Board không có mobile được thiết kế dựa trên pattern đã thử ở nhóm trước. Không suy ra nghiệp vụ mới từ chữ/ảnh minh họa.
+6. **Hồi quy và bàn giao:** kiểm mọi route/role/viewport, tab/focus/reduced motion/hover/active/touch, VI/EN; sửa sai lệch tìm được. Chỉ build/recreate `web` sau khi lint/build và hồi quy chọn lọc đạt; cập nhật checkpoint và để người dùng nghiệm thu thật.
+
+## 5. Migration, deployment, rủi ro và dữ liệu
+
+Không có migration hay seed; không đổi endpoint/backend/`.env`, DB/Mailpit/volume hoặc xóa dữ liệu. Các API và CORS đang chạy là baseline; giữ nguyên `compose.yaml` hiện có trong đợt redesign. Khi đến rollout, ghi ID/image web trước khi thay và dùng `docker compose build web`, `docker compose up -d --no-deps --force-recreate web`; đối chiếu health web/API, không recreate API/DB vì UI.
+
+Rủi ro chính: mất action hiếm khi chuyển bảng sang card; menu role/tenant sai; xác nhận tiền/lịch/học liệu bị lướt qua; số VND/ngày theo timezone/điểm hiển thị sai; AI hub hứa chức năng chưa có; theme/animation làm mất focus hoặc giảm tương phản. Mỗi nhóm có test hành vi gắn API hiện hữu, role matrix và trạng thái lỗi. Không dùng screenshot đơn lẻ làm bằng chứng nghiệp vụ. Penpot plugin có thể bị browser tạm ngưng; lúc đó tiếp tục từ ID board đã lưu, không suy diễn nội dung chưa đọc.
+
+## 6. Lệnh kiểm thử, thư mục chạy và tiêu chí thành công
+
+Chạy từ `C:\Users\ADMIN\VSCode\SynapseLMS\frontend` trên Windows. Trong từng nhóm dùng `npx.cmd vitest run src/<file-liên-quan>.test.tsx ... --maxWorkers=1`, ví dụ nhóm tiền/quyền: `npx.cmd vitest run src/Admissions.test.tsx src/EnrollmentLifecycle.test.tsx --maxWorkers=1`. Sau thay đổi shell/token chung chạy hồi quy UI đủ rộng **một lần** bằng `npx.cmd vitest run --maxWorkers=1`; không lặp full suite sau mỗi chỉnh CSS. Cuối đợt: `npm.cmd run lint`, `npm.cmd run build`.
+
+E2E chọn `npx.cmd playwright test e2e/students.spec.ts e2e/classrooms.spec.ts e2e/scheduling.spec.ts e2e/admissions.spec.ts e2e/results.spec.ts e2e/materials.spec.ts e2e/ai-cluster.spec.ts --reporter=line`; thêm `account/invitations/theme` khi đổi đường tương ứng. E2E dùng SQLite tạm qua `backend/tests/e2e_server.py` và biến `SYNAPSE_E2E_PYTHON` trỏ `backend/.venv/Scripts/python.exe`, không seed DB thật. Visual/role smoke mock có thể tái sử dụng `frontend/playwright.ui.config.ts`. Runner Windows từng treo khi teardown: chỉ ghi **đạt** khi test và process kết thúc exit 0; nếu treo, lưu bằng chứng ca đã chạy và báo giới hạn riêng.
+
+Thành công khi route hiện có không mất chức năng, payload/API/role/tenant không đổi, test/lint/build/E2E chọn lọc không lỗi, mọi nút có focus/hover/active phù hợp, mobile 390/320 không che action; web/API health đạt sau deploy. Không chạy backend full suite nếu backend không đổi.
+
+## 7. Checklist nghiệm thu thủ công theo vai
+
+- **Root:** trung tâm, hỗ trợ tenant, thành viên/lời mời/phiên; AI provider/route/Prompt Studio. Dữ liệu tenant chỉ xuất hiện trong support session hợp lệ; khóa API không hiện lại.
+- **Quản lý và giáo vụ:** tạo/xem khóa-học-viên/lớp/lịch; duyệt/xếp lớp; ghi thu, bảo lưu/hoàn phí và học liệu. Thử cả form lỗi, trạng thái stale/không rõ kết quả và confirm tiền trên desktop/mobile.
+- **Giáo viên:** hồ sơ/lịch dạy, điểm danh, sổ điểm, học liệu, duyệt câu hỏi hiện hành, tiến độ lớp. Điện thoại chạm được từng action, không bị bảng che ngang.
+- **Học viên:** đăng ký/xem hóa đơn/quyền học, lịch/kết quả/học liệu/thông báo; hub AI dẫn tới bài luyện/nhận xét/kế hoạch có nguồn, Synapse Soft mặc định và theme thưởng chỉ mở khi đủ điều kiện.
+- **Chung:** đăng nhập/dashboard mới vẫn đúng năm vai; VI/EN, 1440/768/390/320, bàn phím/focus, reduced motion, hover/press, loading/rỗng/lỗi/retry, không đổi endpoint hoặc số tiền/điểm/trạng thái.
+
+## 8. Quyết định còn cần trả lời
+
+Không có quyết định chặn việc code theo phạm vi đã chốt: giữ API/nghiệp vụ, Synapse Soft mặc định, theme thưởng, mobile suy từ desktop và AI bubble là hub tác vụ. **Nghiệm thu login/dashboard và đăng nhập tài khoản thật còn chờ người dùng**; đó là xác nhận kết quả đã deploy, không phải quyền để tự mở rộng đợt này. Nếu khi triển khai phát hiện board Penpot mâu thuẫn đáng kể với API/quyền thật, giữ nghiệp vụ và xin quyết định riêng trước khi đổi phạm vi.
+
+## 9. Đề cử model
+
+Đề cử model: GPT gpt-6-astra — high, vì phải ghép 63 board và các màn thiếu ref với nhiều vai, tiền/quyền/idempotency và hồi quy giao diện xuyên ứng dụng.

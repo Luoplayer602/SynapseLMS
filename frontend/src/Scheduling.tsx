@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from './api'
+import { optionalRequestKey } from './requestKey'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { BusinessPage } from './ui/BusinessPage'
 import type { FoundationRecord } from './Classrooms'
 import { SessionPanel } from './SessionOperations'
 
@@ -45,7 +47,7 @@ export function PlanningEditor({ data, language, onSaved }: { data: PlanningCont
   const [dirty, setDirty] = useState(!!data.plan?.slots.some(x => (data.class.format === 'online' && x.room_id) || x.teacher_ids.some(id => !data.assignments.some(a => a.teacher_id === id))))
   const [assignmentDirty, setAssignmentDirty] = useState(false)
   const [confirmation, setConfirmation] = useState(false)
-  const [confirmationKey] = useState(() => crypto.randomUUID())
+  const [confirmationKey] = useState(optionalRequestKey)
   const confirmed = !!data.plan?.confirmed_at
   const locked = confirmed || data.class.status === 'archived'
   const stale = ['CLASS_RESOURCE_CONFLICT', 'SCHEDULE_LOCKED', 'SCHEDULE_PREVIEW_STALE'].includes(error)
@@ -69,6 +71,7 @@ export function PlanningEditor({ data, language, onSaved }: { data: PlanningCont
   }
   return <><h2>{t('classPlanning')}: {data.class.name} ({data.class.code})</h2><p>{t('planningHint')}</p><p>{t('branchTimezone')}: {data.class.timezone}</p>
     {error && <p role="alert" className="error">{error === 'REQUEST_FAILED' ? t('mutationUncertain') : errorMessage(language, error)}</p>}
+    {!confirmationKey && <p role="alert" className="error">{errorMessage(language, 'REQUEST_KEY_UNAVAILABLE')}</p>}
     {confirmed && <p role="status">{t('scheduleConfirmedHint')}</p>}
     <form className="card compact-form" onSubmit={e => { e.preventDefault(); void write('/teachers', { version: data.class.version, teacher_ids: selected, override_reason: reason }) }}>
       <h3>{t('classTeachers')}</h3><p>{t('qualificationHint')}</p><fieldset className="profile-fields" disabled={disabled || confirmation || dirty}>
@@ -99,8 +102,8 @@ export function PlanningEditor({ data, language, onSaved }: { data: PlanningCont
         {preview.issues.map((issue, i) => <p className="error" key={i}>{issue.slot === undefined ? '' : `${t('scheduleSlot')} ${issue.slot + 1}: `}{errorMessage(language, issue.code)} {data.teachers.find(x => x.id === issue.teacher_id)?.name}</p>)}
         {preview.conflicts.map((conflict, i) => <p className="error" key={i}>{t(`conflict_${conflict.type}`)} · {t('scheduleSlot')} {conflict.slot + 1} · {conflict.class_code} · {stamp(conflict.starts_at, preview.timezone, language)} → {stamp(conflict.ends_at, preview.timezone, language)}</p>)}
         <ol>{preview.sessions.map((row, index) => <li key={index}>{stamp(row.starts_at, preview.timezone, language)} → {stamp(row.ends_at, preview.timezone, language)} · {data.rooms.find(x => x.id === row.room_id)?.name || t('noDefaultRoom')} · {row.teacher_ids.map(id => data.teachers.find(x => x.id === id)?.name || id).join(', ')}</li>)}</ol>
-        <button disabled={disabled || !preview.can_confirm || confirmation} onClick={() => setConfirmation(true)}>{t('confirmSchedule')}</button>
-        {confirmation && <div><p>{t('confirmScheduleWarning')}</p><button disabled={disabled} onClick={() => void write('/schedule/confirm', { version: preview.version, preview_digest: preview.preview_digest, confirmation_key: confirmationKey }, 'POST')}>{t('confirm')}</button><button disabled={busy} onClick={() => setConfirmation(false)}>{t('cancel')}</button></div>}
+        <button disabled={disabled || !confirmationKey || !preview.can_confirm || confirmation} onClick={() => setConfirmation(true)}>{t('confirmSchedule')}</button>
+        {confirmation && <div><p>{t('confirmScheduleWarning')}</p><button disabled={disabled || !confirmationKey} onClick={() => void write('/schedule/confirm', { version: preview.version, preview_digest: preview.preview_digest, confirmation_key: confirmationKey }, 'POST')}>{t('confirm')}</button><button disabled={busy} onClick={() => setConfirmation(false)}>{t('cancel')}</button></div>}
       </>}
     </section>}
     <section><h3>{t('confirmedSessions')}</h3>{!data.sessions.length && <p>{t('noConfirmedSessions')}</p>}{data.sessions.map(row => <div key={row.id}><SessionCard row={row} language={language} /><SessionPanel id={row.id} language={language} onChanged={updated => onSaved({ ...data, sessions: data.sessions.map(s => s.id === updated.id ? updated : s) })} /></div>)}</section>
@@ -124,7 +127,7 @@ export function TeachingSessions({ language }: { language: Language }) {
     return () => { cancelled = true }
   }, [offset, revision])
   function reload() { setData(null); setError(''); setRevision(x => x + 1) }
-  return <><h1>{t('myTeachingSessions')}</h1><p>{t('myTeachingSessionsHint')}</p><button onClick={reload}>{t('refreshList')}</button>
+  return <BusinessPage title={<>{t('myTeachingSessions')}</>} className="workflow-page"><p>{t('myTeachingSessionsHint')}</p><button onClick={reload}>{t('refreshList')}</button>
     {error && <p role="alert" className="error">{errorMessage(language, error)}</p>}{!data && !error && <p role="status">{t('loading')}</p>}{data && !error && <>{!data.items.length && <p>{t('noConfirmedSessions')}</p>}{data.items.map(row => <SessionCard key={row.id} row={row} language={language} />)}<div className="session-actions"><button disabled={!offset} onClick={() => { setOffset(Math.max(0, offset - 20)); reload() }}>{t('previousPage')}</button><span>{data.total ? offset + 1 : 0}–{Math.min(offset + 20, data.total)} / {data.total}</span><button disabled={offset + 20 >= data.total} onClick={() => { setOffset(offset + 20); reload() }}>{t('nextPage')}</button></div></>}
-  </>
+  </BusinessPage>
 }

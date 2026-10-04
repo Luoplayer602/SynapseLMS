@@ -10,6 +10,12 @@ async function signIn(page: Page, email: string) {
   await page.getByRole('button', { name: 'English', exact: true }).click()
 }
 
+async function openRecord(page: Page, name: string) {
+  const row = page.locator('.business-list > article').filter({ has: page.getByRole('heading', { name, exact: true }) })
+  await expect(row).toBeVisible()
+  await row.getByRole('button', { name: 'View / edit', exact: true }).click()
+}
+
 test('manager builds facilities and draft class; staff reads facilities and edits classes', async ({ page, browser, request }, testInfo) => {
   const base = 'http://127.0.0.1:8011/api/v1'
   await request.post('http://127.0.0.1:8011/__test/reset-rate')
@@ -71,7 +77,7 @@ test('manager builds facilities and draft class; staff reads facilities and edit
   await page.getByLabel('Maximum capacity').fill('15')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Foundation class', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(page, 'Foundation class')
   await expect(page.getByText('Original course goal', { exact: false })).toBeVisible()
   await expect(page.getByLabel('Source course')).toHaveCount(0)
   await page.getByRole('button', { name: 'Correct code', exact: true }).click()
@@ -83,7 +89,7 @@ test('manager builds facilities and draft class; staff reads facilities and edit
   // Manager cannot shrink an occupied draft class room or archive it.
   await page.getByRole('link', { name: 'Branches & rooms' }).click()
   await page.getByRole('button', { name: 'Rooms', exact: true }).click()
-  await page.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(page, 'Foundation room')
   await page.getByLabel('Maximum capacity').fill('10')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('Adjust the class first')
@@ -98,11 +104,11 @@ test('manager builds facilities and draft class; staff reads facilities and edit
   await staff.getByRole('link', { name: 'Branches & rooms' }).click()
   await expect(staff.getByRole('heading', { name: 'Foundation branch' })).toBeVisible()
   await expect(staff.getByRole('button', { name: 'Add branch', exact: true })).toHaveCount(0)
-  await staff.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(staff, 'Foundation branch')
   await expect(staff.getByLabel('Branch address')).toBeDisabled()
   await expect(staff.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0)
   await staff.getByRole('link', { name: 'Classes', exact: true }).click()
-  await staff.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(staff, 'Foundation class')
   await staff.getByLabel('Class format').selectOption('online')
   await expect(staff.getByLabel('Default room')).toHaveValue('')
   await expect(staff.getByLabel('Default room')).toBeDisabled()
@@ -114,7 +120,7 @@ test('manager builds facilities and draft class; staff reads facilities and edit
   const editedCourse = await request.patch(base + `/courses/${course.id}`, { headers, data: { version: 3, name: 'Changed source course', language_id: lang.id, framework_id: scale.id, exit_level_id: level.id, objectives: 'Changed course goal' } })
   expect(editedCourse.ok()).toBe(true)
   await staff.getByRole('button', { name: 'Refresh list', exact: true }).click()
-  await staff.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(staff, 'Foundation class')
   await expect(staff.getByText('Original course goal', { exact: false })).toBeVisible()
   await expect(staff.getByText(/The source course is no longer published/)).toBeVisible()
   await staff.getByRole('button', { name: 'Archive', exact: true }).click()
@@ -124,14 +130,14 @@ test('manager builds facilities and draft class; staff reads facilities and edit
   await expect(staff.getByRole('button', { name: 'Search', exact: true })).toBeVisible()
   await staff.getByRole('combobox', { name: 'Status', exact: true }).selectOption('archived')
   await staff.getByRole('button', { name: 'Search', exact: true }).click()
-  await staff.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(staff, 'Foundation class')
   await expect(staff.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   await staff.getByRole('button', { name: 'Restore', exact: true }).click()
   await staff.getByLabel('Reason', { exact: true }).fill('Restore test class')
   await staff.getByRole('button', { name: 'Confirm', exact: true }).click()
   await staff.getByRole('combobox', { name: 'Status', exact: true }).selectOption('draft')
   await staff.getByRole('button', { name: 'Search', exact: true }).click()
-  await staff.getByRole('button', { name: 'View / edit', exact: true }).click()
+  await openRecord(staff, 'Foundation class')
   await staff.getByRole('button', { name: 'Tiếng Việt', exact: true }).click()
   await staff.setViewportSize({ width: 390, height: 844 })
   for (const colorScheme of ['light', 'dark'] as const) {

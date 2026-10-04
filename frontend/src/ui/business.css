@@ -1,0 +1,74 @@
+.dashboard-shell {
+  --business-ink: #202d35;
+  --business-muted: #607583;
+  --business-line: #ddeae7;
+  --business-accent: #087d77;
+  --business-surface: #fff;
+  --button-bg: #fff;
+  --button-hover: #e6fbf3;
+  --focus: #087d77;
+}
+.dashboard-shell .content { font-size: .94rem; line-height: 1.5; }
+.dashboard-shell .content > h1, .business-page-heading h1 { margin: 0; color: var(--business-ink); font-size: clamp(1.65rem, 2.6vw, 2.25rem); line-height: 1.2; letter-spacing: -.035em; }
+.dashboard-shell .content > p, .business-page-heading p { color: var(--business-muted); }
+.dashboard-shell .content > .card, .dashboard-shell .content > section > .card, .dashboard-shell .content > article.card, .business-list > .card {
+  border-color: var(--business-line); background: var(--business-surface); box-shadow: 0 6px 24px #14333a08;
+}
+.business-page button, .dashboard-shell .content a { touch-action: manipulation; }
+.business-page button:not(:disabled) { color: var(--business-accent); border-color: var(--business-line); background: var(--business-surface); }
+.business-page button.primary:not(:disabled) { color: #063b38; background: #04bfaf; border-color: #04bfaf; }
+.business-page button:not(:disabled):hover { background: var(--button-hover); border-color: #a8dcd2; }
+.business-page button.primary:not(:disabled):hover { background: #00aa9a; border-color: #00aa9a; }
+.business-page button[aria-pressed='true'] { background: #e6fbf3; color: var(--business-accent); border-color: #a8dcd2; }
+.dashboard-shell .content input, .dashboard-shell .content select, .dashboard-shell .content textarea { color: var(--business-ink); background: #fff; border-color: #cddbdc; }
+.dashboard-shell .content :is(input, select, textarea):disabled { background: #f1f5f4; }
+.business-page { display: grid; gap: 20px; min-width: 0; }
+.business-page-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px 24px; }
+.business-page-heading p { margin: 8px 0 0; max-width: 70ch; }
+.business-page-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.business-page .business-filter { max-width: none; display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin: 0; padding: 18px; border: 1px solid var(--business-line); border-radius: 16px; background: var(--business-surface); }
+.business-page .business-filter label { flex: 1 1 165px; min-width: 0; color: var(--business-muted); font-size: .83rem; font-weight: 600; }
+.business-page .business-filter input, .business-page .business-filter select { width: 100%; }
+.business-list { display: grid; gap: 10px; min-width: 0; }
+.business-list > .card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 18px; margin: 0; max-width: none; padding: 17px 20px; }
+.business-list > .card h2, .business-list > .card h3 { grid-column: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: 1rem; }
+.business-list > .card p { grid-column: 1; min-width: 0; margin: 0; color: var(--business-muted); overflow-wrap: anywhere; font-size: .83rem; }
+.business-list > .card > button, .business-list > .card > .business-row-actions { grid-column: 2; grid-row: 1 / span 3; justify-self: end; }
+.business-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.business-page .session-actions { align-items: center; }
+.business-page .session-actions > span { color: var(--business-muted); font-size: .85rem; }
+.workflow-page > .card { width: 100%; max-width: none; margin: 0; border-color: var(--business-line); background: var(--business-surface); box-shadow: 0 6px 24px #14333a08; }
+.workflow-page > article.card { padding: 22px 24px; }
+.workflow-page > article.card > h2, .workflow-page > article.card > h3 { margin: 0 0 8px; color: var(--business-ink); font-size: clamp(1rem, 1.7vw, 1.2rem); line-height: 1.35; }
+.workflow-page > article.card > p { margin: 6px 0; color: var(--business-muted); overflow-wrap: anywhere; }
+.workflow-page > article.card > button { margin-top: 12px; }
+.workflow-page > article.card > .compact-form { max-width: min(100%, 620px); margin-bottom: 0; background: #f9fcfb; box-shadow: none; }
+.workflow-page > .compact-form { max-width: min(100%, 760px); margin: 0; }
+.workflow-page > details { padding: 16px 20px; border: 1px solid var(--business-line); border-radius: 14px; background: var(--business-surface); }
+.workflow-page > details summary { cursor: pointer; font-weight: 650; }
+.workflow-page > details summary:hover { color: var(--business-accent); }
+.workflow-page > h2 { margin: 8px 0 0; font-size: 1.2rem; }
+.workflow-page > p[role='alert'] { margin: 0; padding: 12px 16px; border-radius: 12px; background: #fff0ed; }
+.workflow-page > p[role='status'] { margin: 0; }
+.workflow-page > div:not(.business-page-heading) { min-width: 0; }
+.workflow-page :is(article, form, details, dl) { min-width: 0; }
+.workflow-page dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 12px; }
+.workflow-page dl > div { min-width: 0; padding: 12px; border: 1px solid var(--business-line); border-radius: 12px; background: #f8fbfa; }
+.workflow-page dt { color: var(--business-muted); font-size: .78rem; }
+.workflow-page dd { margin: 4px 0 0; overflow-wrap: anywhere; font-weight: 700; }
+@media (max-width: 640px) {
+  .business-page-heading { align-items: stretch; flex-direction: column; }
+  .business-page-actions > button { flex: 1 1 auto; }
+  .business-page .business-filter { padding: 14px; }
+  .business-page .business-filter label { flex-basis: 100%; }
+  .business-page .business-filter > button { width: 100%; }
+  .business-list > .card { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .business-list > .card > button, .business-list > .card > .business-row-actions { grid-column: 1; grid-row: auto; justify-self: stretch; margin-top: 8px; }
+  .business-list > .card > button, .business-row-actions > button { flex: 1 1 auto; }
+  .workflow-page > article.card { padding: 16px; }
+  .workflow-page > article.card > .compact-form { padding: 16px; }
+  .workflow-page > .compact-form { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .business-page button, .business-page a { transition: none !important; transform: none !important; }
+}

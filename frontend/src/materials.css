@@ -1,4 +1,8 @@
 .materials-page { display: grid; gap: 1rem; }
+.dashboard-shell .materials-page > h1 { margin: 0; font-size: clamp(1.65rem, 2.6vw, 2.25rem); line-height: 1.2; letter-spacing: -.035em; }
+.dashboard-shell .materials-page > .card, .dashboard-shell .materials-page .material-row { border-color: #ddeae7; background: #fff; box-shadow: 0 6px 24px #14333a08; }
+.dashboard-shell .materials-page .material-row { border: 1px solid #ddeae7; border-radius: 14px; padding: 16px 18px; }
+.dashboard-shell .materials-page :is(button, a) { touch-action: manipulation; }
 .materials-page > p { margin: 0; }
 .materials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1rem; }
 .material-form { display: grid; gap: .75rem; }
@@ -11,4 +15,4 @@
 .material-row p { margin: .25rem 0; }
 .material-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
 .curriculum-editor { display: grid; gap: .5rem; margin-top: 1rem; }
-@media (max-width: 700px) { .material-row { align-items: stretch; flex-direction: column; } .material-actions > button { flex: 1; } }
+@media (max-width: 700px) { .material-row { align-items: stretch; flex-direction: column; } .material-row > button, .material-actions > button { flex: 1; } .materials-page > button { width: 100%; } }

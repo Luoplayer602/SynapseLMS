@@ -4,6 +4,7 @@ import { api, ApiError, signIn, signOut } from './api'
 import type { Profile } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { BusinessPage } from './ui/BusinessPage'
 import { useEmailLink } from './useEmailLink'
 
 interface Invitation {
@@ -57,7 +58,7 @@ export function Invitations({ language, root }: { language: Language; root: bool
       setAction(null); refresh()
     } catch (e) { setError(code(e)) } finally { setBusy(false) }
   }
-  return <><h1>{t('invitations')}</h1><p>{t('invitationsHint')}</p>
+  return <BusinessPage title={<>{t('invitations')}</>} className="workflow-page"><p>{t('invitationsHint')}</p>
     {error && <p role="alert" className="error">{errorMessage(language, error)}</p>}
     {notice && <p role="status">{t(notice)}</p>}
     <form className="card compact-form" onSubmit={create}><h2>{t('inviteMember')}</h2>
@@ -90,7 +91,7 @@ export function Invitations({ language, root }: { language: Language; root: bool
     {page && <div className="session-actions"><button disabled={busy || loading || offset === 0} onClick={() => { setOffset(Math.max(0, offset - 20)); setLoading(true) }}>{t('previousPage')}</button>
       <span>{page.items.length ? offset + 1 : 0}–{page.items.length ? offset + page.items.length : 0} / {page.total}</span>
       <button disabled={busy || loading || offset + 20 >= page.total} onClick={() => { setOffset(offset + 20); setLoading(true) }}>{t('nextPage')}</button></div>}
-  </>
+  </BusinessPage>
 }
 
 interface Preview { email: string; display_name: string; role: string; organization_name: string; expires_at: string; existing_account: boolean }

@@ -4,6 +4,7 @@ import { api, ApiError } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
 import { Proficiencies } from './Proficiencies'
+import { BusinessList, BusinessPage } from './ui/BusinessPage'
 
 interface Guardian { full_name: string; relationship: string; phone: string; email: string | null; is_primary: boolean }
 interface StudentRow { id: string; code: string; full_name: string; archived: boolean; version: number }
@@ -60,24 +61,23 @@ export function Students({ language, personal = false, displayName = '' }: { lan
     if (!personal) setSelection(result.id)
   }
   const showEditor = !loading && (personal || !!selection || (creating && !!candidate)) && !error
-  return <><h1>{t(personal ? 'myStudentProfile' : 'students')}</h1>
+  return <BusinessPage title={t(personal ? 'myStudentProfile' : 'students')} actions={<>
+    {!personal && (selection || creating) && <button onClick={back}>{t('backToStudents')}</button>}
+    <button disabled={loading} onClick={reload}>{t('refreshList')}</button>
+  </>}>
     {error && <p role="alert" className="error">{errorMessage(language, error)}</p>}
     {notice && <p role="status">{t(notice)}</p>}
     {loading && <p role="status">{t('loading')}</p>}
-    <div className="session-actions">
-      {!personal && (selection || creating) && <button onClick={back}>{t('backToStudents')}</button>}
-      <button disabled={loading} onClick={reload}>{t('refreshList')}</button>
-    </div>
     {!personal && !selection && !creating && <>
-      <form className="compact-form" onSubmit={e => { e.preventDefault(); const data = new FormData(e.currentTarget); setOffset(0); setQuery(String(data.get('query'))); setStatus(String(data.get('status'))); reload() }}>
+      <form className="compact-form business-filter" onSubmit={e => { e.preventDefault(); const data = new FormData(e.currentTarget); setOffset(0); setQuery(String(data.get('query'))); setStatus(String(data.get('status'))); reload() }}>
         <label>{t('studentSearch')}<input name="query" maxLength={100} defaultValue={query} /></label>
         <label>{t('profileStatus')}<select name="status" defaultValue={status}><option value="active">{t('profileActive')}</option><option value="archived">{t('profileArchived')}</option><option value="all">{t('allStatuses')}</option></select></label>
         <button disabled={loading}>{t('search')}</button>
       </form>
-      <button onClick={() => { setCreating(true); setNotice('') }}>{t('newStudentProfile')}</button>
+      <button className="primary" onClick={() => { setCreating(true); setNotice('') }}>{t('newStudentProfile')}</button>
       {!loading && rows?.items.length === 0 && <p>{t('empty')}</p>}
-      {rows?.items.map(row => <article className="card management-card" key={row.id}><h2>{row.full_name}</h2><p>{row.code} · {t(row.archived ? 'profileArchived' : 'profileActive')}</p>
-        <button disabled={loading} onClick={() => { setSelection(row.id); setDetail(null); setNotice(''); setError(''); setLoading(true) }}>{t('viewProfile')}</button></article>)}
+      <BusinessList label={t('students')}>{rows?.items.map(row => <article className="card management-card" role="listitem" key={row.id}><h2>{row.full_name}</h2><p>{row.code} · {t(row.archived ? 'profileArchived' : 'profileActive')}</p>
+        <button disabled={loading} onClick={() => { setSelection(row.id); setDetail(null); setNotice(''); setError(''); setLoading(true) }}>{t('viewProfile')}</button></article>)}</BusinessList>
       {rows && <Pager language={language} offset={offset} total={rows.total} count={rows.items.length} busy={loading} onPage={n => { setOffset(n); setLoading(true) }} />}
     </>}
     {!personal && creating && !candidate && <Candidates language={language} onChoose={item => { setCandidate(item); setDetail(null); setError('') }} />}
@@ -85,7 +85,7 @@ export function Students({ language, personal = false, displayName = '' }: { lan
     {showEditor && detail && proficiencies && <Proficiencies key={`${detail.id}:${revision}`} language={language} profileId={detail.id} personal={personal} archived={detail.archived} />}
     {showEditor && !proficiencies && (detail || creating) && <ProfileEditor key={detail ? `${detail.id}:${detail.version}:${revision}` : `new:${candidate?.id || 'me'}`} language={language} personal={personal} detail={detail}
       candidate={candidate} defaultName={displayName} onSaved={saved} />}
-  </>
+  </BusinessPage>
 }
 
 function Candidates({ language, onChoose }: { language: Language; onChoose: (item: Candidate) => void }) {

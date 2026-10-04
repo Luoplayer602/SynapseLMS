@@ -43,7 +43,7 @@ test('staff previews and confirms schedules; clashes block reservations, adjacen
   const classes = []
   for (const code of ['SCH-A', 'SCH-B']) classes.push(await create('/classes', { code, name: code, course_id: course.id, branch_id: branch.id, room_id: room.id, capacity: 15, starts_on: '2026-10-01', ends_on: '2026-12-01', format: 'offline' }))
   await signIn(page, 'sch-staff@example.com')
-  await page.getByRole('link', { name: 'Classes', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Navigation' }).getByRole('link', { name: 'Classes', exact: true }).click()
   async function openClass(code: string) {
     await page.getByLabel('Search code or name').fill(code)
     await page.getByRole('button', { name: 'Search', exact: true }).click()
@@ -89,7 +89,7 @@ test('staff previews and confirms schedules; clashes block reservations, adjacen
   const teacherContext = await browser.newContext({ baseURL: 'http://127.0.0.1:5180' })
   const personal = await teacherContext.newPage()
   await signIn(personal, 'sch-teacher@example.com')
-  await personal.getByRole('link', { name: 'My teaching schedule', exact: true }).click()
+  await personal.getByRole('navigation', { name: 'Navigation' }).getByRole('link', { name: 'My teaching schedule', exact: true }).click()
   await expect(personal.getByRole('heading', { name: 'SCH-A (SCH-A)', exact: true })).toBeVisible()
   await expect(personal.getByRole('heading', { name: 'SCH-B (SCH-B)', exact: true })).toBeVisible()
   await expect(personal.getByRole('button', { name: 'Save assignments' })).toHaveCount(0)
@@ -102,7 +102,7 @@ test('staff previews and confirms schedules; clashes block reservations, adjacen
     await personal.screenshot({ path: testInfo.outputPath(`teaching-schedule-${colorScheme}.png`), fullPage: true })
   }
   // Operations use the weekly agenda and preserve the initial template.
-  await page.getByRole('link', { name: 'Weekly agenda', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Navigation' }).getByRole('link', { name: 'Weekly agenda', exact: true }).click()
   await page.getByLabel('Week starting').fill('2026-10-05')
   await page.getByLabel('Filter room').selectOption(room.id)
   await page.getByRole('button', { name: 'Show agenda', exact: true }).click()

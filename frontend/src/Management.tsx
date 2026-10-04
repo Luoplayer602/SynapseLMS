@@ -5,6 +5,7 @@ import { api, ApiError } from './api'
 import type { Member, Organization } from './api'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { BusinessPage } from './ui/BusinessPage'
 
 function useManagement<T>(path: string, language: Language) {
   const [rows, setRows] = useState<T[]>([])
@@ -36,7 +37,7 @@ export function Centers({ language, onSupport }: { language: Language; onSupport
       name: values.get('name'), slug: values.get('slug'), is_public: values.has('public'), registration_enabled: values.has('registration'),
     }); form.reset() })
   }
-  return <><h1>{t('centers')}</h1><p>{t('rootSupportHint')}</p>{message}{busy && <p role="status">{t('loading')}</p>}
+  return <BusinessPage title={t('centers')} description={t('rootSupportHint')}>{message}{busy && <p role="status">{t('loading')}</p>}
     <form className="card compact-form" onSubmit={create}><h2>{t('newCenter')}</h2>
       <label>{t('centerName')}<input name="name" required maxLength={200} /></label><label>{t('slug')}<input name="slug" required pattern="[a-z0-9][a-z0-9-]{1,79}" /></label>
       <label className="check"><input type="checkbox" name="public" />{t('public')}</label><label className="check"><input type="checkbox" name="registration" />{t('registration')}</label><button disabled={busy}>{t('create')}</button>
@@ -52,7 +53,7 @@ export function Centers({ language, onSupport }: { language: Language; onSupport
         const support = await api<{ id: string }>('/admin/support-sessions', 'POST', { organization_id: org.id, reason: f.get('reason') })
         onSupport(support.id, org.name)
       }) }}><label>{t('reason')}<input name="reason" aria-label={`${t('support')} ${org.name}`} minLength={3} maxLength={500} required /></label><button disabled={busy || !org.is_active}>{t('support')}</button></form>
-    </article>)}</>
+    </article>)}</BusinessPage>
 }
 
 export function Members({ language, root, actorId }: { language: Language; root: boolean; actorId: string }) {
@@ -60,7 +61,7 @@ export function Members({ language, root, actorId }: { language: Language; root:
   const { rows, busy, run, message } = useManagement<Member>('/members', language)
   const [invite, setInvite] = useState('')
   const roles = [...(root ? ['organization_manager'] : []), 'staff', 'teacher', 'student']
-  return <><h1>{t('members')}</h1>{message}{busy && <p role="status">{t('loading')}</p>}
+  return <BusinessPage title={t('members')}>{message}{busy && <p role="status">{t('loading')}</p>}
     <p><Link to="/invitations">{t('inviteMember')}</Link></p>
     <button disabled={busy} onClick={() => void run(async () => { const result = await api<{ code: string }>('/organization/invites', 'POST', {}); setInvite(result.code) })}>{t('createInvite')}</button>
     {invite && <p role="status">{t('invite')}: <code>{invite}</code></p>}
@@ -77,5 +78,5 @@ export function Members({ language, root, actorId }: { language: Language; root:
       {root && <form onSubmit={e => { e.preventDefault(); const f = new FormData(e.currentTarget); void run(() => api(`/admin/users/${member.user_id}`, 'PATCH', { is_active: f.get('status') === 'true', reason: f.get('reason') })) }}>
         <select name="status" aria-label={t('active')}><option value="false">{t('lockUser')}</option><option value="true">{t('unlockUser')}</option></select><label>{t('reason')}<input name="reason" minLength={3} maxLength={500} required /></label><button disabled={busy}>{t('save')}</button>
       </form>}
-    </article>)}</>
+    </article>)}</BusinessPage>
 }

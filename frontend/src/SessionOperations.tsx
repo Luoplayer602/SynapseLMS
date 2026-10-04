@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api, ApiError } from './api'
+import { optionalRequestKey } from './requestKey'
 import { errorMessage, translate } from './i18n'
 import type { Language } from './i18n'
+import { BusinessPage } from './ui/BusinessPage'
 import type { FoundationRecord } from './Classrooms'
 
 export interface SessionRow { id: string; version: number; status: string; class_code: string; class_name: string; branch_id: string; branch_name: string; room_id: string | null; room_name: string | null; starts_at: string; ends_at: string; timezone: string; format: string; teachers: { id: string; name: string }[] }
@@ -55,16 +57,17 @@ export function SessionEditor({ detail, language, onApplied }: { detail: Detail;
   const [teachers, setTeachers] = useState(row.teachers.map(x => x.id))
   const [reason, setReason] = useState('')
   const [override, setOverride] = useState(detail.override_reason)
-  const [key, setKey] = useState(() => crypto.randomUUID())
+  const [key, setKey] = useState(optionalRequestKey)
   const [preview, setPreview] = useState<Preview | null>(null)
   const [pending, setPending] = useState<object | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [uncertain, setUncertain] = useState(false)
   const stale = ['CLASS_RESOURCE_CONFLICT', 'SESSION_REQUEST_REUSED', 'SESSION_STATE', 'SESSION_PAST'].includes(error)
-  const disabled = busy || !detail.can_edit || stale || uncertain
-  const changed = () => { setPreview(null); setPending(null); setKey(crypto.randomUUID()) }
+  const disabled = busy || !detail.can_edit || stale || uncertain || !key
+  const changed = () => { setPreview(null); setPending(null); setKey(optionalRequestKey()) }
   async function check() {
+    if (!key) return
     const body = { version: row.version, action, reason, request_key: key,
       ...(action === 'reschedule' ? { day, starts_at: starts, ends_at: ends, room_id: room || null } : {}),
       ...(action === 'substitute' ? { teacher_ids: teachers, override_reason: override } : {}) }
@@ -80,7 +83,7 @@ export function SessionEditor({ detail, language, onApplied }: { detail: Detail;
     finally { setBusy(false) }
   }
   return <section><h4>{t('sessionOperation')}</h4><p>{t('singleSessionHint')}</p><SessionSummary row={row} language={language} />
-    {!detail.can_edit && <p>{t('sessionReadOnly')}</p>}{error && <p role="alert" className="error">{uncertain ? t('mutationUncertain') : errorMessage(language, error)}</p>}
+    {!detail.can_edit && <p>{t('sessionReadOnly')}</p>}{!key && <p role="alert" className="error">{errorMessage(language, 'REQUEST_KEY_UNAVAILABLE')}</p>}{error && <p role="alert" className="error">{uncertain ? t('mutationUncertain') : errorMessage(language, error)}</p>}
     <form className="compact-form" onSubmit={e => { e.preventDefault(); void check() }}><fieldset className="profile-fields" disabled={disabled}>
       <label>{t('sessionAction')}<select value={action} onChange={e => { setAction(e.target.value as Action); changed() }}>{(row.status === 'cancelled' ? ['restore'] : ['reschedule', 'substitute', 'cancel']).map(a => <option key={a} value={a}>{t(`operation_${a}`)}</option>)}</select></label>
       {action === 'reschedule' && <><label>{t('sessionDate')}<input type="date" min={detail.class.starts_on} max={detail.class.ends_on} required value={day} onChange={e => { setDay(e.target.value); changed() }} /></label><label>{t('startTime')}<input type="time" step={60} required value={starts} onChange={e => { setStarts(e.target.value); changed() }} /></label><label>{t('endTime')}<input type="time" step={60} required value={ends} onChange={e => { setEnds(e.target.value); changed() }} /></label><label>{t('sessionRoom')}<select disabled={row.format === 'online'} value={room} onChange={e => { setRoom(e.target.value); changed() }}><option value="">{t('noDefaultRoom')}</option>{detail.rooms.map(r => <option key={r.id} value={r.id} disabled={!!r.archived || (r.capacity || 0) < (detail.class.capacity || 0)}>{r.name} ({r.code})</option>)}</select></label></>}
@@ -110,7 +113,7 @@ export function WeeklyAgenda({ language }: { language: Language }) {
   }, [query, offset, revision])
   function load(day = from) { if (!day) return; setFrom(day); setData(null); setError(''); setOffset(0); setQuery(new URLSearchParams({ starts_on: day, ends_on: shift(day, 6), status, ...(branch ? { branch_id: branch } : {}), ...(room ? { room_id: room } : {}), ...(teacher ? { teacher_id: teacher } : {}) }).toString()); setRevision(x => x + 1) }
   const days = [...new Set(data?.items.map(row => localDay(row.starts_at, row.timezone)) || [])].sort()
-  return <><h1>{t('weeklyAgenda')}</h1><p>{t('agendaHint')}</p><form className="card compact-form" onSubmit={e => { e.preventDefault(); load() }}><label>{t('weekFrom')}<input required type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>{[['branches', branch, setBranch], ['rooms', room, setRoom], ['teachers', teacher, setTeacher]].map(([kind, value, setter]) => <label key={String(kind)}>{t(`agenda_${kind}`)}<select value={String(value)} onChange={e => (setter as (v: string) => void)(e.target.value)}><option value="">{t('agendaAll')}</option>{options?.[String(kind)]?.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>)}<label>{t('sessionStatus')}<select value={status} onChange={e => setStatus(e.target.value)}>{['scheduled', 'cancelled', 'all'].map(s => <option key={s} value={s}>{t(`session_${s}`)}</option>)}</select></label><button>{t('loadAgenda')}</button></form><button onClick={() => load(shift(from, -7))} disabled={!from}>{t('previousWeek')}</button><button onClick={() => load(shift(from, 7))} disabled={!from}>{t('nextWeek')}</button>
+  return <BusinessPage title={<>{t('weeklyAgenda')}</>} className="workflow-page"><p>{t('agendaHint')}</p><form className="card compact-form" onSubmit={e => { e.preventDefault(); load() }}><label>{t('weekFrom')}<input required type="date" value={from} onChange={e => setFrom(e.target.value)} /></label>{[['branches', branch, setBranch], ['rooms', room, setRoom], ['teachers', teacher, setTeacher]].map(([kind, value, setter]) => <label key={String(kind)}>{t(`agenda_${kind}`)}<select value={String(value)} onChange={e => (setter as (v: string) => void)(e.target.value)}><option value="">{t('agendaAll')}</option>{options?.[String(kind)]?.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>)}<label>{t('sessionStatus')}<select value={status} onChange={e => setStatus(e.target.value)}>{['scheduled', 'cancelled', 'all'].map(s => <option key={s} value={s}>{t(`session_${s}`)}</option>)}</select></label><button>{t('loadAgenda')}</button></form><button onClick={() => load(shift(from, -7))} disabled={!from}>{t('previousWeek')}</button><button onClick={() => load(shift(from, 7))} disabled={!from}>{t('nextWeek')}</button>
     {error && <p role="alert" className="error">{errorMessage(language, error)}</p>}{!data && !error && <p role="status">{t('loading')}</p>}{data && !error && <>{!data.items.length && <p>{t('noConfirmedSessions')}</p>}{days.map(day => <section key={day}><h2>{day}</h2>{data.items.filter(row => localDay(row.starts_at, row.timezone) === day).map(row => <article className="card" key={row.id}><SessionSummary row={row} language={language} /><SessionPanel id={row.id} language={language} onChanged={() => load()} /></article>)}</section>)}<button disabled={!offset} onClick={() => { setData(null); setError(''); setOffset(Math.max(0, offset - 20)) }}>{t('previousPage')}</button><span> {data.total ? offset + 1 : 0}–{Math.min(offset + 20, data.total)} / {data.total} </span><button disabled={offset + 20 >= data.total} onClick={() => { setData(null); setError(''); setOffset(offset + 20) }}>{t('nextPage')}</button></>}
-  </>
+  </BusinessPage>
 }

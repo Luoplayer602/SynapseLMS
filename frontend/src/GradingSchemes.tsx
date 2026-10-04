@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api, ApiError } from './api'
+import { createRequestKey, requestErrorCode } from './requestKey'
 import type { Language } from './i18n'
 import { errorMessage } from './i18n'
 import './results.css'
@@ -47,8 +48,8 @@ export function GradingSchemes({ language, manager }: { language: Language; mana
   async function mutate(path: string, method: string, body: object) {
     if (busy) return
     setBusy(true); setError('')
-    try { await api(path, method, { ...body, request_key: crypto.randomUUID() }); reset(); refresh() }
-    catch (e) { setError(e instanceof ApiError ? e.code : 'REQUEST_FAILED') }
+    try { await api(path, method, { ...body, request_key: createRequestKey() }); reset(); refresh() }
+    catch (e) { setError(requestErrorCode(e)) }
     finally { setBusy(false) }
   }
   function submit(event: FormEvent) {

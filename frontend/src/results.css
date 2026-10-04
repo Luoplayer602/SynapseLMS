@@ -13,4 +13,10 @@
 .result-table-scroll th, .result-table-scroll td { padding: .55rem; text-align: left; border-bottom: 1px solid var(--line, #bdcfd0); }
 .result-page .card { min-width: 0; }
 .result-page dl { display: grid; grid-template-columns: minmax(120px, 1fr) 1fr; gap: .35rem; }
+.dashboard-shell .result-page > .result-heading h1 { margin: 0; font-size: clamp(1.65rem, 2.6vw, 2.25rem); line-height: 1.2; letter-spacing: -.035em; }
+.dashboard-shell .result-page > .card, .dashboard-shell .result-book, .dashboard-shell .result-page .result-form { border-color: #ddeae7; background: #fff; box-shadow: 0 6px 24px #14333a08; }
+.dashboard-shell .result-page > .card { margin: 0; max-width: none; }
+.dashboard-shell .result-page :is(button, a) { touch-action: manipulation; }
+.dashboard-shell .result-page button[aria-pressed='true'] { background: #e6fbf3; color: #087d77; border-color: #a8dcd2; }
 @media (max-width: 640px) { .result-score-row { grid-template-columns: 1fr 1fr; } .result-score-row strong, .result-score-row label:last-child { grid-column: 1 / -1; } }
+@media (max-width: 640px) { .result-heading { align-items: stretch; flex-direction: column; }.result-heading > button { width: 100%; }.result-table-scroll { margin-inline: -4px; } }
